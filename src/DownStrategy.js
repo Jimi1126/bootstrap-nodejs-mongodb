@@ -25,20 +25,17 @@
       }
 
       execute(callback) {
+        var arr;
         if (this.handlerList.length === 0) {
           callback();
         }
-        return async.eachLimit(this.data.urls, this.data.conf.remote.max_connections, (url, next) => {
-          var arr;
-          arr = this.handlerList.map((handler) => {
-            handler.target.data = this.data;
-            return function(next) {
-              return handler.execute.apply(handler, [url, next]);
-            };
-          });
-          arr.push(next);
-          return async.series(arr);
-        }, callback);
+        arr = this.handlerList.map((handler) => {
+          handler.target.data = this.data;
+          return function(next) {
+            return handler.execute.call(handler, next);
+          };
+        });
+        return async.series(arr, callback);
       }
 
     };

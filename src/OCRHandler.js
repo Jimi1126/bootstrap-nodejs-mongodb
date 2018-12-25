@@ -9,8 +9,8 @@
   LOG = LoggerUtil.getLogger("OCRHandler");
 
   OCRHandler = class OCRHandler extends Handler {
-    handle(item, callback) {
-      LOG.info("机器识读图片信息");
+    handle(callback) {
+      LOG.info("OCR");
       return callback();
     }
 

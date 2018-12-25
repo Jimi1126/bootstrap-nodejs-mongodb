@@ -9,7 +9,7 @@
   LOG = LoggerUtil.getLogger("SavePicInfoHandler");
 
   SavePicInfoHandler = class SavePicInfoHandler extends Handler {
-    handle(item, callback) {
+    handle(callback) {
       LOG.info("保存图片信息");
       return callback();
     }

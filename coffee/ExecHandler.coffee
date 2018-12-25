@@ -16,12 +16,12 @@ class ExecHandler
       child = exec task.cmd, that.opts, (error, stdout = "", stderr = "") ->
         clearTimeout check_timer
         stderr = stderr.trim()
-        LOG.info "錯誤: #{task.cmd} #{error}\n#{stderr}" if error
+        LOG.error "錯誤: #{task.cmd} #{error}\n#{stderr}" if error
         spent = Date.now() - start_at
         try
           task.callback error, stdout, stderr, spent
         catch e
-          LOG.info e.stack
+          LOG.error e.stack
         process.nextTick next
     , n
   ###

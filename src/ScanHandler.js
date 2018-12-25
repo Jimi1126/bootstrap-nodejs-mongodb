@@ -10,22 +10,31 @@
 
   ScanHandler = class ScanHandler extends Handler {
     handle(callback) {
-      var cmd, cmd_display, exec, ref, start_at, that;
+      var cmd, exec, execFuns, ref, that;
       that = this;
       cmd = (ref = this.data.conf.remote) != null ? ref.scan : void 0;
-      cmd_display = cmd != null ? cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码
-      LOG.info(`开始扫描 remote.scan: ${cmd_display}`);
-      start_at = moment();
       if (!cmd) {
         return callback(new Error(`项目配置未定义 [${conf.project}]: remote.scan`), "");
       }
+      execFuns = [];
+      cmd = cmd.length ? cmd : [cmd];
       exec = new ExecHandler().queue_exec();
-      return exec(cmd, function(error, lines, stderr) {
-        lines = ("" + lines).trim().split(/[\r\n]+/);
-        LOG.info(`扫描结束, ${lines.length} 行, ${moment() - start_at}ms`);
-        that.data.lines = lines;
-        return callback();
-      });
+      return async.each(cmd, (exec_cmd, cb) => {
+        var cmd_display, start_at;
+        cmd_display = exec_cmd != null ? exec_cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码
+        LOG.info(`开始扫描 remote.scan: ${cmd_display}`);
+        start_at = moment();
+        return exec(exec_cmd, (error, lines, stderr) => {
+          var base;
+          lines = ("" + lines).trim().split(/[\r\n]+/);
+          LOG.info(`扫描结束, ${lines.length} 行, ${moment() - start_at}ms`);
+          if ((base = this.data).lineObj == null) {
+            base.lineObj = {};
+          }
+          this.data.lineObj[exec_cmd] = lines;
+          return cb(error);
+        });
+      }, callback);
     }
 
   };

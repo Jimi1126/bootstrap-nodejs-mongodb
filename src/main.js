@@ -3,7 +3,7 @@
   /*
    * 本模块采用策略模式、代理模式、责任链模式、观察者模式设计
    */
-  var DownStrategy, MongoDAO, ProDownStrategy, StrategyContext, afterDownHandle, beforeDownHandle, callback, downHandle;
+  var DownStrategy, MongoDAO, ProDownStrategy, StrategyContext, afterDownHandle, beforeDownHandle, callback, downHandle, start;
 
   global.argv = {
     project: "百年保全"
@@ -12,6 +12,14 @@
   global.moment = require("moment");
 
   global.async = require("async");
+
+  global._ = require("lodash");
+
+  global.sprintf = require("sprintf-js");
+
+  global.mkdirp = require("mkdirp");
+
+  global.Utils = require("./Utils");
 
   global.LoggerUtil = require("./LoggerUtil");
 
@@ -40,11 +48,17 @@
   // 下载后动作
   afterDownHandle = ["", "", "", ""];
 
+  LOG.info(`本次下载开始于：${moment().format("YYYY-MM-DD HH:mm:ss")}`);
+
+  start = moment();
+
   callback = function() {
     var strategyContext;
     strategyContext = new StrategyContext(new StrategyProxy(new DownStrategy(downHandle)));
     strategyContext.strategy.target.data = this.data;
-    return strategyContext.execute(function() {});
+    return strategyContext.execute(function() {
+      return LOG.info(`本次下载结束于：${moment().format("YYYY-MM-DD HH:mm:ss")} --${moment() - start}ms`);
+    });
   };
 
   new StrategyContext(new StrategyProxy(new ProDownStrategy(beforeDownHandle))).execute(callback);

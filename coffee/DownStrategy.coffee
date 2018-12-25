@@ -20,9 +20,6 @@ class DownStrategy extends Istrategy
         @handlerList.push new HandlerProxy new handler(@data)
   execute: (callback)->
     callback() if @handlerList.length is 0
-    async.eachLimit @data.urls, @data.conf.remote.max_connections, (url, next) =>
-      arr = @handlerList.map((handler)=> handler.target.data = @data; (next)-> handler.execute.apply handler, [url, next])
-      arr.push next
-      async.series arr
-    , callback
+    arr = @handlerList.map((handler)=> handler.target.data = @data; (next)-> handler.execute.call handler, next)
+    async.series arr, callback
 module.exports = DownStrategy

@@ -9,7 +9,7 @@
   LOG = LoggerUtil.getLogger("CutPictureHandler");
 
   CutPictureHandler = class CutPictureHandler extends Handler {
-    handle(item, callback) {
+    handle(callback) {
       LOG.info("切图");
       return callback();
     }

@@ -66,8 +66,11 @@
             }
             _.assign(that.data.conf,
         doc);
-            that.data.conf.remote.scan = "curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/T/one/Type1/";
-            that.data.conf.remote.fetch_bill = "curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/T/one/Type1/%(url)s -o %(down_url)s";
+            that.data.conf.remote.scan = ["curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/T/one/Type1/",
+        "curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/T/one/Type2/",
+        "curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/WI/one/Type1/",
+        "curl ftp://myftp:myftp@192.168.202.3/EPCOS/HqEpcos/WI/one/Type2/"];
+            that.data.conf.remote.fetch_bill = "%(bill_name)s -o %(down_name)s";
             that.data.conf.remote.max_connections = ((ref = that.data.conf.remote) != null ? ref.max_connections : void 0) || 3;
             if (!that.data.conf.report_to) {
               that.data.conf.report_to = "";

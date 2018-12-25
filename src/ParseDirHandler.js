@@ -10,50 +10,57 @@
 
   ParseDirHandler = class ParseDirHandler extends Handler {
     handle(callback) {
-      var arr, bill_end, i, item, len, line, lines, ref, urls;
-      if ("string" === typeof this.data.lines) {
-        lines = lines.split(/[\r\n]+/);
-      }
-      LOG.info(`FTP目录解析: ${this.data.lines.length} 行`);
-      // 反向排序，一般 ftp 返回結果，舊文件在後面
-      this.data.lines.reverse();
-      urls = [];
-      ref = this.data.lines;
-      for (i = 0, len = ref.length; i < len; i++) {
-        line = ref[i];
-        line = line.trim();
-        // continue if line is "" or not /\.xml/i.test line
-        arr = /(\S+)\s+(\S+\s+\S+\s+\S+)\s+(\S+)$/.exec(line);
-        if (!(arr != null ? arr[3] : void 0)) {
-          continue;
+      var arr, base, bill_end, cmd, i, item, len, line, lines, paths, ref, urls;
+      ref = this.data.lineObj;
+      for (cmd in ref) {
+        lines = ref[cmd];
+        paths = [];
+        if ("string" === typeof lines) {
+          lines = lines.split(/[\r\n]+/);
         }
-        if (typeof argv !== "undefined" && argv !== null ? argv.bill_end : void 0) {
-          bill_end = new RegExp(`[${argv.bill_end}]\\d{2}.xml$`);
-          if (!bill_end.test(arr[3])) {
+        LOG.info(`${cmd.substring(4)}目录解析: ${lines.length} 行`);
+        // 反向排序，一般 ftp 返回結果，舊文件在後面
+        lines.reverse();
+        urls = [];
+        for (i = 0, len = lines.length; i < len; i++) {
+          line = lines[i];
+          line = line.trim();
+          // continue if line is "" or not /\.xml/i.test line
+          arr = /(\S+)\s+(\S+\s+\S+\s+\S+)\s+(\S+)$/.exec(line);
+          if (!(arr != null ? arr[3] : void 0)) {
             continue;
           }
+          if (typeof argv !== "undefined" && argv !== null ? argv.bill_end : void 0) {
+            bill_end = new RegExp(`[${argv.bill_end}]\\d{2}.xml$`);
+            if (!bill_end.test(arr[3])) {
+              continue;
+            }
+          }
+          item = {
+            bill_name: arr[3],
+            size: parseInt(arr[1]),
+            create_at: moment(arr[2], "MMM D HH:mm").format("YYYYMMDDHHmmss")
+          };
+          if (item.size < 10) {
+            continue;
+          }
+          paths.push(item);
         }
-        item = {
-          bill_name: arr[3],
-          size: parseInt(arr[1]),
-          create_at: moment(arr[2], "MMM D HH:mm").format("YYYYMMDDHHmmss")
-        };
-        if (item.size < 10) {
-          continue;
+        // 按照文件日期排序，舊文件在前
+        paths.sort(function(a, b) {
+          if (a.create_at < b.create_at) {
+            return -1;
+          } else if (a.create_at > b.create_at) {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
+        if ((base = this.data).pathObj == null) {
+          base.pathObj = {};
         }
-        urls.push(item);
+        this.data.pathObj[cmd] = paths;
       }
-      // 按照文件日期排序，舊文件在前
-      urls.sort(function(a, b) {
-        if (a.create_at < b.create_at) {
-          return -1;
-        } else if (a.create_at > b.create_at) {
-          return 1;
-        } else {
-          return 0;
-        }
-      });
-      this.data.urls = urls;
       return callback();
     }
 

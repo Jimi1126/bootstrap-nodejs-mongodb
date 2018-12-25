@@ -9,8 +9,8 @@
   LOG = LoggerUtil.getLogger("CleanHandler");
 
   CleanHandler = class CleanHandler extends Handler {
-    handle(item, callback) {
-      LOG.info("切图");
+    handle(callback) {
+      LOG.info("清理");
       return callback();
     }
 

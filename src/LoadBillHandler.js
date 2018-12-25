@@ -9,43 +9,51 @@
   LOG = LoggerUtil.getLogger("LoadBillHandler");
 
   LoadBillHandler = class LoadBillHandler extends Handler {
-    handle(item, callback) {
-      LOG.info(`下载 ${item.bill_name}`);
-      // 检查保单是否存在
-      return mongoDao[argv.project].history.count({
-        bill_name: item.bill_name.replace(".xml", "")
-      }, (err, count) => {
-        var cmd, exec, fetch, ref;
-        if (err) {
-          return callback(err);
-        }
-        // if num > 0
-        //   msg = "已下载过 #{item.bill_name}"
-        //   debug msg.bold.yellow
-        //   return clean item , ()->
-        //     callback new Error msg
-        cmd = (ref = this.data.conf.remote) != null ? ref.fetch_bill : void 0;
-        if (!cmd) {
-          LOG.info(`项目配置未定义 [${entry.conf.project}]: remote.fetch_bill`);
-        }
-        try {
-          fetch = sprintf.sprintf(cmd, {
-            url: item.bill_name,
-            down_url: `downFile/${item.bill_name}`
-          });
-        } catch (error) {
-          err = error;
-          LOG.info(err);
-        }
-        exec = new ExecHandler().queue_exec(3);
-        return exec(fetch, (err, stdout, stderr, spent) => {
+    handle(callback) {
+      return async.eachOf(this.data.pathObj, (paths, cmd, cb1) => {
+        var f_cmd, ref, rel_path;
+        rel_path = "." + cmd.substring(cmd.lastIndexOf("EPCOS") - 1);
+        f_cmd = (ref = this.data.conf.remote) != null ? ref.fetch_bill : void 0;
+        return mkdirp(rel_path, (err) => {
+          var exec;
           if (err) {
-            callback(err);
+            throw err;
           }
-          this.data.conf.data.total.files += 1;
-          return callback();
+          exec = new ExecHandler().queue_exec(3);
+          return async.eachLimit(paths, this.data.conf.remote.max_connections, (path, cb2) => {
+            LOG.info(`下载 ${path.bill_name}`);
+            // 检查保单是否存在
+            return mongoDao[argv.project].history.count({
+              bill_name: path.bill_name.replace(".xml", "")
+            }, (err, count) => {
+              var fetch;
+              if (err) {
+                return callback(err);
+              }
+              if (!f_cmd) {
+                LOG.error(`项目配置未定义 [${entry.conf.project}]: remote.fetch_bill`);
+                cb(`项目配置未定义 [${entry.conf.project}]: remote.fetch_bill`);
+              }
+              try {
+                fetch = sprintf.sprintf(cmd + f_cmd, {
+                  bill_name: path.bill_name,
+                  down_name: rel_path + path.bill_name
+                });
+              } catch (error) {
+                err = error;
+                LOG.info(err);
+              }
+              return exec(fetch, (err, stdout, stderr, spent) => {
+                if (err) {
+                  return cb2(err);
+                }
+                this.data.conf.data.total.files += 1;
+                return cb2();
+              });
+            });
+          }, cb1);
         });
-      });
+      }, callback);
     }
 
   };

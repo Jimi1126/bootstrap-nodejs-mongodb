@@ -23,14 +23,14 @@
             clearTimeout(check_timer);
             stderr = stderr.trim();
             if (error) {
-              LOG.info(`錯誤: ${task.cmd} ${error}\n${stderr}`);
+              LOG.error(`錯誤: ${task.cmd} ${error}\n${stderr}`);
             }
             spent = Date.now() - start_at;
             try {
               task.callback(error, stdout, stderr, spent);
             } catch (error1) {
               e = error1;
-              LOG.info(e.stack);
+              LOG.error(e.stack);
             }
             return process.nextTick(next);
           });
