@@ -9,8 +9,24 @@
   LOG = LoggerUtil.getLogger("ParseProHandler");
 
   ParseProHandler = class ParseProHandler extends Handler {
-    handle(item, callback) {
-      LOG.info("解析项目");
+    handle(callback) {
+      var bill, billInfo, cmd, i, len, ref;
+      LOG.info("保单解析");
+      ref = this.data.billInfos;
+      for (cmd in ref) {
+        billInfo = ref[cmd];
+        for (i = 0, len = billInfo.length; i < len; i++) {
+          bill = billInfo[i];
+          // 单号
+          if (bill.source == null) {
+            bill.source = {};
+          }
+          bill.source.bill_num = bill.bill_name.substring(5, bill.bill_name.lastIndexOf("."));
+          // 类型arr
+          bill.source.docs = ["lk001"];
+        }
+      }
+      // 批次号
       return callback();
     }
 

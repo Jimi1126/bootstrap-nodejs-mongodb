@@ -8,10 +8,8 @@ Context = require './Context'
 class StrategyContext extends Context
   constructor: (strategy) ->
     super()
-    unless strategy instanceof Istrategy
+    unless (strategy.target || strategy) instanceof Istrategy
       throw 'you have to provide a strategy'
-    else if strategy.hasOwnProperty "className"
-      throw 'the strategy should be extends Istrategy'
     @strategy = strategy
   execute: ->
     @strategy.execute.apply @strategy, arguments

@@ -43,7 +43,7 @@
   beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"];
 
   // 下载动作（有序）
-  downHandle = ["LoadBillHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"];
+  downHandle = ["LoadBillHandler", "parseProHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"];
 
   // 下载后动作
   afterDownHandle = ["", "", "", ""];

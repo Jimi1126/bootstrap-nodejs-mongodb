@@ -7,8 +7,7 @@
   LOG = LoggerUtil.getLogger("HandlerProxy");
 
   /*
-   * 将该代理的父类原型指向目标对象父类的原型，明确该代理的类型
-   * 至此该Proxy将为目标对象类型，且不再是Proxy类型
+   * 操作者的默认代理类
    */
   HandlerProxy = class HandlerProxy extends Proxy {
     constructor(target) {
@@ -20,6 +19,7 @@
       that = this;
       return function() {
         var callback, cb, haveParam, params, startTime;
+        //# 默认只代理操作者的执行方法，并只添加日志记录能力
         if (f.name === "execute") {
           startTime = moment();
           [...params] = arguments;

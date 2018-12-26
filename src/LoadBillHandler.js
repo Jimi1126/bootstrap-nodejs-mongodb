@@ -10,9 +10,9 @@
 
   LoadBillHandler = class LoadBillHandler extends Handler {
     handle(callback) {
-      return async.eachOf(this.data.pathObj, (paths, cmd, cb1) => {
+      return async.eachOf(this.data.billInfos, (billInfo, cmd, cb1) => {
         var f_cmd, ref, rel_path;
-        rel_path = "." + cmd.substring(cmd.lastIndexOf("EPCOS") - 1);
+        rel_path = "./download/" + cmd.substring(cmd.lastIndexOf("EPCOS") - 1);
         f_cmd = (ref = this.data.conf.remote) != null ? ref.fetch_bill : void 0;
         return mkdirp(rel_path, (err) => {
           var exec;
@@ -20,11 +20,11 @@
             throw err;
           }
           exec = new ExecHandler().queue_exec(3);
-          return async.eachLimit(paths, this.data.conf.remote.max_connections, (path, cb2) => {
-            LOG.info(`下载 ${path.bill_name}`);
+          return async.eachLimit(billInfo, this.data.conf.remote.max_connections, (bill, cb2) => {
+            LOG.info(`下载 ${bill.bill_name}`);
             // 检查保单是否存在
             return mongoDao[argv.project].history.count({
-              bill_name: path.bill_name.replace(".xml", "")
+              bill_name: bill.bill_name.replace(".xml", "")
             }, (err, count) => {
               var fetch;
               if (err) {
@@ -36,8 +36,8 @@
               }
               try {
                 fetch = sprintf.sprintf(cmd + f_cmd, {
-                  bill_name: path.bill_name,
-                  down_name: rel_path + path.bill_name
+                  bill_name: bill.bill_name,
+                  down_name: rel_path + bill.bill_name
                 });
               } catch (error) {
                 err = error;

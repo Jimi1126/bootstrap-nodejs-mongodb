@@ -53,34 +53,32 @@ class LoadConfigHandler extends Handler
 					that.data.conf.priority.bills = [] if not that.data.conf.priority.bills
 					that.data.conf.priority.files = [] if not that.data.conf.priority.files
 					next()
-			# # 字段定义列表 fields
-			# (next) ->
-			#   start_at = moment()
-			#   mongoDao.projects.conf.selectList {project: projName, conf: "fields"}, (err, doc = {}) ->
-			#     INFO.info "加載#{projName}項目字段定義 --#{moment() - start_at}ms"
-			#     return next err if err
-			#     delete doc[k] for k in ["_id", "project", "conf", "v"]
-			#     that.data.conf.fields = doc
-			#     next()
-			# # 項目模板配置 bill
-			# (next) ->
-			#   start_at = moment()
-			#   mongoDao.projects.conf.selectList {project: projName, conf: "bill"}, (err, doc = {}) ->
-			#     INFO.info "加載#{projName}項目模板 --#{moment() - start_at}ms"
-			#     return next err if err
-			#     delete doc[k] for k in ["_id", "project", "conf", "v"]
-			#     that.data.conf.bill = doc
-			#     for template in (doc.templates or doc.template or [])
-			#       #去掉過時的白名單
-			#       for block in template.blocks
-			#         delete block.white_list
-			#       # 按照錄入順序排序
-			#       block_orders = get_tmpl_block_orders template.name
-			#       template.blocks.sort (a, b) ->
-			#         oa = block_orders.indexOf a.code
-			#         ob = block_orders.indexOf b.code
-			#         oa - ob
-			#     next()
+			# 字段定义列表 fields
+			(next) ->
+				start_at = moment()
+				mongoDao.projects.conf.selectOne {project: projName, conf: "fields"}, (err, doc = {}) ->
+					LOG.info "加載#{projName}項目字段定義 --#{moment() - start_at}ms"
+					return next err if err
+					delete doc[k] for k in ["_id", "project", "conf", "v"]
+					that.data.conf.fields = doc
+					next()
+			# 項目模板配置 bill
+			(next) ->
+				start_at = moment()
+				mongoDao.projects.conf.selectOne {project: projName, conf: "bill"}, (err, doc = {}) ->
+					LOG.info "加載#{projName}項目模板 --#{moment() - start_at}ms"
+					return next err if err
+					delete doc[k] for k in ["_id", "project", "conf", "v"]
+					that.data.conf.bill = doc
+					for template in (doc.templates or doc.template or [])
+						#去掉過時的白名單
+						for block in template.blocks
+							delete block.white_list
+						# 按照錄入順序排序
+						# block_orders = get_tmpl_block_orders template.name
+						# template.blocks.sort (a, b) ->
+						# 	block_orders.indexOf a.code - block_orders.indexOf b.code
+					next()
 		], callback
 
 module.exports = LoadConfigHandler

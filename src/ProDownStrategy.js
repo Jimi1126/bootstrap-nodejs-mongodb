@@ -2,6 +2,7 @@
 (function() {
   /*
    * 预下载策略
+   * 采用操作链模式
    */
   var Handler, Istrategy, ProDownStrategy;
 
@@ -26,6 +27,12 @@
         }
       }
 
+      /*
+       * 执行策略
+       * 预下载策略采用操作链模式，延伸于责任链模式
+       * 不同于责任链模式的是，操作链模式节点在操作完成后不会退出模式，
+       * 而是继续传递到下一个节点，直到链尾
+       */
       execute(callback) {
         var handlerProxy, i, j, len, ref, results;
         if (this.handlerList.length === 0) {
@@ -53,13 +60,14 @@
     };
 
     /*
-     * 策略的业务数据，操作者都有权访问并修改
-     * 一个操作者将访问上一位操作者处理完的数据
-     * 操作者通过verify方法来检查数据并决定是否执行操作
+     * 策略的业务数据
+     * 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
+     * 因此一个操作者将访问上一位操作者处理完的数据
+     * 一般地操作者通过verify方法检查业务数据以决定是否进行本身的操作
      */
     ProDownStrategy.prototype.data = {};
 
-    //# 操作者名称列表，策略会根据这个顺序调用操作者
+    //# 操作者名称列表，预下载策略会根据这个顺序调用操作者
     ProDownStrategy.prototype.handlerList = [];
 
     return ProDownStrategy;

@@ -24,7 +24,7 @@ global.HandlerProxy = require "./HandlerProxy"
 # 下载前动作（有序）
 beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"]
 # 下载动作（有序）
-downHandle = ["LoadBillHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
+downHandle = ["LoadBillHandler", "parseProHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
 # 下载后动作
 afterDownHandle = ["", "", "", ""]
 
@@ -35,5 +35,5 @@ callback = ->
 	strategyContext.strategy.target.data = @data
 	strategyContext.execute ->
 		LOG.info "本次下载结束于：#{moment().format("YYYY-MM-DD HH:mm:ss")} --#{moment() - start}ms"
-		
+
 new StrategyContext(new StrategyProxy(new ProDownStrategy(beforeDownHandle))).execute(callback)

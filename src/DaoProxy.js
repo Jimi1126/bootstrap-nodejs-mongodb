@@ -8,13 +8,11 @@
   LOG = loggerUtil.getLogger("DAOProxy");
 
   /*
-   * 将该代理的父类原型指向目标对象父类的原型，明确该代理的类型
-   * 至此该Proxy将为目标对象类型，且不再是Proxy类型
+   * 数据库操作层代理
    */
   DAOProxy = class DAOProxy extends Proxy {
     constructor(target) {
       super(target);
-      this.__proto__ = target.__proto__;
     }
 
     proxy(f) {

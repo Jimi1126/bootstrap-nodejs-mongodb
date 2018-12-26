@@ -14,10 +14,8 @@
   StrategyContext = class StrategyContext extends Context {
     constructor(strategy) {
       super();
-      if (!(strategy instanceof Istrategy)) {
+      if (!((strategy.target || strategy) instanceof Istrategy)) {
         throw 'you have to provide a strategy';
-      } else if (strategy.hasOwnProperty("className")) {
-        throw 'the strategy should be extends Istrategy';
       }
       this.strategy = strategy;
     }

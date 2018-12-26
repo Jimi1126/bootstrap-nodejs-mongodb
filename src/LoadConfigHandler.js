@@ -92,35 +92,83 @@
             }
             return next();
           });
+        },
+        // 字段定义列表 fields
+        function(next) {
+          var start_at;
+          start_at = moment();
+          return mongoDao.projects.conf.selectOne({
+            project: projName,
+            conf: "fields"
+          },
+        function(err,
+        doc = {}) {
+            var i,
+        k,
+        len,
+        ref;
+            LOG.info(`加載${projName}項目字段定義 --${moment() - start_at}ms`);
+            if (err) {
+              return next(err);
+            }
+            ref = ["_id", "project", "conf", "v"];
+            for (i = 0, len = ref.length; i < len; i++) {
+              k = ref[i];
+              delete doc[k];
+            }
+            that.data.conf.fields = doc;
+            return next();
+          });
+        },
+        // 項目模板配置 bill
+        function(next) {
+          var start_at;
+          start_at = moment();
+          return mongoDao.projects.conf.selectOne({
+            project: projName,
+            conf: "bill"
+          },
+        function(err,
+        doc = {}) {
+            var block,
+        i,
+        j,
+        k,
+        l,
+        len,
+        len1,
+        len2,
+        ref,
+        ref1,
+        ref2,
+        template;
+            LOG.info(`加載${projName}項目模板 --${moment() - start_at}ms`);
+            if (err) {
+              return next(err);
+            }
+            ref = ["_id", "project", "conf", "v"];
+            for (i = 0, len = ref.length; i < len; i++) {
+              k = ref[i];
+              delete doc[k];
+            }
+            that.data.conf.bill = doc;
+            ref1 = doc.templates || doc.template || [];
+            for (j = 0, len1 = ref1.length; j < len1; j++) {
+              template = ref1[j];
+              ref2 = template.blocks;
+              //去掉過時的白名單
+              for (l = 0, len2 = ref2.length; l < len2; l++) {
+                block = ref2[l];
+                delete block.white_list;
+              }
+            }
+            // 按照錄入順序排序
+            // block_orders = get_tmpl_block_orders template.name
+            // template.blocks.sort (a, b) ->
+            // 	block_orders.indexOf a.code - block_orders.indexOf b.code
+            return next();
+          });
         }
-      // # 字段定义列表 fields
-      // (next) ->
-      //   start_at = moment()
-      //   mongoDao.projects.conf.selectList {project: projName, conf: "fields"}, (err, doc = {}) ->
-      //     INFO.info "加載#{projName}項目字段定義 --#{moment() - start_at}ms"
-      //     return next err if err
-      //     delete doc[k] for k in ["_id", "project", "conf", "v"]
-      //     that.data.conf.fields = doc
-      //     next()
-      // # 項目模板配置 bill
-      // (next) ->
-      //   start_at = moment()
-      //   mongoDao.projects.conf.selectList {project: projName, conf: "bill"}, (err, doc = {}) ->
-      //     INFO.info "加載#{projName}項目模板 --#{moment() - start_at}ms"
-      //     return next err if err
-      //     delete doc[k] for k in ["_id", "project", "conf", "v"]
-      //     that.data.conf.bill = doc
-      //     for template in (doc.templates or doc.template or [])
-      //       #去掉過時的白名單
-      //       for block in template.blocks
-      //         delete block.white_list
-      //       # 按照錄入順序排序
-      //       block_orders = get_tmpl_block_orders template.name
-      //       template.blocks.sort (a, b) ->
-      //         oa = block_orders.indexOf a.code
-      //         ob = block_orders.indexOf b.code
-      //         oa - ob
-      //     next()
       ], callback);
     }
 

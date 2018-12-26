@@ -19,6 +19,7 @@
       constructor(data) {
         super();
         this.data = data;
+        //# 注册next事件，用于通知下一位操作者
         this.on('next', function() {
           var callback, params, ref;
           [...params] = arguments;
@@ -27,11 +28,19 @@
           if (this.nextHandler instanceof HandlerProxy || this.nextHandler instanceof Handler) {
             return this.nextHandler.execute.apply(this.nextHandler, params);
           } else {
-            return (ref = this.nextHandler) != null ? ref.apply(this, params) : void 0;
+            return (ref = this.nextHandler) != null ? typeof ref.apply === "function" ? ref.apply(this, params) : void 0 : void 0;
           }
         });
       }
 
+      /*
+       * 操作入口
+       * 控制操作者的执行模式
+       * 默认地，操作者会通过verify来判断的自身是否应该进行操作
+       * 当可以进行操作时，调用handle主操作方法
+       * 当操作完成后，通过触发next事件来通知下一位操作者
+       * 你可在子类中覆盖该方法，以重新控制操作者的执行模式
+       */
       execute() {
         var callback, cb, fparams, that;
         that = this;
@@ -52,10 +61,12 @@
         }
       }
 
+      //# 判断是否应该做操作，默认地返回true，具体判断逻辑请覆盖该方法
       verify() {
         return true;
       }
 
+      //# 操作者所拥有的操作能力，子类必须实现该方法，以指定操作者的拥有的操作能力
       handle(callback) {
         throw "you must implement this method";
       }

@@ -1,5 +1,10 @@
+###
+# mongoDB操作
+# 对mongoDB原生方法进行一层封装，简化mongo数据库的操作
+# 通过数据库链接、所连接集合、连接参数来实例化DB操作对象
+# 一般的实例化对象提供增删改查操作
+###
 mongoClient = require('mongodb').MongoClient
-
 class DBHandler
   constructor: (@url, @collection, @DB_OPTS)->
     @database = @url.substring @url.lastIndexOf("/") + 1, @url.lastIndexOf("?")
@@ -10,7 +15,7 @@ class DBHandler
       try
         callback err, db.db(@database)
       catch e
-        throw "连接数据库#{@database}获取失败\n#{e.stack}"
+        throw "连接数据库#{@database}失败\n#{e.stack}"
     try
       mongoClient.connect @url, @DB_OPTS, cb
     catch e

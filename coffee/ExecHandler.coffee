@@ -1,3 +1,6 @@
+###
+# 执行系统命令操作
+###
 exec = require("child_process").exec
 LOG = LoggerUtil.getLogger "ExecHandler"
 class ExecHandler
@@ -16,7 +19,7 @@ class ExecHandler
       child = exec task.cmd, that.opts, (error, stdout = "", stderr = "") ->
         clearTimeout check_timer
         stderr = stderr.trim()
-        LOG.error "錯誤: #{task.cmd} #{error}\n#{stderr}" if error
+        LOG.error "错误: #{task.cmd} #{error}\n#{stderr}" if error
         spent = Date.now() - start_at
         try
           task.callback error, stdout, stderr, spent
@@ -25,7 +28,7 @@ class ExecHandler
         process.nextTick next
     , n
   ###
-  # 創建一個 n 併發的執行隊列
+  # 创建一个n并发的执行队列
   ###
   queue_exec: (n = 1) ->
     exec_queue = @create_queue n

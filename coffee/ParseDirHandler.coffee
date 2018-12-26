@@ -28,8 +28,8 @@ class ParseDirHandler extends Handler
       # 按照文件日期排序，舊文件在前
       paths.sort (a, b) ->
         if a.create_at < b.create_at then -1 else if a.create_at > b.create_at then 1 else 0
-      @data.pathObj ?= {}
-      @data.pathObj[cmd] = paths
+      @data.billInfos ?= {}
+      @data.billInfos[cmd] = paths
     callback()
 
 module.exports = ParseDirHandler

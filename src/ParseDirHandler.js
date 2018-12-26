@@ -56,10 +56,10 @@
             return 0;
           }
         });
-        if ((base = this.data).pathObj == null) {
-          base.pathObj = {};
+        if ((base = this.data).billInfos == null) {
+          base.billInfos = {};
         }
-        this.data.pathObj[cmd] = paths;
+        this.data.billInfos[cmd] = paths;
       }
       return callback();
     }
