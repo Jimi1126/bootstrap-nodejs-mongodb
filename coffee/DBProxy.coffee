@@ -1,22 +1,23 @@
 Proxy = require "./Proxy"
-LOG = loggerUtil.getLogger "DAOProxy"
+LOG = LoggerUtil.getLogger "DBProxy"
 ###
 # 数据库操作层代理
 ###
-class DAOProxy extends Proxy
+class DBProxy extends Proxy
   constructor: (target)->
     super(target)
   proxy: (f)->
     that = @
-    if f.name is "init"
+    if f.name is "connect"
       return ->
         f.apply that.target, arguments
     ->
-      [params..., callback] = arguments
+      [...params] = arguments
+      callback = params.pop()
       startTime = moment()
       params.push ->
         endTime = moment()
-        LOG.info "#{@.__proto__.constructor.name}.#{f.name}:访问数据库#{params[0]}集合#{params[1]}  --#{endTime - startTime}ms"
+        LOG.info "#{that.target.constructor.name}.#{f.name}:#{JSON.stringify params[0]}  --#{endTime - startTime}ms"
         callback.apply @, arguments
       f.apply that.target, params
-module.exports = DAOProxy
+module.exports = DBProxy

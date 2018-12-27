@@ -1,6 +1,3 @@
-###
-# 本模块采用策略模式、代理模式、责任链模式、观察者模式设计
-###
 global.argv = {project: "百年保全"}
 global.moment = require "moment"
 global.async = require "async"
