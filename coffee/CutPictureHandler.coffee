@@ -39,16 +39,18 @@ class CutPictureHandler extends Handler
 		return null
 	handle: (callback)->
 		exec = new ExecHandler().queue_exec 3
+		cut_stat = {total: 0, success: 0, failure: 0}
+		cut_stat.total += billInfo?.length for cmd, billInfo of @data.billInfos
 		async.eachOf @data.billInfos, (billInfo, cmd, cb1)=>
 			rel_path = "./download/" + cmd.substring cmd.lastIndexOf("EPCOS") - 1
 			cut_path = rel_path.replace "download", "cut"
+			LOG.info "cut_path: #{cut_path}"
 			mkdirp.sync cut_path
 			async.each billInfo, (bill, cb2)=>
 				return cb2() if "pdf" in bill.bill_name
 				msg = @init bill
 				return cb2 msg if msg
 				cmd_fmt = @data.conf.extract.crop or "gmic -v - %(src)s -crop[-1] %(x0)s%%,%(y0)s%%,%(x1)s%%,%(y1)s%% -o[-1] %(dst)s"
-				LOG.info "开始切图 #{bill.bill_name} #{bill.source.docs} #{bill.template} 分块数为: #{bill.blocks.length}"
 				async.eachSeries bill.blocks, (block, next)=>
 					return next() unless block.coordinate and block.pic_page
 					# for i in [0 .. 3]
@@ -73,10 +75,10 @@ class CutPictureHandler extends Handler
 					# # x0 = 100 if x0 > 100
 					# y1 += crop_expand[1]
 					# # y1 = 100 if y1 > 100
-					x0 = 85
-					y0 = 5
+					x0 = 80
+					y0 = 0
 					x1 = 100
-					y1 = 12
+					y1 = 15
 					src = rel_path + bill.bill_name
 					dst = cut_path + bill.bill_name
 					try
@@ -91,8 +93,6 @@ class CutPictureHandler extends Handler
 					catch err
 						LOG.error err
 						return next err
-					# debug "開始切圖 #{bill.bill_name} #{bill.source.docs} #{bill.template} #{block.code} #{block.name}".magenta
-					LOG.info cmd
 					exec cmd, (err, stdout, stderr, spent) ->
 						if err
 							bill.status = "异常"
@@ -102,19 +102,21 @@ class CutPictureHandler extends Handler
 						LOG.info stdout if stdout.length > 0
 						LOG.info stderr if stderr.length > 0
 						LOG.info "#{src} => #{dst} #{spent}ms"
+						cut_stat.success++
 						next()
 				, (err)->
-					LOG.info "切图完成 #{bill.bill_name}"
 					if err
 						if bill.status == "异常"
 							return cb2 null
 						LOG.error err
 					for i in [bill.blocks.length - 1 .. 0]
 						if bill.blocks[i].fields.length == 0
-							LOG.info "无需录入:#{bill.blocks[i].code}没有字段"
-							bill.blocks.splice i,1
+							bill.blocks.splice i, 1
 					cb2()
 			,cb1
-		,callback
+		,()->
+			cut_stat.failure = cut_stat.total - cut_stat.success
+			LOG.info JSON.stringify cut_stat
+			callback.apply this, arguments
 
 module.exports = CutPictureHandler

@@ -10,10 +10,27 @@
 
   LoadBillHandler = class LoadBillHandler extends Handler {
     handle(callback) {
+      var billInfo, cmd, down_stat, ref;
+      down_stat = {
+        total: 0,
+        success: 0,
+        exist: 0,
+        failure: 0
+      };
+      ref = this.data.billInfos;
+      for (cmd in ref) {
+        billInfo = ref[cmd];
+        down_stat.total += billInfo != null ? billInfo.length : void 0;
+      }
       return async.eachOf(this.data.billInfos, (billInfo, cmd, cb1) => {
-        var f_cmd, ref, rel_path;
+        var f_cmd, ref1, rel_path;
         rel_path = "./download/" + cmd.substring(cmd.lastIndexOf("EPCOS") - 1);
-        f_cmd = (ref = this.data.conf.remote) != null ? ref.fetch_bill : void 0;
+        f_cmd = (ref1 = this.data.conf.remote) != null ? ref1.fetch_bill : void 0;
+        if (!f_cmd) {
+          LOG.error(`项目配置未定义 [${argv.project}]: remote.fetch_bill`);
+          cb1(`项目配置未定义 [${argv.project}]: remote.fetch_bill`);
+        }
+        LOG.info(`down_path: ${rel_path}`);
         return mkdirp(rel_path, (err) => {
           var exec;
           if (err) {
@@ -21,18 +38,17 @@
           }
           exec = new ExecHandler().queue_exec(3);
           return async.eachLimit(billInfo, this.data.conf.remote.max_connections, (bill, cb2) => {
-            LOG.info(`下载 ${bill.bill_name}`);
             // 检查保单是否存在
             return mongoDao[argv.project].history.count({
               bill_name: bill.bill_name.replace(".xml", "")
             }, (err, count) => {
               var fetch;
               if (err) {
-                return callback(err);
+                throw err;
               }
-              if (!f_cmd) {
-                LOG.error(`项目配置未定义 [${entry.conf.project}]: remote.fetch_bill`);
-                cb(`项目配置未定义 [${entry.conf.project}]: remote.fetch_bill`);
+              if (count > 0) {
+                down_stat.exist++;
+                cb2();
               }
               try {
                 fetch = sprintf.sprintf(cmd + f_cmd, {
@@ -47,13 +63,17 @@
                 if (err) {
                   return cb2(err);
                 }
-                this.data.conf.data.total.files += 1;
+                down_stat.success++;
                 return cb2();
               });
             });
           }, cb1);
         });
-      }, callback);
+      }, function() {
+        down_stat.failure = down_stat.total - down_stat.success - down_stat.exist;
+        LOG.info(JSON.stringify(down_stat));
+        return callback.apply(this, arguments);
+      });
     }
 
   };

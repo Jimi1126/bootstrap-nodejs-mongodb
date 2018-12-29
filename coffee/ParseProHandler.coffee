@@ -1,5 +1,4 @@
 Handler = require "./Handler"
-ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "ParseProHandler"
 class ParseProHandler extends Handler
   handle: (callback)->
@@ -13,5 +12,5 @@ class ParseProHandler extends Handler
         bill.source.docs = ["lk001"]
         # 批次号
     callback()
-      
+
 module.exports = ParseProHandler

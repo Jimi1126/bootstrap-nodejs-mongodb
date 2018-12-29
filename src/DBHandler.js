@@ -30,6 +30,12 @@
         } catch (error) {
           e = error;
           throw `连接数据库${this.database}失败\n${e.stack}`;
+        } finally {
+          if (db != null) {
+            if (typeof db.close === "function") {
+              db.close();
+            }
+          }
         }
       };
       try {
@@ -41,92 +47,70 @@
     }
 
     insert(docs, callback) {
-      var e;
-      try {
-        this.connect((err, db) => {});
+      return this.connect((err, db) => {
         if (err) {
           throw err;
         }
         return db.collection(this.collection).insert(docs, callback);
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      });
     }
 
     delete(param, callback) {
-      var e;
-      try {
-        return this.connect((err, db) => {
-          if (err) {
-            throw err;
-          }
-          return db.collection(this.collection).remove(param, callback);
-        });
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        return db.collection(this.collection).remove(param, callback);
+      });
     }
 
     update(filter, setter, callback) {
-      var e;
-      try {
-        return this.connect((err, db) => {
-          if (err) {
-            throw err;
-          }
-          return db.collection(this.collection).update(filter, setter, callback);
-        });
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        return db.collection(this.collection).update(filter, setter, callback);
+      });
     }
 
     selectOne(param, callback) {
-      var e;
-      try {
-        return this.connect((err, db) => {
-          if (err) {
-            throw err;
-          }
-          return db.collection(this.collection).findOne(param, callback);
-        });
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        return db.collection(this.collection).findOne(param, callback);
+      });
+    }
+
+    selectBySortOrLimit(param, sort, limit, callback) {
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        if (limit === -1) {
+          return db.collection(this.collection).find(param).sort(sort).toArray(callback);
+        } else {
+          return db.collection(this.collection).find(param).sort(sort).limit(limit).toArray(callback);
+        }
+      });
     }
 
     selectList(param, callback) {
-      var e;
-      try {
-        return this.connect((err, db) => {
-          if (err) {
-            throw err;
-          }
-          return db.collection(this.collection).find(param).toArray(callback);
-        });
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        return db.collection(this.collection).find(param).toArray(callback);
+      });
     }
 
     count(param, callback) {
-      var e;
-      try {
-        return this.connect((err, db) => {
-          if (err) {
-            throw err;
-          }
-          return db.collection(this.collection).countDocuments(param, callback);
-        });
-      } catch (error) {
-        e = error;
-        return callback(e);
-      }
+      return this.connect((err, db) => {
+        if (err) {
+          throw err;
+        }
+        return db.collection(this.collection).countDocuments(param, callback);
+      });
     }
 
   };

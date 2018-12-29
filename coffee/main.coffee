@@ -21,7 +21,7 @@ global.HandlerProxy = require "./HandlerProxy"
 # 下载前动作（有序）
 beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"]
 # 下载动作（有序）
-downHandle = ["LoadBillHandler", "parseProHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
+downHandle = ["LoadBillHandler", "ConvertHandler", "ParseProHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
 # 下载后动作
 afterDownHandle = ["", "", "", ""]
 

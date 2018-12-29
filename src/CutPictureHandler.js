@@ -65,12 +65,23 @@
     }
 
     handle(callback) {
-      var exec;
+      var billInfo, cmd, cut_stat, exec, ref;
       exec = new ExecHandler().queue_exec(3);
+      cut_stat = {
+        total: 0,
+        success: 0,
+        failure: 0
+      };
+      ref = this.data.billInfos;
+      for (cmd in ref) {
+        billInfo = ref[cmd];
+        cut_stat.total += billInfo != null ? billInfo.length : void 0;
+      }
       return async.eachOf(this.data.billInfos, (billInfo, cmd, cb1) => {
         var cut_path, rel_path;
         rel_path = "./download/" + cmd.substring(cmd.lastIndexOf("EPCOS") - 1);
         cut_path = rel_path.replace("download", "cut");
+        LOG.info(`cut_path: ${cut_path}`);
         mkdirp.sync(cut_path);
         return async.each(billInfo, (bill, cb2) => {
           var cmd_fmt, msg;
@@ -82,7 +93,6 @@
             return cb2(msg);
           }
           cmd_fmt = this.data.conf.extract.crop || "gmic -v - %(src)s -crop[-1] %(x0)s%%,%(y0)s%%,%(x1)s%%,%(y1)s%% -o[-1] %(dst)s";
-          LOG.info(`开始切图 ${bill.bill_name} ${bill.source.docs} ${bill.template} 分块数为: ${bill.blocks.length}`);
           return async.eachSeries(bill.blocks, (block, next) => {
             var dst, err, src, x0, x1, y0, y1;
             if (!(block.coordinate && block.pic_page)) {
@@ -110,10 +120,10 @@
             // # x0 = 100 if x0 > 100
             // y1 += crop_expand[1]
             // # y1 = 100 if y1 > 100
-            x0 = 85;
-            y0 = 5;
+            x0 = 80;
+            y0 = 0;
             x1 = 100;
-            y1 = 12;
+            y1 = 15;
             src = rel_path + bill.bill_name;
             dst = cut_path + bill.bill_name;
             try {
@@ -123,8 +133,6 @@
               LOG.error(err);
               return next(err);
             }
-            // debug "開始切圖 #{bill.bill_name} #{bill.source.docs} #{bill.template} #{block.code} #{block.name}".magenta
-            LOG.info(cmd);
             return exec(cmd, function(err, stdout, stderr, spent) {
               if (err) {
                 bill.status = "异常";
@@ -139,27 +147,30 @@
                 LOG.info(stderr);
               }
               LOG.info(`${src} => ${dst} ${spent}ms`);
+              cut_stat.success++;
               return next();
             });
           }, function(err) {
-            var i, j, ref;
-            LOG.info(`切图完成 ${bill.bill_name}`);
+            var i, j, ref1;
             if (err) {
               if (bill.status === "异常") {
                 return cb2(null);
               }
               LOG.error(err);
             }
-            for (i = j = ref = bill.blocks.length - 1; (ref <= 0 ? j <= 0 : j >= 0); i = ref <= 0 ? ++j : --j) {
+            for (i = j = ref1 = bill.blocks.length - 1; (ref1 <= 0 ? j <= 0 : j >= 0); i = ref1 <= 0 ? ++j : --j) {
               if (bill.blocks[i].fields.length === 0) {
-                LOG.info(`无需录入:${bill.blocks[i].code}没有字段`);
                 bill.blocks.splice(i, 1);
               }
             }
             return cb2();
           });
         }, cb1);
-      }, callback);
+      }, function() {
+        cut_stat.failure = cut_stat.total - cut_stat.success;
+        LOG.info(JSON.stringify(cut_stat));
+        return callback.apply(this, arguments);
+      });
     }
 
   };

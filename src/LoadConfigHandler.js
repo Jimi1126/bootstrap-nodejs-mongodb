@@ -48,19 +48,25 @@
       return async.series([
         // 項目配置 project
         function(next) {
-          var start_at;
-          start_at = moment();
-          return mongoDao.projects.conf.selectOne({
+          var start;
+          start = moment();
+          return mongoDao.projects.conf.selectBySortOrLimit({
             project: projName,
             conf: "project"
           },
+        {
+            "update_at": -1
+          },
+        1,
         function(err,
-        doc = {}) {
-            var ref;
-            LOG.info(`加載${projName}項目配置 --${moment() - start_at}ms`);
+        docs = []) {
+            var doc,
+        ref;
+            LOG.info(`加载${projName}项目配置 --${moment() - start}ms`);
             if (err) {
               return next(err);
             }
+            doc = docs[0];
             if (doc._id) {
               delete doc._id;
             }
@@ -95,22 +101,28 @@
         },
         // 字段定义列表 fields
         function(next) {
-          var start_at;
-          start_at = moment();
-          return mongoDao.projects.conf.selectOne({
+          var start;
+          start = moment();
+          return mongoDao.projects.conf.selectBySortOrLimit({
             project: projName,
             conf: "fields"
           },
+        {
+            "update_at": -1
+          },
+        1,
         function(err,
-        doc = {}) {
-            var i,
+        docs = []) {
+            var doc,
+        i,
         k,
         len,
         ref;
-            LOG.info(`加載${projName}項目字段定義 --${moment() - start_at}ms`);
+            LOG.info(`加载${projName}项目字段定义 --${moment() - start}ms`);
             if (err) {
               return next(err);
             }
+            doc = docs[0];
             ref = ["_id", "project", "conf", "v"];
             for (i = 0, len = ref.length; i < len; i++) {
               k = ref[i];
@@ -122,15 +134,20 @@
         },
         // 項目模板配置 bill
         function(next) {
-          var start_at;
-          start_at = moment();
-          return mongoDao.projects.conf.selectOne({
+          var start;
+          start = moment();
+          return mongoDao.projects.conf.selectBySortOrLimit({
             project: projName,
             conf: "bill"
           },
+        {
+            "update_at": -1
+          },
+        1,
         function(err,
-        doc = {}) {
+        docs = []) {
             var block,
+        doc,
         i,
         j,
         k,
@@ -142,10 +159,11 @@
         ref1,
         ref2,
         template;
-            LOG.info(`加載${projName}項目模板 --${moment() - start_at}ms`);
+            LOG.info(`加载${projName}项目模板 --${moment() - start}ms`);
             if (err) {
               return next(err);
             }
+            doc = docs[0];
             ref = ["_id", "project", "conf", "v"];
             for (i = 0, len = ref.length; i < len; i++) {
               k = ref[i];
@@ -156,13 +174,11 @@
             for (j = 0, len1 = ref1.length; j < len1; j++) {
               template = ref1[j];
               ref2 = template.blocks;
-              //去掉過時的白名單
               for (l = 0, len2 = ref2.length; l < len2; l++) {
                 block = ref2[l];
                 delete block.white_list;
               }
             }
-            // 按照錄入順序排序
             // block_orders = get_tmpl_block_orders template.name
             // template.blocks.sort (a, b) ->
             // 	block_orders.indexOf a.code - block_orders.indexOf b.code

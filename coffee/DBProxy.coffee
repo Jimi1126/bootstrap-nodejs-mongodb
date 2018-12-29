@@ -15,9 +15,14 @@ class DBProxy extends Proxy
       [...params] = arguments
       callback = params.pop()
       startTime = moment()
+      paramStr = (JSON.stringify(p) for p in params)
       params.push ->
         endTime = moment()
-        LOG.info "#{that.target.constructor.name}.#{f.name}:#{JSON.stringify params[0]}  --#{endTime - startTime}ms"
+        LOG.info "#{that.target.constructor.name}.#{f.name}:#{paramStr.join ","}  --#{endTime - startTime}ms"
         callback.apply @, arguments
-      f.apply that.target, params
+      try
+        f.apply that.target, params
+      catch e
+        LOG.error "#{that.target.constructor.name}.#{f.name}:#{paramStr.join ","}  --#{moment() - startTime}ms\n#{e.stack}"
+        callback e
 module.exports = DBProxy

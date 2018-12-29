@@ -1,5 +1,4 @@
 Handler = require "./Handler"
-ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "ParseDirHandler"
 class ParseDirHandler extends Handler
   handle: (callback)->

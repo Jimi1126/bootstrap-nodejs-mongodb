@@ -23,17 +23,32 @@
         };
       }
       return function() {
-        var callback, params, startTime;
+        var callback, e, p, paramStr, params, startTime;
         [...params] = arguments;
         callback = params.pop();
         startTime = moment();
+        paramStr = (function() {
+          var i, len, results;
+          results = [];
+          for (i = 0, len = params.length; i < len; i++) {
+            p = params[i];
+            results.push(JSON.stringify(p));
+          }
+          return results;
+        })();
         params.push(function() {
           var endTime;
           endTime = moment();
-          LOG.info(`${that.target.constructor.name}.${f.name}:${JSON.stringify(params[0])}  --${endTime - startTime}ms`);
+          LOG.info(`${that.target.constructor.name}.${f.name}:${paramStr.join(",")}  --${endTime - startTime}ms`);
           return callback.apply(this, arguments);
         });
-        return f.apply(that.target, params);
+        try {
+          return f.apply(that.target, params);
+        } catch (error) {
+          e = error;
+          LOG.error(`${that.target.constructor.name}.${f.name}:${paramStr.join(",")}  --${moment() - startTime}ms\n${e.stack}`);
+          return callback(e);
+        }
       };
     }
 

@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.6.1",
+    "gm": "^1.23.1",
     "lodash": "^4.17.11",
     "log4js": "^3.0.6",
     "mkdirp": "^0.5.1",

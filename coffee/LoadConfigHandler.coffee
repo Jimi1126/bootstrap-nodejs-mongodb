@@ -32,10 +32,11 @@ class LoadConfigHandler extends Handler
 		async.series [
 			# 項目配置 project
 			(next) ->
-				start_at = moment()
-				mongoDao.projects.conf.selectOne {project: projName, conf: "project"}, (err, doc = {}) ->
-					LOG.info "加載#{projName}項目配置 --#{moment() - start_at}ms"
+				start = moment()
+				mongoDao.projects.conf.selectBySortOrLimit {project: projName, conf: "project"}, {"update_at": -1}, 1, (err, docs = []) ->
+					LOG.info "加载#{projName}项目配置 --#{moment() - start}ms"
 					return next err if err
+					doc = docs[0]
 					delete doc._id if doc._id
 					_.assign that.data.conf, doc
 					that.data.conf.remote.scan = [
@@ -55,26 +56,26 @@ class LoadConfigHandler extends Handler
 					next()
 			# 字段定义列表 fields
 			(next) ->
-				start_at = moment()
-				mongoDao.projects.conf.selectOne {project: projName, conf: "fields"}, (err, doc = {}) ->
-					LOG.info "加載#{projName}項目字段定義 --#{moment() - start_at}ms"
+				start = moment()
+				mongoDao.projects.conf.selectBySortOrLimit {project: projName, conf: "fields"}, {"update_at": -1}, 1, (err, docs = []) ->
+					LOG.info "加载#{projName}项目字段定义 --#{moment() - start}ms"
 					return next err if err
+					doc = docs[0]
 					delete doc[k] for k in ["_id", "project", "conf", "v"]
 					that.data.conf.fields = doc
 					next()
 			# 項目模板配置 bill
 			(next) ->
-				start_at = moment()
-				mongoDao.projects.conf.selectOne {project: projName, conf: "bill"}, (err, doc = {}) ->
-					LOG.info "加載#{projName}項目模板 --#{moment() - start_at}ms"
+				start = moment()
+				mongoDao.projects.conf.selectBySortOrLimit {project: projName, conf: "bill"}, {"update_at": -1}, 1, (err, docs = []) ->
+					LOG.info "加载#{projName}项目模板 --#{moment() - start}ms"
 					return next err if err
+					doc = docs[0]
 					delete doc[k] for k in ["_id", "project", "conf", "v"]
 					that.data.conf.bill = doc
 					for template in (doc.templates or doc.template or [])
-						#去掉過時的白名單
 						for block in template.blocks
 							delete block.white_list
-						# 按照錄入順序排序
 						# block_orders = get_tmpl_block_orders template.name
 						# template.blocks.sort (a, b) ->
 						# 	block_orders.indexOf a.code - block_orders.indexOf b.code
