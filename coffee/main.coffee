@@ -1,10 +1,14 @@
 global.argv = {project: "百年保全"}
+global.path = require 'path'
+global.fs = require 'fs'
 global.moment = require "moment"
 global.async = require "async"
 global._ = require "lodash"
 global.sprintf = require "sprintf-js"
 global.mkdirp = require "mkdirp"
 global.Utils = require "./Utils"
+
+global.workspace = workspace = __dirname.replace("\src", "")
 
 global.LoggerUtil = require "./LoggerUtil"
 global.LOG = LoggerUtil.getLogger ""
