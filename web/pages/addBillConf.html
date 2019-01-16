@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel='stylesheet' type="text/css" href='../css/bootstrap.css' />
+  <link rel='stylesheet' type="text/css" href='../css/jquery.Jcrop.css' />
+  <style>
+    .body-content,.input-group {
+			margin: 6px;
+		}
+    .group-title {
+      margin: 0;
+    }
+    .group-title .input-group-addon{
+      border: 0px;
+    }
+    .input-group-addon {
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="body-content">
+      <div class="input-group group-title">
+        <span class="input-group-addon" style="border-top: 0px;">
+          切图参数
+        </span>
+      </div>
+      <div class="input-group">
+        <div style="display: none;">
+          <input type="text" class="form-control" dataField="type" value="bill">
+        </div>
+        <span class="input-group-addon" id="basic-addon1">编码</span>
+        <input type="text" class="form-control" dataField="code">
+        <span class="input-group-addon" id="basic-addon1">起点X轴</span>
+        <input type="text" class="form-control" dataField="x0">
+        <span class="input-group-addon" id="basic-addon1">起点Y轴</span>
+        <input type="text" class="form-control" dataField="y0">
+        <span class="input-group-addon" id="basic-addon1">终点X轴</span>
+        <input type="text" class="form-control" dataField="x1">
+        <span class="input-group-addon" id="basic-addon1">终点Y轴</span>
+        <input type="text" class="form-control" dataField="y1">
+        <span class="input-group-addon" id="basic-addon1">宽</span>
+        <input type="text" class="form-control" dataField="w">
+        <span class="input-group-addon" id="basic-addon1">高</span>
+        <input type="text" class="form-control" dataField="h">
+      </div>
+    </div>
+    <div class="body-content">
+      <div style="overflow:auto">
+        <img id="element_id" src="../images/template/image1241454.jpg">
+      </div>
+    </div>
+  </div>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript" src="../js/jquery.Jcrop.js"></script>
+<script>
+  var adjustUI = function () {
+    $(".body-content:last").children().height(window.innerHeight - $(".body-content:first").height() - 18);
+  }
+  var showCoords = function (c) {
+    $("input[dataField='x0']").val(c.x);
+    $("input[dataField='y0']").val(c.y);
+    $("input[dataField='x1']").val(c.x2);
+    $("input[dataField='y1']").val(c.y2);
+    $("input[dataField='w']").val(c.w);
+    $("input[dataField='h']").val(c.h);
+  }
+  var clearCoords = function () {
+    $("input[dataField]:gt(1)").val("");
+  }
+  window.initPage = function (params) {
+    adjustUI();
+    $('#element_id').Jcrop({
+      handleSize: 10,
+      onChange: showCoords,
+      onSelect: showCoords,
+      onRelease: clearCoords
+    }, function () {
+      jcrop_api = this;
+      jcrop_api.setSelect([
+        $("input[dataField='x0']").val(),
+        $("input[dataField='y0']").val(),
+        $("input[dataField='x1']").val(),
+        $("input[dataField='y1']").val()
+      ]);
+    });
+  }
+</script>
+
+</html>

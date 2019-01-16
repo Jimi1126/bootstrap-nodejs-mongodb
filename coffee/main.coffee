@@ -6,35 +6,20 @@ global.async = require "async"
 global._ = require "lodash"
 global.sprintf = require "sprintf-js"
 global.mkdirp = require "mkdirp"
+global.LoggerUtil = LoggerUtil = require './LoggerUtil'
 global.Utils = require "./Utils"
+global.MongoDao = require "./MongoDao"
+global.__b_config = require "../config/base-config.json"
+global.workspace = __dirname.replace("\src", "")
 
-global.workspace = workspace = __dirname.replace("\src", "")
+express = require "express"
+global.app = app = express()
 
-global.LoggerUtil = require "./LoggerUtil"
-global.LOG = LoggerUtil.getLogger ""
+Router = require "./Router"
+LOG = LoggerUtil.getLogger "default"
+LoggerUtil.useLogger app, LOG  #请求日志
 
-MongoDAO = require "./MongoDAO"
-global.mongoDao = new MongoDAO()
-
-StrategyContext = require "./StrategyContext"
-ProDownStrategy = require "./ProDownStrategy"
-DownStrategy = require "./DownStrategy"
-global.StrategyProxy = require "./StrategyProxy"
-global.HandlerProxy = require "./HandlerProxy"
-
-# 下载前动作（有序）
-beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"]
-# 下载动作（有序）
-downHandle = ["LoadBillHandler", "ConvertHandler", "ParseProHandler", "CutPictureHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
-# 下载后动作
-afterDownHandle = ["", "", "", ""]
-
-LOG.info "本次下载开始于：#{moment().format("YYYY-MM-DD HH:mm:ss")}"
-start = moment()
-callback = ->
-	strategyContext = new StrategyContext(new StrategyProxy(new DownStrategy(downHandle)))
-	strategyContext.strategy.target.data = @data
-	strategyContext.execute ->
-		LOG.info "本次下载结束于：#{moment().format("YYYY-MM-DD HH:mm:ss")} --#{moment() - start}ms"
-
-new StrategyContext(new StrategyProxy(new ProDownStrategy(beforeDownHandle))).execute(callback)
+app.listen __b_config.serverInfo.port, __b_config.serverInfo.hostName, ->
+	LOG.info "启动成功，服务器运行在http://#{__b_config.serverInfo.hostName}:#{__b_config.serverInfo.port}"
+	router = new Router()
+	router.router()

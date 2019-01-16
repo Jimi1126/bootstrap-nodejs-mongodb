@@ -6,9 +6,11 @@
    * 通过数据库链接、所连接集合、连接参数来实例化DB操作对象
    * 一般的实例化对象提供增删改查操作
    */
-  var DBHandler, mongoClient;
+  var DBHandler, ObjectId, mongoClient;
 
   mongoClient = require('mongodb').MongoClient;
+
+  ObjectId = require('mongodb').ObjectId;
 
   DBHandler = class DBHandler {
     constructor(url, collection, DB_OPTS) {
@@ -51,6 +53,7 @@
         if (err) {
           throw err;
         }
+        docs._id && typeof docs._id === "string" && (docs._id = ObjectId(docs._id));
         return db.collection(this.collection).insert(docs, callback);
       });
     }
@@ -60,6 +63,7 @@
         if (err) {
           throw err;
         }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).remove(param, callback);
       });
     }
@@ -69,6 +73,8 @@
         if (err) {
           throw err;
         }
+        filter._id && typeof filter._id === "string" && (filter._id = ObjectId(filter._id));
+        setter._id && delete setter._id;
         return db.collection(this.collection).update(filter, setter, callback);
       });
     }
@@ -78,6 +84,7 @@
         if (err) {
           throw err;
         }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).findOne(param, callback);
       });
     }
@@ -87,6 +94,7 @@
         if (err) {
           throw err;
         }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         if (limit === -1) {
           return db.collection(this.collection).find(param).sort(sort).toArray(callback);
         } else {
@@ -100,6 +108,7 @@
         if (err) {
           throw err;
         }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).find(param).toArray(callback);
       });
     }
@@ -109,6 +118,7 @@
         if (err) {
           throw err;
         }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).countDocuments(param, callback);
       });
     }

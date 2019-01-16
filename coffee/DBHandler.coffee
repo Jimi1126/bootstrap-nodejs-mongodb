@@ -5,6 +5,7 @@
 # 一般的实例化对象提供增删改查操作
 ###
 mongoClient = require('mongodb').MongoClient
+ObjectId = require('mongodb').ObjectId
 class DBHandler
   constructor: (@url, @collection, @DB_OPTS)->
     @database = @url.substring @url.lastIndexOf("/") + 1, @url.lastIndexOf("?")
@@ -25,22 +26,28 @@ class DBHandler
   insert: (docs, callback) ->
     @connect (err, db) =>
       throw err if err
+      docs._id and typeof docs._id is "string" and (docs._id = ObjectId(docs._id))
       db.collection(@collection).insert docs, callback
   delete: (param, callback) ->
     @connect (err, db) =>
       throw err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).remove param, callback
   update: (filter, setter, callback) ->
     @connect (err, db) =>
       throw err if err
+      filter._id and typeof filter._id is "string" and (filter._id = ObjectId(filter._id))
+      setter._id and delete setter._id
       db.collection(@collection).update filter, setter, callback
   selectOne: (param, callback) ->
     @connect (err, db) =>
       throw err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).findOne param, callback
   selectBySortOrLimit: (param, sort, limit, callback) ->
     @connect (err, db) =>
       throw err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       if limit is -1
         db.collection(@collection).find(param).sort(sort).toArray callback
       else
@@ -48,10 +55,12 @@ class DBHandler
   selectList: (param, callback) ->
     @connect (err, db) =>
       throw err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).find(param).toArray callback
   count: (param, callback) ->
     @connect (err, db) =>
       throw err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).countDocuments param, callback
 
 module.exports = DBHandler

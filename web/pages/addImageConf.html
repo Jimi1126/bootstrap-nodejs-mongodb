@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+  <style>
+    .body-content,.input-group {
+			margin: 6px;
+		}
+    .group-title {
+      margin: 0;
+    }
+    .group-title .input-group-addon{
+      border: 0px;
+    }
+    .input-group-addon {
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="input-group">
+      <div style="display: none;">
+        <input type="text" class="form-control" dataField="type" value="image">
+      </div>
+      <span class="input-group-addon" id="basic-addon1">编码</span>
+      <input type="text" class="form-control" dataField="code">
+      <span class="input-group-addon" id="basic-addon1">图片下载地址</span>
+      <input type="text" class="form-control" dataField="d_url">
+      <span class="input-group-addon" id="basic-addon1">图片保存地址</span>
+      <input type="text" class="form-control" dataField="s_url">
+    </div>
+  </div>
+</body>
+
+</html>
