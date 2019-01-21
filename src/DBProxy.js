@@ -27,7 +27,7 @@
         [...params] = arguments;
         callback = params.pop();
         startTime = moment();
-        paramStr = (function() {
+        paramStr = f.name === "insert" ? ["..."] : (function() {
           var i, len, results;
           results = [];
           for (i = 0, len = params.length; i < len; i++) {

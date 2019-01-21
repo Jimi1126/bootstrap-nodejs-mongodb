@@ -29,14 +29,42 @@
       <div style="display: none;">
         <input type="text" class="form-control" dataField="type" value="image">
       </div>
-      <span class="input-group-addon" id="basic-addon1">编码</span>
+      <span class="input-group-addon">编码</span>
       <input type="text" class="form-control" dataField="code">
-      <span class="input-group-addon" id="basic-addon1">图片下载地址</span>
+      <span class="input-group-addon">图片下载地址</span>
       <input type="text" class="form-control" dataField="d_url">
       <span class="input-group-addon" id="basic-addon1">图片保存地址</span>
-      <input type="text" class="form-control" dataField="s_url">
+      <input type="text" class="form-control" readonly dataField="s_url">
+      <div class="input-group-addon" style="cursor: pointer" id="upload">
+        <span>图片样例</span>
+        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+      </div>
+      <input type="text" class="form-control" readonly dataField="img_path">
+      <form action="" style="display: none">
+        <input type="file" name="f" target="upload">
+      </form>
     </div>
   </div>
 </body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script>
+  window.initPage = function (project) {
+    $("#upload").bind("click", function() {
+      $("[target='upload']").click();
+    });
+    $("[target='upload']")[0].onchange = function() {
+      var value = $(this).val();
+      value = value ? value.split("\\").pop() : "";
+      $(".input-group [dataField='img_path']").val(value);
+    }
+    $("[dataField='code']")[0].onblur = function () {
+      if ($(this).val() != "") {
+        $(".input-group [dataField='s_url']").val("download/image/" + project.projName + "/" + $(this).val() + "/");
+      } else {
+        $(".input-group [dataField='s_url']").val("");
+      }
+    }
+  }
+</script>
 
 </html>

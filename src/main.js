@@ -3,7 +3,7 @@
   var LOG, LoggerUtil, Router, app, express;
 
   global.argv = {
-    project: "百年保全"
+    project: "EPCOS"
   };
 
   global.path = require('path');

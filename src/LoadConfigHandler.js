@@ -9,36 +9,46 @@
 
   LoadConfigHandler = class LoadConfigHandler extends Handler {
     handle(callback) {
-      var filter, that;
-      this.data.conf = {
-        // 項目配置
-        conf: {},
-        remote: {},
-        data: {
-          // 下載項
-          items: [],
-          // 網速統計
-          total: {
-            files: 0,
-            spent: 0
-          }
-        }
-      };
+      var dao, start, that;
       that = this;
-      filter = {};
-      if (argv.project) {
-        filter = {
-          name: argv.project
-        };
-      }
-      return mongoDao.projects.deploy.selectList(filter, function(err, docs) {
-        return async.eachSeries(docs, function(doc, next) {
-          return that.load_pro_conf(doc.name, function() {
-            // that.data.common[ proj_name ] = _.cloneDeep that.data.conf
-            // that.data.conf = { remote:{} }
-            return setTimeout(next, 0);
+      dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["deploy"]
+      });
+      start = moment();
+      return dao.epcos.deploy.selectOne({
+        type: "proj",
+        projName: argv.project
+      }, function(err, doc) {
+        if (err) {
+          return callback(err);
+        }
+        that.data.deploy = {};
+        if (!doc) {
+          return callback();
+        }
+        that.data.deploy.project = doc;
+        return dao.epcos.deploy.selectList({
+          project: doc._id.toString()
+        }, function(err, docs) {
+          if (err) {
+            return callback(err);
+          }
+          that.data.deploy.images = [];
+          that.data.deploy.bills = [];
+          that.data.deploy.fields = [];
+          docs.forEach && docs.forEach(function(doc) {
+            switch (doc.type) {
+              case "image":
+                return that.data.deploy.images.push(doc);
+              case "bill":
+                return that.data.deploy.bills.push(doc);
+              case "field":
+                return that.data.deploy.fields.push(doc);
+            }
           });
-        }, callback);
+          LOG.info(`加载${argv.project}项目配置 --${moment() - start}ms`);
+          return callback();
+        });
       });
     }
 

@@ -10,28 +10,33 @@
 
   ScanHandler = class ScanHandler extends Handler {
     handle(callback) {
-      var cmd, exec, execFuns, ref, that;
+      var exec, that;
       that = this;
-      cmd = (ref = this.data.conf.remote) != null ? ref.scan : void 0;
-      if (!cmd) {
-        return callback(new Error(`项目配置未定义 [${conf.project}]: remote.scan`), "");
+      if (!that.data.deploy.project) {
+        LOG.warn(`项目未配置 [${argv.project}]`);
+        return callback(null);
       }
-      execFuns = [];
-      cmd = cmd.length ? cmd : [cmd];
+      if (!that.data.deploy.images) {
+        LOG.warn(`项目未进行图片配置 [${argv.project}]`);
+        return callback(null);
+      }
       exec = new ExecHandler().queue_exec();
-      return async.each(cmd, (exec_cmd, cb) => {
-        var cmd_display, start_at;
-        cmd_display = exec_cmd != null ? exec_cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码
-        LOG.info(`开始扫描 remote.scan: ${cmd_display}`);
+      return async.each(that.data.deploy.images, function(image, cb) {
+        var cmd, cmd_display, start_at;
+        if (!image.d_url) {
+          return cb(null);
+        }
+        cmd = image.d_url;
+        if (!cmd.startsWith("curl")) {
+          cmd = `curl ${cmd}`;
+        }
+        cmd_display = cmd != null ? cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码
+        LOG.info(`开始扫描 image.d_url: ${cmd_display}`);
         start_at = moment();
-        return exec(exec_cmd, (error, lines, stderr) => {
-          var base;
+        return exec(cmd, function(error, lines, stderr) {
           lines = ("" + lines).trim().split(/[\r\n]+/);
           LOG.info(`扫描结束, ${lines.length} 行, ${moment() - start_at}ms`);
-          if ((base = this.data).lineObj == null) {
-            base.lineObj = {};
-          }
-          this.data.lineObj[exec_cmd] = lines;
+          image.lines = lines;
           return cb(error);
         });
       }, callback);
@@ -39,6 +44,20 @@
 
   };
 
+  // execFuns = []
+  // cmd = if cmd.length then cmd else [cmd]
+  // exec = new ExecHandler().queue_exec()
+  // async.each cmd, (exec_cmd, cb) =>
+  //   cmd_display = exec_cmd?.replace /\s+\-u\s+\S+/g, " -u '***:***'" #不打印密码
+  //   LOG.info "开始扫描 remote.scan: #{cmd_display}"
+  //   start_at = moment()
+  //   exec exec_cmd, (error, lines, stderr) =>
+  //     lines = ("" + lines).trim().split /[\r\n]+/
+  //     LOG.info "扫描结束, #{lines.length} 行, #{moment() - start_at}ms"
+  //     @data.lineObj ?= {}
+  //     @data.lineObj[exec_cmd] = lines
+  //     cb error
+  // , callback
   module.exports = ScanHandler;
 
 }).call(this);

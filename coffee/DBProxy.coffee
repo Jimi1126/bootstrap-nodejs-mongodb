@@ -15,7 +15,7 @@ class DBProxy extends Proxy
       [...params] = arguments
       callback = params.pop()
       startTime = moment()
-      paramStr = (JSON.stringify(p) for p in params)
+      paramStr = if f.name is "insert" then ["..."] else (JSON.stringify(p) for p in params)
       params.push ->
         endTime = moment()
         LOG.info "#{that.target.constructor.name}.#{f.name}:#{paramStr.join ","}  --#{endTime - startTime}ms"

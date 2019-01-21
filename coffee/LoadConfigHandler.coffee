@@ -3,30 +3,26 @@ Handler = require "./Handler"
 LOG = LoggerUtil.getLogger "LoadConfigHandler"
 class LoadConfigHandler extends Handler
 	handle: (callback)->
-		@data.conf = {
-			# 項目配置
-			conf: {}
-			remote: {}
-			data:{
-				# 下載項
-				items: []
-				# 網速統計
-				total: {
-					files: 0
-					spent: 0
-				}
-			}
-		}
 		that = @
-		filter = {}
-		filter = {name: argv.project} if argv.project
-		mongoDao.projects.deploy.selectList filter, (err, docs)->
-			async.eachSeries docs, (doc, next) ->
-				that.load_pro_conf doc.name, ()->
-					# that.data.common[ proj_name ] = _.cloneDeep that.data.conf
-					# that.data.conf = { remote:{} }
-					setTimeout next,0
-			,callback
+		dao = new MongoDao __b_config.dbInfo, {epcos: ["deploy"]}
+		start = moment()
+		dao.epcos.deploy.selectOne {type: "proj", projName: argv.project}, (err, doc)->
+			return callback err if err
+			that.data.deploy = {}
+			return callback() unless doc
+			that.data.deploy.project = doc
+			dao.epcos.deploy.selectList {project: doc._id.toString()}, (err, docs)->
+				return callback err if err
+				that.data.deploy.images = []
+				that.data.deploy.bills = []
+				that.data.deploy.fields = []
+				docs.forEach and docs.forEach (doc)->
+					switch doc.type
+						when "image" then that.data.deploy.images.push doc
+						when "bill" then that.data.deploy.bills.push doc
+						when "field" then that.data.deploy.fields.push doc
+				LOG.info "加载#{argv.project}项目配置 --#{moment() - start}ms"
+				callback()
 	load_pro_conf: ( projName ,callback )->
 		that = @
 		async.series [

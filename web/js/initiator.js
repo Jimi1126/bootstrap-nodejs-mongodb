@@ -204,11 +204,11 @@ ModalWindow.prototype = {
     var $body = $(this.contentWindow.document.body);
     if (!!_data) {
       for (key in _data) {
-        $body.find("input[dataField=" + key + "]").val(_data[key]);
+        $body.find(".input-group input[dataField=" + key + "]").val(_data[key]);
       }
     } else {
       _data = {};
-      $body.find("input[dataField]").each(function () {
+      $body.find(".input-group input[dataField]").each(function () {
         _data[$(this).attr("dataField")] = $(this).val()
       });
       return _data;
@@ -307,7 +307,7 @@ $.fn.icTable = function (options) {
   html = '<table class="table table-body"><thead><tr></tr></thead><tbody></tbody></table>';
   body = $(html);
   if (options.title) {
-    html = '<th style="min-width: 40px;width: 50px;"><input value="序号"></th>';
+    html = '<th style="min-width: 40px;width: 50px;"><input value="序号" readOnly></th>';
     header.find('thead>tr').append(html);
     options.title.forEach(function (t) {
       html = '<th><input readonly value=' + t + '></th>';
@@ -330,11 +330,17 @@ $.fn.icTable = function (options) {
       });
       return _datas;
     } else {
-      var $tr, value, func, $td;
-      func = function (e) {
+      var $tr, value, func, $td, showTitle, hideTitle;
+      func = function () {
         body.find('.active').removeClass("active");
         $(this).addClass("active");
         that.onselectRow && that.onselectRow();
+      }
+      showTitle = function() {
+        $(this).attr("title", $(this).find("input").val());
+      }
+      hideTitle = function() {
+        $(this).removeAttr("title");
       }
       body.find('tbody').html("");
       _datas.forEach && _datas.forEach(function (data, i) {
@@ -348,6 +354,8 @@ $.fn.icTable = function (options) {
           i == 0 && $td.css("min-width", header.find('th:eq(' + (j + 1) + ')').css("min-width"));
           $td.find("input").val(value);
           !options.editable && $td.find("input").attr("readonly", "");
+          $td.bind("mouseover", showTitle);
+          $td.bind("mouseout", hideTitle);
           $tr.append($td);
         });
         $tr.bind("click", func);

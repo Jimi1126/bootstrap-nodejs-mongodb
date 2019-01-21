@@ -1,4 +1,4 @@
-global.argv = {project: "百年保全"}
+global.argv = {project: "EPCOS"}
 global.path = require 'path'
 global.fs = require 'fs'
 global.moment = require "moment"

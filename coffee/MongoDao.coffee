@@ -1,3 +1,5 @@
+
+DBProxy = require "./DBProxy"
 DBHandler = require "./DBHandler"
 class MongoDao
   constructor: (config, cont)->
@@ -8,6 +10,6 @@ class MongoDao
     for k, v of cont
       @[k] = {}
       for col in v
-        @[k][col] = new DBHandler perfix + k + postfix, col, config.DB_OPTS
+        @[k][col] = new DBProxy (new DBHandler perfix + k + postfix, col, config.DB_OPTS)
 
 module.exports = MongoDao

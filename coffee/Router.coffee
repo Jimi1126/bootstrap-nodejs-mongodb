@@ -2,8 +2,10 @@ express = require "express"
 bodyParser = require 'body-parser'
 cookieParser = require "cookie-parser"
 session = require "express-session"
+multer = require "multer"
 ObjectId = require('mongodb').ObjectId
 ConfigContext = require "./ConfigContext"
+ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "Router"
 class Router
 	constructor: ->
@@ -32,7 +34,7 @@ class Router
 		app.use bodyParser.json()
 		app.use bodyParser.urlencoded {extended: true}
 		app.use cookieParser()
-		
+
 		configRouter = express.Router() # 配置请求路由
 		## 获取项目信息
 		configRouter.get "/getProjList", (req, res)->
@@ -121,6 +123,97 @@ class Router
 			configContext.deleteDeploy filter, (err)->
 				LOG.error err if err
 				res.json null
+		# 文件上传
+		storage = multer.diskStorage {
+			destination: (req, file, cb)->
+				data = if Object.keys(req.query).length is 0 then req.body else req.query
+				dir = if data.dir then "./web/images/template/#{data.dir}" else './web/images/template/'
+				if data.rmdir
+					fs.rmdir data.rmdir, (err)->
+						LOG.error err if err
+						mkdirp dir, (err)->
+							LOG.error err if err
+							cb err, dir
+				else
+					mkdirp dir, (err)->
+						LOG.error err if err
+						cb err, dir
+			filename: (req, file, cb)->
+				data = if Object.keys(req.query).length is 0 then req.body else req.query
+				str = file.originalname.split '.'
+				filename = if data.filename then data.filename else Date.now() + '.' + str[1]
+				cb null, filename
+		}
+		upload = multer { storage: storage }
+		configRouter.post "/uploadFile", upload.array("file", 1), (req, res, next)->
+			if req.files and req.files.length > 0
+				res.json req.files[0].path
+			else
+				res.json null
+		# 文件删除
+		configRouter.post "/delFile", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			if data
+				if data.type is "file"
+					fs.unlink data.path, (err)->
+						LOG.error err if err
+						res.json err
+				else
+					Utils.rmdir data.path, (err)->
+						LOG.error err if err
+						res.json err
+			else
+				res.json null
+		# 文件名修改
+		configRouter.get "/moddir", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			if data
+				f_arr = data.from.split "\\"
+				t_arr = data.to.split "\\"
+				i = -1
+				async.eachSeries f_arr, (name, cb)->
+					i++
+					if name isnt t_arr[i]
+						m_arr = t_arr.slice 0, i
+						fs.rename m_arr.join("\\") + "\\" + name, m_arr.join("\\") + "\\" + t_arr[i], cb
+					else
+						cb null
+				, (err)->
+					LOG.error err if err
+					res.json err
+		# 样例切图
+		configRouter.post "/crop", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			mkdirp data.cut_path, (err)->
+				if err
+					LOG.error err
+					return res.json "create dir error"
+				options = {
+					src: data.src
+					dst: data.cut_path + "\\" + data.data.code + ".jpg"
+					x0: data.data.x0
+					y0: data.data.y0
+					x1: data.data.x1
+					y1: data.data.y1
+				}
+				cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
+				try
+					cut_cmd = sprintf.sprintf cut_cmd, options
+				catch e
+					LOG.error e.stack
+					return res.json "create dir error"
+				exec = new ExecHandler().queue_exec 1
+				exec cut_cmd, (err, stdout, stderr, spent) ->
+					if err
+						LOG.error err
+						return res.json "crop error"
+					stdout = "#{stdout}".trim()
+					stderr = "#{stderr}".trim()
+					LOG.info stdout if stdout.length > 0
+					LOG.info stderr if stderr.length > 0
+					LOG.info "#{options.src} => #{options.dst} #{spent}ms"
+					res.json "success"
+
 		app.use "/config", configRouter
 
 module.exports = Router

@@ -8,62 +8,72 @@
 
   ParseDirHandler = class ParseDirHandler extends Handler {
     handle(callback) {
-      var arr, base, bill_end, cmd, i, item, len, line, lines, paths, ref, urls;
-      ref = this.data.lineObj;
-      for (cmd in ref) {
-        lines = ref[cmd];
-        paths = [];
+      var i, image, len, lines, ref;
+      if (!this.data.deploy.images) {
+        LOG.warn(`${argv.project}：没有进行图片配置`);
+        return callback(null);
+      }
+      this.data.images = [];
+      ref = this.data.deploy.images;
+      for (i = 0, len = ref.length; i < len; i++) {
+        image = ref[i];
+        lines = image.lines ? image.lines : [];
         if ("string" === typeof lines) {
           lines = lines.split(/[\r\n]+/);
         }
-        LOG.info(`${cmd.substring(4)}目录解析: ${lines.length} 行`);
+        LOG.info(`${image.d_url}目录解析: ${lines.length} 行`);
         // 反向排序，一般 ftp 返回結果，舊文件在後面
         lines.reverse();
-        urls = [];
-        for (i = 0, len = lines.length; i < len; i++) {
-          line = lines[i];
+        lines.forEach((line) => {
+          var arr;
           line = line.trim();
-          // continue if line is "" or not /\.xml/i.test line
           arr = /(\S+)\s+(\S+\s+\S+\s+\S+)\s+(\S+)$/.exec(line);
           if (!(arr != null ? arr[3] : void 0)) {
-            continue;
+            return;
           }
-          if (typeof argv !== "undefined" && argv !== null ? argv.bill_end : void 0) {
-            bill_end = new RegExp(`[${argv.bill_end}]\\d{2}.xml$`);
-            if (!bill_end.test(arr[3])) {
-              continue;
-            }
-          }
-          item = {
-            bill_name: arr[3],
+          return this.data.images.push({
+            image_type: image._id.toString(),
+            code: image.code,
+            image_name: arr[3],
+            d_url: image.d_url,
+            s_url: image.s_url,
             size: parseInt(arr[1]),
             create_at: moment(arr[2], "MMM D HH:mm").format("YYYYMMDDHHmmss")
-          };
-          if (item.size < 10) {
-            continue;
-          }
-          paths.push(item);
-        }
-        // 按照文件日期排序，舊文件在前
-        paths.sort(function(a, b) {
-          if (a.create_at < b.create_at) {
-            return -1;
-          } else if (a.create_at > b.create_at) {
-            return 1;
-          } else {
-            return 0;
-          }
+          });
         });
-        if ((base = this.data).billInfos == null) {
-          base.billInfos = {};
-        }
-        this.data.billInfos[cmd] = paths;
       }
       return callback();
     }
 
   };
 
+  // for cmd,lines of @data.lineObj
+  //   paths = []
+  //   lines = lines.split /[\r\n]+/ if "string" == typeof lines
+  //   LOG.info "#{cmd.substring(4)}目录解析: #{lines.length} 行"
+  //   # 反向排序，一般 ftp 返回結果，舊文件在後面
+  //   lines.reverse()
+  //   urls = []
+  //   for line in lines
+  //     line = line.trim()
+  //     # continue if line is "" or not /\.xml/i.test line
+  //     arr = /(\S+)\s+(\S+\s+\S+\s+\S+)\s+(\S+)$/.exec line
+  //     continue unless arr?[3]
+  //     if argv?.bill_end 
+  //       bill_end = new RegExp("[#{argv.bill_end}]\\d{2}.xml$")
+  //       continue unless bill_end.test arr[3]
+  //     item = {
+  //       bill_name: arr[3]
+  //       size: parseInt arr[1]
+  //       create_at: moment(arr[2], "MMM D HH:mm").format "YYYYMMDDHHmmss"
+  //     }
+  //     continue if item.size < 10
+  //     paths.push item
+  //   # 按照文件日期排序，舊文件在前
+  //   paths.sort (a, b) ->
+  //     if a.create_at < b.create_at then -1 else if a.create_at > b.create_at then 1 else 0
+  //   @data.billInfos ?= {}
+  //   @data.billInfos[cmd] = paths
   module.exports = ParseDirHandler;
 
 }).call(this);

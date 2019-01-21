@@ -40,7 +40,15 @@
       <span class="input-group-addon" id="basic-addon1">图片下载地址</span>
       <input type="text" class="form-control" dataField="d_url">
       <span class="input-group-addon" id="basic-addon1">图片保存地址</span>
-      <input type="text" class="form-control" dataField="s_url">
+      <input type="text" class="form-control" dataField="s_url" readonly>
+      <div class="input-group-addon" style="cursor: pointer" id="upload">
+        <span>图片样例</span>
+        <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>
+      </div>
+      <input type="text" class="form-control" readonly dataField="img_path">
+      <form action="" style="display: none">
+        <input type="file" name="f" target="upload">
+      </form>
     </div>
     <div class="input-group group-title">
       <span class="input-group-addon" style="border-top: 0px;">

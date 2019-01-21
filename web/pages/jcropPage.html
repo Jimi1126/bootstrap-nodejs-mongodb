@@ -54,45 +54,14 @@
     </div>
     <div class="body-content">
       <div style="overflow:auto">
-        <img id="element_id" src="../images/template/image1241454.jpg">
+        <img id="element_id" src="">
       </div>
     </div>
   </div>
 </body>
 <script type="text/javascript" src="../js/jquery.min.js"></script>
 <script type="text/javascript" src="../js/jquery.Jcrop.js"></script>
-<script>
-  var adjustUI = function () {
-    $(".body-content:last").children().height(window.innerHeight - $(".body-content:first").height() - 18);
-  }
-  var showCoords = function (c) {
-    $("input[dataField='x0']").val(c.x);
-    $("input[dataField='y0']").val(c.y);
-    $("input[dataField='x1']").val(c.x2);
-    $("input[dataField='y1']").val(c.y2);
-    $("input[dataField='w']").val(c.w);
-    $("input[dataField='h']").val(c.h);
-  }
-  var clearCoords = function () {
-    $("input[dataField]:gt(1)").val("");
-  }
-  window.initPage = function (params) {
-    adjustUI();
-    $('#element_id').Jcrop({
-      handleSize: 10,
-      onChange: showCoords,
-      onSelect: showCoords,
-      onRelease: clearCoords
-    }, function () {
-      jcrop_api = this;
-      jcrop_api.setSelect([
-        $("input[dataField='x0']").val(),
-        $("input[dataField='y0']").val(),
-        $("input[dataField='x1']").val(),
-        $("input[dataField='y1']").val()
-      ]);
-    });
-  }
-</script>
+<script type="text/javascript" src="../js/initiator.js"></script>
+<script type="text/javascript" src="../js/jcropPage.js"></script>
 
 </html>

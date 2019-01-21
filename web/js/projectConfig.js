@@ -58,7 +58,7 @@ ProjectConfig.prototype = {
   /**
    * 按钮控制.
    */
-  buttonControl: function() {
+  buttonControl: function () {
     if (Util.isEmpty(this.projects)) {
       $("#proj_mod").disabled();
       $("#proj_del").disabled();
@@ -235,7 +235,7 @@ ProjectConfig.prototype = {
     var that = this;
     var modalWindow = new ModalWindow({
       title: "删除项目配置",
-      body: "<div>删除项目配置后，该项目相应的图片配置也一并删除，你确定删除吗？</div>",
+      body: "<div>删除项目配置后，该项目相应的图片、分块、字段配置将一并删除，你确定删除吗？</div>",
       width: 500,
       height: 40,
       buttons: [{
@@ -276,6 +276,7 @@ ProjectConfig.prototype = {
       url: "addImageConf.html",
       width: 850,
       height: 50,
+      params: that.curProj,
       buttons: [{
         name: "新增",
         class: "btn-primary",
@@ -285,24 +286,42 @@ ProjectConfig.prototype = {
             return that.dialog.show('图片编码为必填项');
           }
           that.loadUI.show();
-          image.project = that.curProj._id;
-          image._id = Util.uuid(24, 16).toLowerCase();
-          image.type = "image";
-          $.post("/config/saveDeploy", image, function (data, status, xhr) {
-            if (status == 'success') {
-              if (data == "exist") {
-                that.dialog.show('图片编码已存在');
-              } else {
-                that.dialog.show('新增成功');
-                that.images.push(image);
-                that.imageTable.value(that.images);
-                that.imageTable.select(that.images.length - 1);
-                that.buttonControl();
-                modalWindow.hide();
-              }
+          var file = this.contentWindow.$("[target='upload']")[0].files;
+          var form = new FormData();
+          form.append("dir", that.curProj.projCode + "/" + image.code);
+          form.append("filename", image.code + file[0].name.substring(file[0].name.indexOf(".")));
+          form.append("file", file[0]);
+          var xhr = new XMLHttpRequest();
+          xhr.open("post", "/config/uploadFile", true);
+          xhr.send(form);
+          xhr.onreadystatechange = function () {
+            var result = xhr;
+            if (result.status != 200) { //error
+              that.dialog.show('上传图片失败');
+              that.loadUI.hide();
             }
-            that.loadUI.hide();
-          });
+            else if (result.readyState == 4) { //finished
+              image.project = that.curProj._id;
+              image._id = Util.uuid(24, 16).toLowerCase();
+              image.type = "image";
+              image.img_path = JSON.parse(result.responseText);
+              $.post("/config/saveDeploy", image, function (data, status, xhr) {
+                if (status == 'success') {
+                  if (data == "exist") {
+                    that.dialog.show('图片编码已存在');
+                  } else {
+                    that.dialog.show('新增成功');
+                    that.images.push(image);
+                    that.imageTable.value(that.images);
+                    that.imageTable.select(that.images.length - 1);
+                    that.buttonControl();
+                    modalWindow.hide();
+                  }
+                }
+                that.loadUI.hide();
+              });
+            }
+          }
         }
       }, {
         name: "取消",
@@ -320,13 +339,14 @@ ProjectConfig.prototype = {
   modImageConfEvent: function () {
     var that = this;
     var image = that.imageTable.select();
-    var modImage = that.images.filter(function (im) {return im.code == image.code})[0];
+    var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
+    modImage.projName = that.curProj.projName;
     var modalWindow = new ModalWindow({
       title: "修改图片配置",
       url: "updateImageConf.html",
       width: 850,
       height: 450,
-      data: image,
+      data: modImage,
       params: modImage,
       buttons: [{
         name: "保存",
@@ -336,18 +356,59 @@ ProjectConfig.prototype = {
           if (Util.isEmpty(image.code)) {
             return that.dialog.show('项目编码为必填项');
           }
+          var doUpdate = function () {
+            modImage.code = image.code;
+            modImage.d_url = image.d_url;
+            modImage.s_url = image.s_url;
+            $.post("/config/updateDeploy", modImage, function (data, status, xhr) {
+              if (status == 'success') {
+                that.dialog.show('修改成功');
+                that.imageTable.asyncData(that.images);
+                modalWindow.hide();
+              }
+              that.loadUI.hide();
+            });
+          }
           that.loadUI.show();
-          modImage.code = image.code;
-          modImage.d_url = image.d_url;
-          modImage.s_url = image.s_url;
-          $.post("/config/updateDeploy", modImage, function (data, status, xhr) {
-            if (status == 'success') {
-              that.dialog.show('修改成功');
-              that.imageTable.asyncData(that.images);
-              modalWindow.hide();
+          if (modImage.img_path != image.img_path) {
+            var file = this.contentWindow.$("[target='upload']")[0].files;
+            var form = new FormData();
+            form.append("rmdir", that.curProj.projCode + "/" + modImage.code);
+            form.append("dir", that.curProj.projCode + "/" + image.code);
+            form.append("filename", image.code + file[0].name.substring(file[0].name.indexOf(".")));
+            form.append("file", file[0]);
+            var xhr = new XMLHttpRequest();
+            xhr.open("post", "/config/uploadFile", true);
+            xhr.send(form);
+            xhr.onreadystatechange = function () {
+              var result = xhr;
+              if (result.status != 200) { //error
+                that.dialog.show('上传图片失败');
+                that.loadUI.hide();
+              } else if (result.readyState == 4) { //finished
+                modImage.img_path = JSON.parse(result.responseText);
+                doUpdate();
+              }
             }
-            that.loadUI.hide();
-          });
+          } else {
+            if (modImage.img_path && modImage.code != image.code) {
+              var arr = modImage.img_path.split("\\");
+              arr[4] = image.code;
+              arr[5] = image.code + "." + arr[5].split(".")[1];
+              var moddir = arr.join("\\");
+              $.get("/config/moddir", {from: modImage.img_path, to: moddir}, function (data, status, xhr) {
+                if (status == 'success') {
+                  modImage.img_path = moddir;
+                  doUpdate();
+                } else {
+                  that.dialog.show('更新失败');
+                  that.loadUI.hide();
+                }
+              });
+            } else {
+              doUpdate();
+            }
+          }
         }
       }, {
         name: "取消",
@@ -366,7 +427,7 @@ ProjectConfig.prototype = {
     var that = this;
     var modalWindow = new ModalWindow({
       title: "删除图片配置",
-      body: "<div>删除图片配置后，该图片配置的分块及字段配置也一并删除，你确定删除吗？</div>",
+      body: "<div>删除图片配置后，该图片配置的分块、字段配置将一并删除，你确定删除吗？</div>",
       width: 500,
       height: 40,
       buttons: [{
@@ -382,18 +443,37 @@ ProjectConfig.prototype = {
             }
             return false;
           })[0];
-          $.post("/config/deleteDeploy", delImage, function (data, status, xhr) {
-            that.loadUI.hide();
-            if (status == 'success') {
-              that.dialog.show('删除成功');
-              that.imageTable.remove(index);
-              that.images = [].concat(that.images.slice(0, index), that.images.slice(index + 1));
-              that.buttonControl();
-              modalWindow.hide();
-            } else {
-              that.dialog.show('删除失败');
-            }
-          });
+          var doDel = function() {
+            $.post("/config/deleteDeploy", delImage, function (data, status, xhr) {
+              if (status == 'success') {
+                that.dialog.show('删除成功');
+                that.imageTable.remove(index);
+                that.images = [].concat(that.images.slice(0, index), that.images.slice(index + 1));
+                that.buttonControl();
+                modalWindow.hide();
+              } else {
+                that.dialog.show('删除失败');
+              }
+              that.loadUI.hide();
+            });
+          }
+          if (delImage.img_path) {
+            var arr = delImage.img_path.split("\\");
+            arr.pop();
+            var param = {
+              path: arr.join("\\")
+            };
+            $.post("/config/delFile", param, function (data, status, xhr) {
+              if (status == "success") {
+                doDel();
+              } else {
+                that.dialog.show('删除失败');
+                that.loadUI.hide();
+              }
+            });
+          } else {
+            doDel();
+          }
         }
       }, {
         name: "取消",

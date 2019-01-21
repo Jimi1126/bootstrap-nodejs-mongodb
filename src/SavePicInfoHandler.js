@@ -10,8 +10,115 @@
 
   SavePicInfoHandler = class SavePicInfoHandler extends Handler {
     handle(callback) {
-      LOG.info("保存图片信息");
-      return callback();
+      var b_dao, f_dao, i_dao, that;
+      that = this;
+      i_dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["image"]
+      });
+      b_dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["bill"]
+      });
+      f_dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["field"]
+      });
+      return async.parallel([
+        function(cb) {
+          var data;
+          data = that.data.images.filter(function(i) {
+            return !i._id;
+          });
+          if (data.length !== 0) {
+            return i_dao.epcos.image.insert(data,
+        cb);
+          } else {
+            return cb(null);
+          }
+        },
+        function(cb) {
+          var data;
+          data = that.data.images.filter(function(i) {
+            return i._id;
+          });
+          if (data.length !== 0) {
+            return async.each(data,
+        function(d,
+        cb1) {
+              return i_dao.epcos.image.update({
+                _id: d._id
+              },
+        d,
+        cb1);
+            },
+        cb);
+          } else {
+            return cb(null);
+          }
+        },
+        function(cb) {
+          var data;
+          data = that.data.bills.filter(function(b) {
+            return !b._id;
+          });
+          if (data.length !== 0) {
+            return b_dao.epcos.bill.insert(data,
+        cb);
+          } else {
+            return cb(null);
+          }
+        },
+        function(cb) {
+          var data;
+          data = that.data.bills.filter(function(b) {
+            return b._id;
+          });
+          if (data.length !== 0) {
+            return async.each(data,
+        function(d,
+        cb1) {
+              return b_dao.epcos.bill.update({
+                _id: d._id
+              },
+        d,
+        cb1);
+            },
+        cb);
+          } else {
+            return cb(null);
+          }
+        },
+        function(cb) {
+          var data;
+          data = that.data.fields.filter(function(f) {
+            return !f._id;
+          });
+          if (data.length !== 0) {
+            return f_dao.epcos.field.insert(data,
+        cb);
+          } else {
+            return cb(null);
+          }
+        },
+        function(cb) {
+          var data;
+          data = that.data.fields.filter(function(f) {
+            return f._id;
+          });
+          if (data.length !== 0) {
+            return async.each(data,
+        function(d,
+        cb1) {
+              return f_dao.epcos.field.update({
+                _id: d._id
+              },
+        d,
+        cb1);
+            },
+        cb);
+          } else {
+            return cb(null);
+          }
+        }
+      ], callback);
     }
 
   };
