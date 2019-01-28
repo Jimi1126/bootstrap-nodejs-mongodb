@@ -1,6 +1,10 @@
 .ic-LoadUI{top: 0px; left: 0px; position: absolute; text-align: center; line-height: 758px; background-color: rgb(255, 255, 255); opacity: 0.4; z-index: 9999;}
-.ic-Dialog{width: 140px; bottom: 20px; right: 16px; padding: 8px; position: absolute; text-align: center; color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(233, 236, 239); border-radius: 8px; border: 1px solid rgb(204, 204, 204); opacity: 1; z-index: 9999;}
-.dropdown-menu{min-width: auto; overflow: auto; margin-left: 6px;}
+.ic-Dialog{ bottom: 20px; right: 16px; padding: 16px; position: absolute; text-align: center; color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(233, 236, 239); border-radius: 8px; border: 1px solid rgb(204, 204, 204); opacity: 1; z-index: 9999;}
+.ic-Dialog div{display: inline;}
+.dropdown-toggle input{width: 90%;border: 0px;}
+.dropdown-toggle .caret{margin-left: 6px;}
+.dropdown-menu{min-width: auto; overflow: auto; margin-left: 6px;z-index: 999;}
+.form-control.dropdown{padding: 0px;border: 0px;}
 .table{margin-bottom: 0px;border: 0px;}
 .table-header{position: absolute; background-color:#eee;}
 .table-header th,.table-body td{text-align: center; border: 1px solid #ccc}

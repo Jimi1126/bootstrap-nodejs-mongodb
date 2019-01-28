@@ -36,16 +36,7 @@ class Router
 		app.use cookieParser()
 
 		configRouter = express.Router() # 配置请求路由
-		## 获取项目信息
-		configRouter.get "/getProjList", (req, res)->
-			configContext = new ConfigContext()
-			param = if Object.keys(req.query).length is 0 then req.body else req.query
-			configContext.getProjList param, (err, conf)->
-				if err
-					LOG.error err
-					res.json null
-				else
-					res.json conf
+
 		## 获取配置信息
 		configRouter.get "/getDeploy", (req, res)->
 			configContext = new ConfigContext()
@@ -88,14 +79,43 @@ class Router
 					configContext.saveDeploy data, (err)->
 						LOG.error err if err
 						res.json null
-		## 更新项目信息
+		## 更新配置信息
 		configRouter.post "/updateDeploy", (req, res)->
 			configContext = new ConfigContext()
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
 			configContext.updateDeploy {_id: data._id}, data, (err)->
 				LOG.error err if err
 				res.json null
-		## 删除项目配置
+		## 删除图片配置样例及裙带信息
+		configRouter.post "/delImageTempl", (req, res)->
+			configContext = new ConfigContext()
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			return res.json null unless data.delFile
+			return res.json "error" unless data.img
+			async.each data.delFile, (path, cb)->
+				fs.unlink path, (err)->
+					if err
+						LOG.error err
+						return cb "error"
+					filter = {project: data.img.project, image: data.img._id, src_img: path}
+					configContext.getDeploy filter, (err, docs)->
+						if err
+							LOG.error err
+							return cb "error"
+						async.each docs, (doc, cb1)->
+							fs.unlink doc.img_path, (err)->
+								if err
+									LOG.error err
+									return cb1 "error"
+								configContext.deleteDeploy doc, (err)->
+									if err
+										LOG.error err
+										return cb1 "error"
+									cb1 null
+						, cb
+			, (err)->
+				res.json err
+		## 删除配置信息
 		configRouter.post "/deleteDeploy", (req, res)->
 			configContext = new ConfigContext()
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
@@ -175,44 +195,49 @@ class Router
 					i++
 					if name isnt t_arr[i]
 						m_arr = t_arr.slice 0, i
-						fs.rename m_arr.join("\\") + "\\" + name, m_arr.join("\\") + "\\" + t_arr[i], cb
+						fs.exists m_arr.join("\\") + "\\" + t_arr[i], (exist)->
+							return cb "exist" if exist
+							fs.rename m_arr.join("\\") + "\\" + name, m_arr.join("\\") + "\\" + t_arr[i], cb
 					else
 						cb null
 				, (err)->
 					LOG.error err if err
+					res.setHeader 200
 					res.json err
 		# 样例切图
 		configRouter.post "/crop", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
-			mkdirp data.cut_path, (err)->
-				if err
-					LOG.error err
-					return res.json "create dir error"
-				options = {
-					src: data.src
-					dst: data.cut_path + "\\" + data.data.code + ".jpg"
-					x0: data.data.x0
-					y0: data.data.y0
-					x1: data.data.x1
-					y1: data.data.y1
-				}
-				cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
-				try
-					cut_cmd = sprintf.sprintf cut_cmd, options
-				catch e
-					LOG.error e.stack
-					return res.json "create dir error"
-				exec = new ExecHandler().queue_exec 1
-				exec cut_cmd, (err, stdout, stderr, spent) ->
+			fs.exists data.cut_path + "\\" + data.data.code + ".jpg", (exist)->
+				return res.json "exist" if exist
+				mkdirp data.cut_path, (err)->
 					if err
 						LOG.error err
-						return res.json "crop error"
-					stdout = "#{stdout}".trim()
-					stderr = "#{stderr}".trim()
-					LOG.info stdout if stdout.length > 0
-					LOG.info stderr if stderr.length > 0
-					LOG.info "#{options.src} => #{options.dst} #{spent}ms"
-					res.json "success"
+						return res.json "create dir error"
+					options = {
+						src: data.src
+						dst: data.cut_path + "\\" + data.data.code + ".jpg"
+						x0: data.data.x0
+						y0: data.data.y0
+						x1: data.data.x1
+						y1: data.data.y1
+					}
+					cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
+					try
+						cut_cmd = sprintf.sprintf cut_cmd, options
+					catch e
+						LOG.error e.stack
+						return res.json "create dir error"
+					exec = new ExecHandler().queue_exec 1
+					exec cut_cmd, (err, stdout, stderr, spent) ->
+						if err
+							LOG.error err
+							return res.json "crop error"
+						stdout = "#{stdout}".trim()
+						stderr = "#{stderr}".trim()
+						LOG.info stdout if stdout.length > 0
+						LOG.info stderr if stderr.length > 0
+						LOG.info "#{options.src} => #{options.dst} #{spent}ms"
+						res.json "success"
 
 		app.use "/config", configRouter
 

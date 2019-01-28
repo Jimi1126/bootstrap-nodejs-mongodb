@@ -44,20 +44,6 @@
 
   };
 
-  // execFuns = []
-  // cmd = if cmd.length then cmd else [cmd]
-  // exec = new ExecHandler().queue_exec()
-  // async.each cmd, (exec_cmd, cb) =>
-  //   cmd_display = exec_cmd?.replace /\s+\-u\s+\S+/g, " -u '***:***'" #不打印密码
-  //   LOG.info "开始扫描 remote.scan: #{cmd_display}"
-  //   start_at = moment()
-  //   exec exec_cmd, (error, lines, stderr) =>
-  //     lines = ("" + lines).trim().split /[\r\n]+/
-  //     LOG.info "扫描结束, #{lines.length} 行, #{moment() - start_at}ms"
-  //     @data.lineObj ?= {}
-  //     @data.lineObj[exec_cmd] = lines
-  //     cb error
-  // , callback
   module.exports = ScanHandler;
 
 }).call(this);

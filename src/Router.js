@@ -57,20 +57,7 @@
       }));
       app.use(cookieParser());
       configRouter = express.Router(); // 配置请求路由
-      //# 获取项目信息
-      configRouter.get("/getProjList", function(req, res) {
-        var configContext, param;
-        configContext = new ConfigContext();
-        param = Object.keys(req.query).length === 0 ? req.body : req.query;
-        return configContext.getProjList(param, function(err, conf) {
-          if (err) {
-            LOG.error(err);
-            return res.json(null);
-          } else {
-            return res.json(conf);
-          }
-        });
-      });
+      
       //# 获取配置信息
       configRouter.get("/getDeploy", function(req, res) {
         var configContext, param;
@@ -142,7 +129,7 @@
           }
         });
       });
-      //# 更新项目信息
+      //# 更新配置信息
       configRouter.post("/updateDeploy", function(req, res) {
         var configContext, data;
         configContext = new ConfigContext();
@@ -156,7 +143,56 @@
           return res.json(null);
         });
       });
-      //# 删除项目配置
+      //# 删除图片配置样例及裙带信息
+      configRouter.post("/delImageTempl", function(req, res) {
+        var configContext, data;
+        configContext = new ConfigContext();
+        data = Object.keys(req.query).length === 0 ? req.body : req.query;
+        if (!data.delFile) {
+          return res.json(null);
+        }
+        if (!data.img) {
+          return res.json("error");
+        }
+        return async.each(data.delFile, function(path, cb) {
+          return fs.unlink(path, function(err) {
+            var filter;
+            if (err) {
+              LOG.error(err);
+              return cb("error");
+            }
+            filter = {
+              project: data.img.project,
+              image: data.img._id,
+              src_img: path
+            };
+            return configContext.getDeploy(filter, function(err, docs) {
+              if (err) {
+                LOG.error(err);
+                return cb("error");
+              }
+              return async.each(docs, function(doc, cb1) {
+                return fs.unlink(doc.img_path, function(err) {
+                  if (err) {
+                    LOG.error(err);
+                    return cb1("error");
+                  }
+                  return configContext.deleteDeploy(doc, function(err) {
+                    if (err) {
+                      LOG.error(err);
+                      return cb1("error");
+                    }
+                    return cb1(null);
+                  });
+                });
+              }, cb);
+            });
+          });
+        }, function(err) {
+          return res.json(err);
+        });
+      });
+      //# 删除配置信息
       configRouter.post("/deleteDeploy", function(req, res) {
         var configContext, data, filter, type;
         configContext = new ConfigContext();
@@ -291,7 +327,12 @@
             i++;
             if (name !== t_arr[i]) {
               m_arr = t_arr.slice(0, i);
-              return fs.rename(m_arr.join("\\") + "\\" + name, m_arr.join("\\") + "\\" + t_arr[i], cb);
+              return fs.exists(m_arr.join("\\") + "\\" + t_arr[i], function(exist) {
+                if (exist) {
+                  return cb("exist");
+                }
+                return fs.rename(m_arr.join("\\") + "\\" + name, m_arr.join("\\") + "\\" + t_arr[i], cb);
+              });
             } else {
               return cb(null);
             }
@@ -299,6 +340,7 @@
             if (err) {
               LOG.error(err);
             }
+            res.setHeader(200);
             return res.json(err);
           });
         }
@@ -307,44 +349,49 @@
       configRouter.post("/crop", function(req, res) {
         var data;
         data = Object.keys(req.query).length === 0 ? req.body : req.query;
-        return mkdirp(data.cut_path, function(err) {
-          var cut_cmd, e, exec, options;
-          if (err) {
-            LOG.error(err);
-            return res.json("create dir error");
+        return fs.exists(data.cut_path + "\\" + data.data.code + ".jpg", function(exist) {
+          if (exist) {
+            return res.json("exist");
           }
-          options = {
-            src: data.src,
-            dst: data.cut_path + "\\" + data.data.code + ".jpg",
-            x0: data.data.x0,
-            y0: data.data.y0,
-            x1: data.data.x1,
-            y1: data.data.y1
-          };
-          cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
-          try {
-            cut_cmd = sprintf.sprintf(cut_cmd, options);
-          } catch (error) {
-            e = error;
-            LOG.error(e.stack);
-            return res.json("create dir error");
-          }
-          exec = new ExecHandler().queue_exec(1);
-          return exec(cut_cmd, function(err, stdout, stderr, spent) {
+          return mkdirp(data.cut_path, function(err) {
+            var cut_cmd, e, exec, options;
             if (err) {
               LOG.error(err);
-              return res.json("crop error");
+              return res.json("create dir error");
             }
-            stdout = `${stdout}`.trim();
-            stderr = `${stderr}`.trim();
-            if (stdout.length > 0) {
-              LOG.info(stdout);
+            options = {
+              src: data.src,
+              dst: data.cut_path + "\\" + data.data.code + ".jpg",
+              x0: data.data.x0,
+              y0: data.data.y0,
+              x1: data.data.x1,
+              y1: data.data.y1
+            };
+            cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
+            try {
+              cut_cmd = sprintf.sprintf(cut_cmd, options);
+            } catch (error) {
+              e = error;
+              LOG.error(e.stack);
+              return res.json("create dir error");
             }
-            if (stderr.length > 0) {
-              LOG.info(stderr);
-            }
-            LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-            return res.json("success");
+            exec = new ExecHandler().queue_exec(1);
+            return exec(cut_cmd, function(err, stdout, stderr, spent) {
+              if (err) {
+                LOG.error(err);
+                return res.json("crop error");
+              }
+              stdout = `${stdout}`.trim();
+              stderr = `${stderr}`.trim();
+              if (stdout.length > 0) {
+                LOG.info(stdout);
+              }
+              if (stderr.length > 0) {
+                LOG.info(stderr);
+              }
+              LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
+              return res.json("success");
+            });
           });
         });
       });

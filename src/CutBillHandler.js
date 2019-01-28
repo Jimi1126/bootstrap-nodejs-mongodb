@@ -32,7 +32,7 @@
       };
       return async.each(this.data.bills, function(bill, cb) {
         var bill_path, fields;
-        if (bill.state !== 1 && image.state !== -2) {
+        if (bill.state !== 1 && bill.state !== -2) {
           return cb(null);
         }
         bill_path = bill.path;

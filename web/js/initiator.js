@@ -57,12 +57,16 @@ Util.isEmpty = function (t) {
 function LoadUI(target) {
   this.target = target ? target : window.top;
   this.loader = $("<div class='ic-LoadUI'><img src='../images/loading.gif'></div>");
-  this.loader.width($(this.target.document).width());
-  this.loader.height($(this.target.document).height());
+  this.loader.width(this.target.screen.availWidth);
+  this.loader.height(this.target.screen.availHeight);
 }
 LoadUI.prototype = {
   show: function () {
+    var that = this;
     $(this.target.document.body).append(this.loader);
+    window.addEventListener("onunload", function() {
+      that.target.$('.ic-LoadUI').remove();
+    });
   },
   hide: function () {
     this.loader.remove();
@@ -71,12 +75,18 @@ LoadUI.prototype = {
 
 function Dialog(target) {
   this.target = target ? target : window.top;
-  this.loader = $("<div class='ic-Dialog'></div>");
+  this.loader = $("<div class='ic-Dialog'>"
+  + "<div><span class='glyphicon glyphicon-info-sign' aria-hidden='true'></span></div>"
+  + "<div style='padding: 0px 8px 0px 8px'></div>"
+  + '<button type="button" class="close">'
+  + '<span aria-hidden="true">&times;</span>'
+  + '</button>'
+  + "</div>");
 }
 Dialog.prototype = {
   show: function (msg) {
     var that = this;
-    this.loader.text(msg);
+    this.loader.find("div:eq(1)").text(msg);
     $(this.target.document.body).append(this.loader);
     var time1 = null;
     var time2 = null;
@@ -99,6 +109,12 @@ Dialog.prototype = {
         }
       }, 1000);
     }
+    that.target.onunLoad = function() {
+      that.loader.remove();
+      that.loader.css("opacity", 1);
+      that.target.clearInterval(time1);
+      that.target.clearInterval(time2);
+    }
     this.loader.mouseover(function () {
       that.target.clearInterval(time1);
       that.target.clearInterval(time2);
@@ -106,6 +122,9 @@ Dialog.prototype = {
     });
     this.loader.mouseout(function () {
       fun.call(that);
+    });
+    this.loader.find("button").bind("click", function() {
+      that.loader.remove();
     });
     fun.call(this);
   }
@@ -201,6 +220,9 @@ function ModalWindow(options) {
 
 ModalWindow.prototype = {
   value: function (_data) {
+    if (this.contentWindow.value) {
+      return this.contentWindow.value(_data);
+    }
     var $body = $(this.contentWindow.document.body);
     if (!!_data) {
       for (key in _data) {
@@ -234,10 +256,18 @@ $.fn.dropMenu = function (options) {
   var that = this;
   that._id = "";
   html = '<button class="btn btn-default dropdown-toggle" type="button">'
-    + '<span></span>'
+    + '<input type="text" readOnly></input>'
     + '<span class="caret"></span>'
     + '</button>';
   button = $(html);
+  button[0].onmouseover = function() {
+    button.find("input").css({
+      cursor: "pointer", 
+      color: "#333", 
+      "background-color": "#e6e6e6"
+    });
+  }
+  button[0].onmouseout = function() { button.find("input").removeAttr("style") }
   options.width && button.width(options.width);
   button.bind("click", function () {
     if (!menu.css("display") || menu.css("display") != "block") {
@@ -253,20 +283,20 @@ $.fn.dropMenu = function (options) {
   that.onChange = function () { }
   that.initData = initData = function (data) {
     var li = "";
-    button.find("span:first").text("");
+    button.find("input").val("");
     menu.html("");
     if (!data || data.length == 0) {
       return;
     }
     that._id = data[0].id;
-    button.find("span:first").text(data[0].text + " ");
+    button.find("input").val(data[0].text + " ");
     data.forEach(function (d) {
       li = '<li id=' + d.id + '><a href="#">' + d.text + '</a></li>'
       menu.append(li);
     });
     menu.find("li").bind('click', function () {
       that._id = this.id;
-      button.find("span:first").text($(this).find('a').text() + " ");
+      button.find("input").val($(this).find('a').text() + " ");
       backdrop.hide();
       menu.css("display", "none");
       that.onChange(this.id);
@@ -277,7 +307,7 @@ $.fn.dropMenu = function (options) {
   options.data && initData(options.data);
   backdrop = $('<div class="modal-backdrop"></div>');
   backdrop.css("opacity", 0);
-  backdrop.css("z-index", 99);
+  backdrop.css("z-index", 1);
   backdrop.bind("click", function () {
     $(this).hide();
     menu.css("display", "none");
@@ -316,6 +346,17 @@ $.fn.icTable = function (options) {
       header.find('thead>tr').append($html);
     });
   }
+  var clickTime = 0;
+  var clickTarget = null;
+  body[0].addEventListener("click", function(e) {
+    if (clickTarget == e.target && (new Date().getTime() - clickTime) < 500) {
+      that.onDbClickRow && that.onDbClickRow();
+    } else {
+      clickTime = new Date().getTime();
+      clickTarget = e.target;
+    }
+  });
+
   this.append(header);
   this.append(body);
   this.value = function (_datas) {

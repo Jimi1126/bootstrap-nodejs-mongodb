@@ -15,7 +15,7 @@ class CutBillHandler extends Handler
 		dao = new MongoDao __b_config.dbInfo, {epcos: ["field"]}
 		cut_stat = {total: 0, success: 0, failure: 0, exist: 0}
 		async.each @data.bills, (bill, cb)->
-			return cb null if bill.state isnt 1 and image.state isnt -2
+			return cb null if bill.state isnt 1 and bill.state isnt -2
 			bill_path = bill.path
 			fields = that.data.deploy.fields.filter (f)-> f.bill is bill.bill_type
 			async.each fields, (field, cb1)->

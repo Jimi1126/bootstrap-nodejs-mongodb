@@ -24,6 +24,10 @@
       return async.parallel([
         function(cb) {
           var data;
+          if (!that.data.images) {
+            LOG.trace("没有需要保存的图片内容");
+            return cb(null);
+          }
           data = that.data.images.filter(function(i) {
             return !i._id;
           });
@@ -36,6 +40,10 @@
         },
         function(cb) {
           var data;
+          if (!that.data.images) {
+            LOG.trace("没有需要保存的图片内容");
+            return cb(null);
+          }
           data = that.data.images.filter(function(i) {
             return i._id;
           });
@@ -56,6 +64,10 @@
         },
         function(cb) {
           var data;
+          if (!that.data.bills) {
+            LOG.trace("没有需要保存的分块内容");
+            return cb(null);
+          }
           data = that.data.bills.filter(function(b) {
             return !b._id;
           });
@@ -68,6 +80,10 @@
         },
         function(cb) {
           var data;
+          if (!that.data.bills) {
+            LOG.trace("没有需要保存的分块内容");
+            return cb(null);
+          }
           data = that.data.bills.filter(function(b) {
             return b._id;
           });
@@ -88,6 +104,10 @@
         },
         function(cb) {
           var data;
+          if (!that.data.fields) {
+            LOG.trace("没有需要保存的字段内容");
+            return cb(null);
+          }
           data = that.data.fields.filter(function(f) {
             return !f._id;
           });
@@ -100,6 +120,10 @@
         },
         function(cb) {
           var data;
+          if (!that.data.fields) {
+            LOG.trace("没有需要保存的字段内容");
+            return cb(null);
+          }
           data = that.data.fields.filter(function(f) {
             return f._id;
           });
@@ -118,7 +142,12 @@
             return cb(null);
           }
         }
-      ], callback);
+      ], function(err) {
+        if (err) {
+          LOG.error(JSON.stringify(err));
+        }
+        return callback(null);
+      });
     }
 
   };

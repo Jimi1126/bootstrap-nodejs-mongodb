@@ -3,7 +3,7 @@
   var DownStrategy, LOG, LoggerUtil, ProDownStrategy, StrategyContext, afterDownHandle, beforeDownHandle, callback, downHandle, start;
 
   global.argv = {
-    project: "epcos"
+    project: "EPCOS"
   };
 
   global.path = require('path');

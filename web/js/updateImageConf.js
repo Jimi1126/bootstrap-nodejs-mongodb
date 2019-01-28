@@ -24,6 +24,17 @@ UpdateImageConf.prototype = {
    */
   initComponent: function () {
     var that = this;
+    var menu = [];
+    that.image.img_paths && that.image.img_paths.forEach(function(im, i) {
+      menu.push({
+        id: i,
+        text: im.img_path
+      });
+    });
+    this.dropdown = $(".dropdown").dropMenu({
+      width: 120,
+      data: menu
+    });
     this.billTable = $("#billTable").icTable({
       title: ["编码", "起点X轴", "起点Y轴", "终点X轴", "终点Y轴", "宽", "高"],
       dataFields: ["code", "x0", "y0", "x1", "y1", "w", "h"]
@@ -40,15 +51,21 @@ UpdateImageConf.prototype = {
     var that = this;
     if (!!that.image) {
       that.loadUI.show();
-      $.get("/config/getDeploy", { project: that.image.project, image: that.image._id, type: "bill" },
+      var conf = that.image.img_paths[that.dropdown.value()]
+      $.get("/config/getDeploy", { project: that.image.project, image: that.image._id, src_img: conf.img_path, type: "bill" },
         function (data, status, xhr) {
           if (status == 'success') {
             that.bills = data;
             that.billTable.value(data);
-            that.billTable.select(0);
           }
           that.buttonControl();
-          that.bills.length == 0 && that.loadUI.hide();
+          that.curBill = null;
+          if (that.bills.length == 0) {
+            that.fieldTable.value([]);
+            that.loadUI.hide();
+          } else {
+            that.billTable.select(0);
+          }
         });
     }
   },
@@ -69,6 +86,8 @@ UpdateImageConf.prototype = {
           that.buttonControl();
           that.loadUI.hide();
         });
+    } else {
+      that.loadUI.hide();
     }
   },
   /**
@@ -76,29 +95,14 @@ UpdateImageConf.prototype = {
    */
   bindEvent: function () {
     var that = this;
-    $(".input-group [dataField='code']")[0].onblur = function () {
-      if ($(this).val() != "") {
-        $(".input-group [dataField='s_url']").val("download/image/" + that.image.projName + "/" + $(this).val() + "/");
-      } else {
-        $(".input-group [dataField='s_url']").val("");
-      }
-    }
-    $("#upload").bind("click", function() {
-      $("[target='upload']").click();
-    });
-    $("[target='upload']")[0].onchange = function() {
-      var value = $(this).val();
-      value = value ? value.split("\\").pop() : "";
-      $(".input-group [dataField='img_path']").val(value);
-      that.image.modify = true;
-    }
-
     $("#bill_add").bind('click', $.proxy(this.addBillConfEvent, this));
     $('#bill_mod').bind('click', $.proxy(this.modBillConfEvent, this));
     $('#bill_del').bind('click', $.proxy(this.delBillConfEvent, this));
     $('#field_add').bind('click', $.proxy(this.addFieldConfEvent, this));
     $('#field_mod').bind('click', $.proxy(this.modFieldConfEvent, this));
     $('#field_del').bind('click', $.proxy(this.delFieldConfEvent, this));
+
+    that.dropdown.onChange = $.proxy(this.loadBill, this);
 
     that.billTable.onselectRow = function () {
       var bill = that.billTable.select();
@@ -136,6 +140,7 @@ UpdateImageConf.prototype = {
   */
   addBillConfEvent: function () {
     var that = this;
+    var conf = that.image.img_paths[that.dropdown.value()]
     var modalWindow = new ModalWindow({
       title: "新增分块配置",
       url: "jcropPage.html",
@@ -144,7 +149,7 @@ UpdateImageConf.prototype = {
       height: 500,
       window: window.parent,
       maximize: true,
-      params: that.image,
+      params: conf,
       buttons: [{
         name: "保存",
         class: "btn-primary",
@@ -154,16 +159,18 @@ UpdateImageConf.prototype = {
             return that.dialog.show('分块编码为必填项');
           }
           that.loadUI.show();
-          var arr = that.image.img_path.split("\\");
+          var arr = conf.img_path.split("\\");
           arr.pop();
           var param = {
-            src: that.image.img_path,
-            cut_path: arr.join("\\") + "\\" + bill.code,
+            src: conf.img_path,
+            cut_path: arr.join("\\") + "\\bill",
             data: bill
           };
           $.post("/config/crop", param, function (data, status, xhr) {
             if (status == 'success' && data == "success") {
               bill.img_path = param.cut_path + "\\" + bill.code + ".jpg";
+              bill.filter = conf.filter;
+              bill.src_img = conf.img_path;
               bill.project = that.image.project;
               bill.image = that.image._id;
               bill.type = "bill";
@@ -183,6 +190,9 @@ UpdateImageConf.prototype = {
                 }
                 that.loadUI.hide();
               });
+            } else if (data == "exist") {
+              that.dialog.show('分块编码已存在');
+              that.loadUI.hide();
             } else {
               that.dialog.show('新增失败');
               that.loadUI.hide();
@@ -206,6 +216,7 @@ UpdateImageConf.prototype = {
     var that = this;
     var bill = that.billTable.select();
     var modBill = that.bills.filter(function (b) { return b.code == bill.code })[0];
+    var conf = that.image.img_paths[that.dropdown.value()]
     var modalWindow = new ModalWindow({
       title: "修改分块配置",
       url: "jcropPage.html",
@@ -213,7 +224,7 @@ UpdateImageConf.prototype = {
       width: 1000,
       height: 500,
       data: modBill,
-      params: that.image,
+      params: conf,
       window: window.parent,
       maximize: true,
       buttons: [{
@@ -346,7 +357,7 @@ UpdateImageConf.prototype = {
           arr.pop();
           var param = {
             src: curBill.img_path,
-            cut_path: arr.join("\\") + "\\" + field.code,
+            cut_path: arr.join("\\") + "\\field",
             data: field
           };
           $.post("/config/crop", param, function (data, status, xhr) {
@@ -355,6 +366,7 @@ UpdateImageConf.prototype = {
               field.project = that.image.project;
               field.image = that.image._id;
               field.bill = curBill._id;
+              field.src_img = curBill.src_img;
               field.type = "field";
               field._id = Util.uuid(24, 16).toLowerCase();
               $.post("/config/saveDeploy", field, function (data, status, xhr) {
@@ -372,6 +384,9 @@ UpdateImageConf.prototype = {
                 }
                 that.loadUI.hide();
               });
+            } else if (data == "exist") {
+              that.dialog.show('字段编码已存在');
+              that.loadUI.hide();
             } else {
               that.dialog.show('新增失败');
               that.loadUI.hide();

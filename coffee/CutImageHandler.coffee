@@ -49,30 +49,53 @@ class CutImageHandler extends Handler
 										dbBill.state = doc.state
 									return cb2 null if doc and (doc.state is 1 or Math.abs(doc.state) > 1)
 									doc or dbBill.create_at = moment().format "YYYYMMDDHHmmss"
-									options = {
-										src: "#{img_path}#{f_nm}"
-										dst: "#{cut_path}#{f_nm}"
-										x0: bill.x0
-										y0: bill.y0
-										x1: bill.x1
-										y1: bill.y1
-									}
-									cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
-									try
-										cut_cmd = sprintf.sprintf cut_cmd, options
-									catch e
-										dbBill.state = -1 #切图失败
-										return cb2 e
-									exec cut_cmd, (err, stdout, stderr, spent) ->
-										dbBill.state = 1 #切图完成
-										return cb2 err if err and dbBill.state = -1 #切图失败
-										stdout = "#{stdout}".trim()
-										stderr = "#{stderr}".trim()
-										LOG.info stdout if stdout.length > 0
-										LOG.info stderr if stderr.length > 0
-										LOG.info "#{options.src} => #{options.dst} #{spent}ms"
-										cut_stat.success++
-										cb2 null
+									async.series [
+										(cb3)->
+											return cb3 null if !bill.filter
+											exec "gm identify #{img_path}#{f_nm}", (error, stdout = "", stderr = "")->
+												return cb3 error if error
+												info = stdout.split " "
+												width = +info[2].substring(0, info[2].indexOf("x"))
+												height = +info[2].substring(info[2].indexOf("x")+1, info[2].indexOf("+"))
+												if bill.filter is "width>height" && width > height
+													cb3 null
+												else if bill.filter is "width<height" && width < height
+													cb3 null
+												else if bill.filter is "width=height" && width == height
+													cb3 null
+												else 
+													cut_stat.total--
+													cb3 "break"
+										(cb3)->
+											options = {
+												src: "#{img_path}#{f_nm}"
+												dst: "#{cut_path}#{f_nm}"
+												x0: bill.x0
+												y0: bill.y0
+												x1: bill.x1
+												y1: bill.y1
+											}
+											cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
+											try
+												cut_cmd = sprintf.sprintf cut_cmd, options
+											catch e
+												dbBill.state = -1 #切图失败
+												return cb3 e
+											exec cut_cmd, (err, stdout, stderr, spent) ->
+												dbBill.state = 1 #切图完成
+												return cb3 err if err and dbBill.state = -1 #切图失败
+												stdout = "#{stdout}".trim()
+												stderr = "#{stderr}".trim()
+												LOG.info stdout if stdout.length > 0
+												LOG.info stderr if stderr.length > 0
+												LOG.info "#{options.src} => #{options.dst} #{spent}ms"
+												cut_stat.success++
+												cb3 null
+									], (err)->
+										if err is "break"
+											LOG.trace "break #{bill.filter} #{img_path}#{f_nm}"
+											return cb2 null
+										cb2 err
 						, cb1
 					, (err)->
 						image.state = 3 #分块完成
@@ -101,30 +124,53 @@ class CutImageHandler extends Handler
 								dbBill.state = doc.state
 							return cb1 null if doc and (doc.state is 1 or Math.abs(doc.state) > 1)
 							doc or dbBill.create_at = moment().format "YYYYMMDDHHmmss"
-							options = {
-								src: "#{rel_path}#{image.image_name}"
-								dst: "#{cut_path}#{image.image_name}"
-								x0: bill.x0
-								y0: bill.y0
-								x1: bill.x1
-								y1: bill.y1
-							}
-							cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
-							try
-								cut_cmd = sprintf.sprintf cut_cmd, options
-							catch e
-								dbBill.state = -1 #切图失败
-								return cb1 e
-							exec cut_cmd, (err, stdout, stderr, spent) ->
-								dbBill.state = 1 #切图完成
-								return cb1 err if err and dbBill.state = -1 #切图失败
-								stdout = "#{stdout}".trim()
-								stderr = "#{stderr}".trim()
-								LOG.info stdout if stdout.length > 0
-								LOG.info stderr if stderr.length > 0
-								LOG.info "#{options.src} => #{options.dst} #{spent}ms"
-								cut_stat.success++
-								cb1 null
+							async.series [
+								(cb2)->
+									return cb2 null if !bill.filter
+									exec "gm identify #{rel_path}#{image.image_name}", (error, stdout = "", stderr = "")->
+										return cb2 error if error
+										info = stdout.split " "
+										width = +info[2].substring(0, info[2].indexOf("x"))
+										height = +info[2].substring(info[2].indexOf("x")+1, info[2].indexOf("+"))
+										if bill.filter is "width>height" && width > height
+											cb2 null
+										else if bill.filter is "width<height" && width < height
+											cb2 null
+										else if bill.filter is "width=height" && width == height
+											cb2 null
+										else 
+											cut_stat.total--
+											cb2 "break"
+								(cb2)->
+									options = {
+										src: "#{rel_path}#{image.image_name}"
+										dst: "#{cut_path}#{image.image_name}"
+										x0: bill.x0
+										y0: bill.y0
+										x1: bill.x1
+										y1: bill.y1
+									}
+									cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s"
+									try
+										cut_cmd = sprintf.sprintf cut_cmd, options
+									catch e
+										dbBill.state = -1 #切图失败
+										return cb2 e
+									exec cut_cmd, (err, stdout, stderr, spent) ->
+										dbBill.state = 1 #切图完成
+										return cb2 err if err and dbBill.state = -1 #切图失败
+										stdout = "#{stdout}".trim()
+										stderr = "#{stderr}".trim()
+										LOG.info stdout if stdout.length > 0
+										LOG.info stderr if stderr.length > 0
+										LOG.info "#{options.src} => #{options.dst} #{spent}ms"
+										cut_stat.success++
+										cb2 null
+							], (err)->
+								if err is "break"
+									LOG.trace "break #{bill.filter} #{rel_path}#{image.image_name}"
+									return cb1 null
+								cb1 err
 				, (err)->
 					image.state = 3 #分块完成
 					LOG.error err if err and image.state = -3 #分块失败

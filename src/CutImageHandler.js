@@ -70,7 +70,6 @@
                   };
                   that.data.bills.push(dbBill);
                   return dao.epcos.bill.selectOne(dbBill, function(err, doc) {
-                    var cut_cmd, e, options;
                     if (err) {
                       return cb2(err);
                     }
@@ -83,38 +82,87 @@
                       return cb2(null);
                     }
                     doc || (dbBill.create_at = moment().format("YYYYMMDDHHmmss"));
-                    options = {
-                      src: `${img_path}${f_nm}`,
-                      dst: `${cut_path}${f_nm}`,
-                      x0: bill.x0,
-                      y0: bill.y0,
-                      x1: bill.x1,
-                      y1: bill.y1
-                    };
-                    cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
-                    try {
-                      cut_cmd = sprintf.sprintf(cut_cmd, options);
-                    } catch (error) {
-                      e = error;
-                      dbBill.state = -1; //切图失败
-                      return cb2(e);
-                    }
-                    return exec(cut_cmd, function(err, stdout, stderr, spent) {
-                      dbBill.state = 1; //切图完成
-                      if (err && (dbBill.state = -1)) { //切图失败
-                        return cb2(err);
+                    return async.series([
+                      function(cb3) {
+                        if (!bill.filter) {
+                          return cb3(null);
+                        }
+                        return exec(`gm identify ${img_path}${f_nm}`,
+                      function(error,
+                      stdout = "",
+                      stderr = "") {
+                          var height,
+                      info,
+                      width;
+                          if (error) {
+                            return cb3(error);
+                          }
+                          info = stdout.split(" ");
+                          width = +info[2].substring(0,
+                      info[2].indexOf("x"));
+                          height = +info[2].substring(info[2].indexOf("x") + 1,
+                      info[2].indexOf("+"));
+                          if (bill.filter === "width>height" && width > height) {
+                            return cb3(null);
+                          } else if (bill.filter === "width<height" && width < height) {
+                            return cb3(null);
+                          } else if (bill.filter === "width=height" && width === height) {
+                            return cb3(null);
+                          } else {
+                            cut_stat.total--;
+                            return cb3("break");
+                          }
+                        });
+                      },
+                      function(cb3) {
+                        var cut_cmd,
+                      e,
+                      options;
+                        options = {
+                          src: `${img_path}${f_nm}`,
+                          dst: `${cut_path}${f_nm}`,
+                          x0: bill.x0,
+                          y0: bill.y0,
+                          x1: bill.x1,
+                          y1: bill.y1
+                        };
+                        cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
+                        try {
+                          cut_cmd = sprintf.sprintf(cut_cmd,
+                      options);
+                        } catch (error1) {
+                          e = error1;
+                          dbBill.state = -1; //切图失败
+                          return cb3(e);
+                        }
+                        return exec(cut_cmd,
+                      function(err,
+                      stdout,
+                      stderr,
+                      spent) {
+                          dbBill.state = 1; //切图完成
+                          if (err && (dbBill.state = -1)) { //切图失败
+                            return cb3(err);
+                          }
+                          stdout = `${stdout}`.trim();
+                          stderr = `${stderr}`.trim();
+                          if (stdout.length > 0) {
+                            LOG.info(stdout);
+                          }
+                          if (stderr.length > 0) {
+                            LOG.info(stderr);
+                          }
+                          LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
+                          cut_stat.success++;
+                          return cb3(null);
+                        });
                       }
-                      stdout = `${stdout}`.trim();
-                      stderr = `${stderr}`.trim();
-                      if (stdout.length > 0) {
-                        LOG.info(stdout);
+                    ], function(err) {
+                      if (err === "break") {
+                        LOG.trace(`break ${bill.filter} ${img_path}${f_nm}`);
+                        return cb2(null);
                       }
-                      if (stderr.length > 0) {
-                        LOG.info(stderr);
-                      }
-                      LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-                      cut_stat.success++;
-                      return cb2(null);
+                      return cb2(err);
                     });
                   });
                 });
@@ -147,7 +195,6 @@
               };
               that.data.bills.push(dbBill);
               return dao.epcos.bill.selectOne(dbBill, function(err, doc) {
-                var cut_cmd, e, options;
                 if (err) {
                   return cb1(err);
                 }
@@ -160,38 +207,87 @@
                   return cb1(null);
                 }
                 doc || (dbBill.create_at = moment().format("YYYYMMDDHHmmss"));
-                options = {
-                  src: `${rel_path}${image.image_name}`,
-                  dst: `${cut_path}${image.image_name}`,
-                  x0: bill.x0,
-                  y0: bill.y0,
-                  x1: bill.x1,
-                  y1: bill.y1
-                };
-                cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
-                try {
-                  cut_cmd = sprintf.sprintf(cut_cmd, options);
-                } catch (error) {
-                  e = error;
-                  dbBill.state = -1; //切图失败
-                  return cb1(e);
-                }
-                return exec(cut_cmd, function(err, stdout, stderr, spent) {
-                  dbBill.state = 1; //切图完成
-                  if (err && (dbBill.state = -1)) { //切图失败
-                    return cb1(err);
+                return async.series([
+                  function(cb2) {
+                    if (!bill.filter) {
+                      return cb2(null);
+                    }
+                    return exec(`gm identify ${rel_path}${image.image_name}`,
+                  function(error,
+                  stdout = "",
+                  stderr = "") {
+                      var height,
+                  info,
+                  width;
+                      if (error) {
+                        return cb2(error);
+                      }
+                      info = stdout.split(" ");
+                      width = +info[2].substring(0,
+                  info[2].indexOf("x"));
+                      height = +info[2].substring(info[2].indexOf("x") + 1,
+                  info[2].indexOf("+"));
+                      if (bill.filter === "width>height" && width > height) {
+                        return cb2(null);
+                      } else if (bill.filter === "width<height" && width < height) {
+                        return cb2(null);
+                      } else if (bill.filter === "width=height" && width === height) {
+                        return cb2(null);
+                      } else {
+                        cut_stat.total--;
+                        return cb2("break");
+                      }
+                    });
+                  },
+                  function(cb2) {
+                    var cut_cmd,
+                  e,
+                  options;
+                    options = {
+                      src: `${rel_path}${image.image_name}`,
+                      dst: `${cut_path}${image.image_name}`,
+                      x0: bill.x0,
+                      y0: bill.y0,
+                      x1: bill.x1,
+                      y1: bill.y1
+                    };
+                    cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
+                    try {
+                      cut_cmd = sprintf.sprintf(cut_cmd,
+                  options);
+                    } catch (error1) {
+                      e = error1;
+                      dbBill.state = -1; //切图失败
+                      return cb2(e);
+                    }
+                    return exec(cut_cmd,
+                  function(err,
+                  stdout,
+                  stderr,
+                  spent) {
+                      dbBill.state = 1; //切图完成
+                      if (err && (dbBill.state = -1)) { //切图失败
+                        return cb2(err);
+                      }
+                      stdout = `${stdout}`.trim();
+                      stderr = `${stderr}`.trim();
+                      if (stdout.length > 0) {
+                        LOG.info(stdout);
+                      }
+                      if (stderr.length > 0) {
+                        LOG.info(stderr);
+                      }
+                      LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
+                      cut_stat.success++;
+                      return cb2(null);
+                    });
                   }
-                  stdout = `${stdout}`.trim();
-                  stderr = `${stderr}`.trim();
-                  if (stdout.length > 0) {
-                    LOG.info(stdout);
+                ], function(err) {
+                  if (err === "break") {
+                    LOG.trace(`break ${bill.filter} ${rel_path}${image.image_name}`);
+                    return cb1(null);
                   }
-                  if (stderr.length > 0) {
-                    LOG.info(stderr);
-                  }
-                  LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-                  cut_stat.success++;
-                  return cb1(null);
+                  return cb1(err);
                 });
               });
             });
