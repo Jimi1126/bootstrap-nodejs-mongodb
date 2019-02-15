@@ -46,6 +46,14 @@
       return dao.epcos.deploy.update(filter, setter, callback);
     }
 
+    addOrUpdateDeploy(data, callback) {
+      var dao;
+      dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["deploy"]
+      });
+      return dao.epcos.deploy.addOrUpdate(data, callback);
+    }
+
     deleteDeploy(param, callback) {
       var dao;
       dao = new MongoDao(__b_config.dbInfo, {

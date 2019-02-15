@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel='stylesheet' type="text/css" href='../css/bootstrap.css' />
+  <link rel='stylesheet' type="text/css" href='../css/initator.css' />
+  <style>
+    .body-content,.input-group {
+			margin: 6px;
+		}
+    .group-title {
+      margin: 0;
+    }
+    .group-title .input-group-addon{
+      border: 0px;
+    }
+    .input-group-addon {
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="body-content">
+      <div id="fileTable"></div>
+      <div style="overflow:auto;margin-top: 8px;height: 150px;">
+        <img class="img-responsive" alt="未加载">
+      </div>
+    </div>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript" src="../js/initiator.js"></script>
+<script>
+  var fileTable = {};
+  window.onload = function() {
+    fileTable = $("#fileTable").icTable({
+      height: 210,
+      title: ["主键", "图片类型", "图片编码", "源图片编码", "源图片", "源分块编码", "图片地址"],
+      dataFields: [{code: "_id", hidden: true}, "type", "code", "img_code", "src_image", "src_bill", "img_path"]
+    });
+  }
+  window.initPage = function(data) {
+    fileTable.value(data);
+    fileTable.onselectRow = function() {
+      var selectVal = this.select();
+      $(".body-content .img-responsive").attr("src", selectVal.img_path.replace("web", ".."));
+    }
+    fileTable.select(0);
+  }
+</script>
+</html>

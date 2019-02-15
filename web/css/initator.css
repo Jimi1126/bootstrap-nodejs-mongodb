@@ -1,15 +1,33 @@
+.fixed{position: fixed;}
+.absolute{position: absolute;}
+.relative{position: relative;}
+.float-left{float: left;}
+.float-right{float: right;}
 .ic-LoadUI{top: 0px; left: 0px; position: absolute; text-align: center; line-height: 758px; background-color: rgb(255, 255, 255); opacity: 0.4; z-index: 9999;}
 .ic-Dialog{ bottom: 20px; right: 16px; padding: 16px; position: absolute; text-align: center; color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(233, 236, 239); border-radius: 8px; border: 1px solid rgb(204, 204, 204); opacity: 1; z-index: 9999;}
 .ic-Dialog div{display: inline;}
 .dropdown-toggle input{width: 90%;border: 0px;}
 .dropdown-toggle .caret{margin-left: 6px;}
-.dropdown-menu{min-width: auto; overflow: auto; margin-left: 6px;z-index: 999;}
+.dropdown{display: inline;}
+.dropdown-menu{width: 100%;min-width: auto; overflow: auto; z-index: 999;}
 .form-control.dropdown{padding: 0px;border: 0px;}
 .table{margin-bottom: 0px;border: 0px;}
-.table-header{position: absolute; background-color:#eee;}
+.table-header{position: absolute; background-color:#eee;z-index: 999}
 .table-header th,.table-body td{text-align: center; border: 1px solid #ccc}
 .table-header thead tr th{padding: 0px}
 .table-body tbody tr td{padding: 0px; border-top: 0px;}
 .table-header thead tr th input{padding: 8px;border: 0px;width: 100%;text-align: center;background-color: #f5f5f5}
 .table-body tbody tr td input{padding: 8px;border: 0px;width: 100%}
-.table-body tbody .active td input{background-color: #d7edff}
+.active{background-color: #d7edff}
+.table-body tbody .active td input, .table-body tbody .active td .icon{background-color: #d7edff}
+.table-body tbody td .btn-default:hover{background-color: #fff}
+.table-body tbody .active td .btn-default:hover{background-color: #d7edff}
+.table-body tbody td .icon{position: absolute;width: 32px;height:36px;top:0;right:0;border-left: 1px #bbb solid;padding: 8px;cursor: pointer;backGround-color: #fff}
+.table_button{position: relative;}
+.page-footer{position: fixed;left: 0px;bottom: 0px;height: 62px;width: 100%;border: 1px #ccc solid;background-color: #fff}
+.nav-menu {min-width: 160px;height:100%;padding: 5px 0px;list-style: none;background-color: #eee}
+.nav-menu .nav-menu{padding-left: 13px}
+.nav-menu:first-child > .menu{margin:0px 19px 0px 19px}
+.menu{padding-top:8px}
+.menu:hover{cursor: pointer;background-color: #ccc}
+.nav-menu > .menu > a {text-decoration:none;padding: 3px 20px;line-height: 1.42857143;color: #333333;}

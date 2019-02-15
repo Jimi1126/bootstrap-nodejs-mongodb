@@ -23,11 +23,52 @@ class DBHandler
       mongoClient.connect @url, @DB_OPTS, cb
     catch e
       throw e
+  keepConnect: (callback)->
+    cb = (err, db) =>
+      unless db
+        throw "数据库连接获取失败"
+      try
+        callback err, db.db(@database)
+      catch e
+        throw "连接数据库#{@database}失败\n#{e.stack}"
+    try
+      mongoClient.connect @url, @DB_OPTS, cb
+    catch e
+      throw e
   insert: (docs, callback) ->
     @connect (err, db) =>
       throw err if err
       docs._id and typeof docs._id is "string" and (docs._id = ObjectId(docs._id))
       db.collection(@collection).insert docs, callback
+  addOrUpdate: (docs, callback) ->
+    if docs instanceof Object or Array.isArray docs
+      that = @
+      @keepConnect (err, db) =>
+        throw err if err
+        if Array.isArray docs
+          async.each docs, (doc, ccb)->
+            doc._id and typeof doc._id is "string" and (doc._id = ObjectId(doc._id))
+            db.collection(that.collection).findOne {_id: doc._id}, (err, result)->
+              if result
+                db.collection(that.collection).update {_id: doc._id}, doc, ccb
+              else
+                db.collection(that.collection).insert doc, ccb
+          , (err)->
+            db?.close?()
+            callback err
+        else if docs instanceof Object
+          docs._id and typeof docs._id is "string" and (docs._id = ObjectId(docs._id))
+          db.collection(that.collection).findOne {_id: docs._id}, (err, result)->
+            if result
+              db.collection(that.collection).update {_id: docs._id}, docs, (err)->
+                db?.close?()
+                callback err
+            else
+              db.collection(that.collection).insert docs, (err)->
+                db?.close?()
+                callback err
+    else
+      callback null
   delete: (param, callback) ->
     @connect (err, db) =>
       throw err if err

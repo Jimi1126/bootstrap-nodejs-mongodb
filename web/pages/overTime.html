@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>登陆</title>
+	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+</head>
+<body style="text-align: center;">
+	<form action="" method="POST">
+		<div class="container-fluid">
+			<div class="input-group" style="padding: 12px">
+				<span class="input-group-addon">工号</span>
+				<input type="text" id="usercode" class="form-control">
+			</div>
+			<div class="input-group" style="padding: 12px">
+				<span class="input-group-addon">密码</span>
+				<input type="password" id="password" class="form-control">
+			</div>
+		</div>
+	</form>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript">
+	window.onload = function(){
+		adjustUI();
+		bindEvent();
+	}
+	/**
+		* 调整UI.
+	*/
+	function adjustUI() {
+
+	}
+	/**
+		* 事件绑定.
+	*/
+	function bindEvent() {
+		$("#submit").bind("click", submitEvent);
+	}
+	/**
+		* 登陆.
+	*/
+	function submitEvent() {
+		var param = {
+			usercode: $("#usercode").val(),
+			password: $("#password").val()
+		}
+		$.post('/test/login', param, function (data, status, xhr) {
+			if (status == "success") {
+				if (data && data.redirectUrl) {
+					window.location.href = data.redirectUrl;
+				}
+			}
+		});
+	}
+</script>
+</html>

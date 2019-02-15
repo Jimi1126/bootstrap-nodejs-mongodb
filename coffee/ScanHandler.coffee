@@ -20,8 +20,11 @@ class ScanHandler extends Handler
       start_at = moment()
       exec cmd, (error, lines, stderr) ->
         lines = ("" + lines).trim().split /[\r\n]+/
+        if error
+          LOG.error error
+          lines = []
         LOG.info "扫描结束, #{lines.length} 行, #{moment() - start_at}ms"
         image.lines = lines
-        cb error
+        cb null
     , callback
 module.exports = ScanHandler

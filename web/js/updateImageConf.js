@@ -51,7 +51,7 @@ UpdateImageConf.prototype = {
     var that = this;
     if (!!that.image) {
       that.loadUI.show();
-      var conf = that.image.img_paths[that.dropdown.value()]
+      var conf = that.image.img_paths ? that.image.img_paths[that.dropdown.value()] : {}
       $.get("/config/getDeploy", { project: that.image.project, image: that.image._id, src_img: conf.img_path, type: "bill" },
         function (data, status, xhr) {
           if (status == 'success') {
@@ -116,6 +116,9 @@ UpdateImageConf.prototype = {
    * 按钮控制.
    */
   buttonControl: function() {
+    if (!this.image.img_paths) {
+      $("#bill_add").disabled();
+    }
     if (Util.isEmpty(this.bills)) {
       $("#bill_mod").disabled();
       $("#bill_del").disabled();

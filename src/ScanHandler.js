@@ -35,9 +35,13 @@
         start_at = moment();
         return exec(cmd, function(error, lines, stderr) {
           lines = ("" + lines).trim().split(/[\r\n]+/);
+          if (error) {
+            LOG.error(error);
+            lines = [];
+          }
           LOG.info(`扫描结束, ${lines.length} 行, ${moment() - start_at}ms`);
           image.lines = lines;
-          return cb(error);
+          return cb(null);
         });
       }, callback);
     }

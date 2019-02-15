@@ -19,6 +19,9 @@ class ConfigContext extends Context
   updateDeploy: (filter, setter, callback)->
     dao = new MongoDao __b_config.dbInfo, {epcos: ["deploy"]}
     dao.epcos.deploy.update filter, setter, callback
+  addOrUpdateDeploy: (data, callback)->
+    dao = new MongoDao __b_config.dbInfo, {epcos: ["deploy"]}
+    dao.epcos.deploy.addOrUpdate data, callback
   deleteDeploy: (param, callback)->
     dao = new MongoDao __b_config.dbInfo, {epcos: ["deploy"]}
     dao.epcos.deploy.delete param, callback

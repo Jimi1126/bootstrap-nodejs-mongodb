@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>登陆</title>
+	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+</head>
+<body style="text-align: center;">
+	<form action="" method="POST">
+		<div class="container-fluid">
+			<div id='mainDiv' class="jumbotron" style="width: 500px;">
+				<div style="text-align: center;">
+					<h3>珠海汇流数据录入平台&nbsp;<small>V1.0</small></h3>
+				</div>
+			<div>
+				<div class="input-group" style="padding: 12px">
+					<span class="input-group-addon">工号</span>
+					<input type="text" id="usercode" class="form-control">
+				</div>
+				<div class="input-group" style="padding: 12px">
+					<span class="input-group-addon">密码</span>
+					<input type="password" id="password" class="form-control">
+				</div>
+				<div class="input-group" style="width: 100%">
+					<span id="tip" style="color:red;"></span>
+				</div>
+				<div style="text-align: center;">
+					<button id="submit" type="button" class="btn btn-primary" style="width: 50%" >登录</button>
+				</div>
+			</div>
+			<div align="center" style="font-size: 8px; margin-top: 36px;">
+				<span class="black">
+					<span style="font-family:Arial, Helvetica, sans-serif">©</span>
+						珠海汇流信息技术有限公司 2009-2019 版权所有
+				</span>
+			</div>
+			</div>
+		</div>
+	</form>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript">
+	window.onload = function(){
+		adjustUI();
+		bindEvent();
+	}
+	/**
+		* 调整UI.
+	*/
+	function adjustUI() {
+		var width = 500;
+		var height = 425;
+		var c_width = window.innerWidth;
+		var c_height = window.innerHeight;
+		var margin_l = 0
+		var margin_t = 0
+		if (c_width > width) {
+			margin_l = (c_width - width)/2
+		}
+		if (c_height > height) {
+			margin_t = (c_height - height)/2
+		}
+		var style= "margin-left: " + margin_l + "px; margin-top: " + margin_t + "px;" + "width: 500px;";
+		document.getElementById("mainDiv").style = style;
+	}
+	/**
+		* 事件绑定.
+	*/
+	function bindEvent() {
+		$("#submit").bind("click", submitEvent);
+	}
+	function isEmpty(t) {
+		if (t === undefined || t === null || t === "") {
+			return true;
+		}
+		if (Array.isArray(t) && t.length == 0) {
+			return true;
+		}
+		if (t instanceof Object && Object.keys(t).length == 0) {
+			return true;
+		}
+		return false;
+	}
+	/**
+		* 登陆.
+	*/
+	function submitEvent() {
+		var param = {
+			usercode: $("#usercode").val(),
+			password: $("#password").val()
+		}
+		isEmpty(param.password) && $("#tip").text("请输入密码");
+		isEmpty(param.usercode) && $("#tip").text("请输入用户名");
+		if (isEmpty(param.usercode) || isEmpty(param.password)) return;
+		$.post('/user/login', param, function (data, status, xhr) {
+			if (status == "success") {
+				data == "error" && $("#tip").text("系统繁忙");
+				data == "no exist" && $("#tip").text("用户不存在");
+				data == "failed" && $("#tip").text("密码有误");
+				data == "success" && (window.location.href = "../pages/homePage.html");
+			}
+		});
+	}
+</script>
+</html>

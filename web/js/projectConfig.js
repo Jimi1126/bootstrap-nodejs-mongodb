@@ -21,8 +21,8 @@ ProjectConfig.prototype = {
   */
   initPage: function () {
     this.loadUI.show();
-    this.adjustUI();
     this.initComponent();
+    this.adjustUI();
     this.loadProjList(function () {
       this.projects.length > 0 ? this.dropdown.value(this.projects[0]._id) : this.loadProjInfo();
     });
@@ -53,6 +53,7 @@ ProjectConfig.prototype = {
     $('#image_add').bind('click', $.proxy(this.addImageConfEvent, this));
     $('#image_mod').bind('click', $.proxy(this.modImageConfEvent, this));
     $('#image_del').bind('click', $.proxy(this.delImageConfEvent, this));
+    $('#enter_cof').bind('click', $.proxy(this.enterConfEvent, this));
     window.onresize = this.adjustUI;
     this.imageTable.onDbClickRow = $.proxy(this.billAndFieldConfEvent, this);
   },
@@ -154,6 +155,8 @@ ProjectConfig.prototype = {
       url: "addProjConf.html",
       width: 600,
       height: 50,
+      backdrop: "static",
+      keyboard: false,
       buttons: [{
         name: "新增",
         class: "btn-primary",
@@ -201,6 +204,8 @@ ProjectConfig.prototype = {
       url: "addProjConf.html",
       width: 600,
       height: 50,
+      backdrop: "static",
+      keyboard: false,
       data: that.curProj,
       buttons: [{
         name: "保存",
@@ -317,6 +322,8 @@ ProjectConfig.prototype = {
       width: 850,
       height: 210,
       params: that.curProj,
+      backdrop: "static",
+      keyboard: false,
       buttons: [{
         name: "新增",
         class: "btn-primary",
@@ -350,6 +357,7 @@ ProjectConfig.prototype = {
           var failed = false;
           var that1 = this;
           image.img_paths.forEach(function(im, i) {
+            if(!im.img_path) return;
             var file = that1.contentWindow.$("form>input")[i].files;
             var form = new FormData();
             form.append("dir", that.curProj.projCode + "/" + image.code);
@@ -369,7 +377,10 @@ ProjectConfig.prototype = {
             }
           });
           var time = window.setInterval(function () {
-            if (progress >= image.img_paths.length) {
+            if (!image.img_paths[0].img_path) {
+              window.clearInterval(time);
+              doSave();
+            } else if (progress >= image.img_paths.length) {
               window.clearInterval(time);
               if (failed) {
                 that.dialog.show('上传图片失败');
@@ -397,6 +408,7 @@ ProjectConfig.prototype = {
     var that = this;
     var image = that.imageTable.select();
     var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
+    modImage.img_paths = modImage.img_paths || [];
     modImage.projName = that.curProj.projName;
     var modalWindow = new ModalWindow({
       title: "修改图片配置",
@@ -405,6 +417,8 @@ ProjectConfig.prototype = {
       height: 210,
       data: modImage,
       params: modImage,
+      backdrop: "static",
+      keyboard: false,
       buttons: [{
         name: "保存",
         class: "btn-primary",
@@ -437,6 +451,7 @@ ProjectConfig.prototype = {
             var failed = false;
             modImage.img_paths = []
             image.img_paths.forEach(function(im, i) {
+              if (!im.img_path) return;
               modImage.img_paths.push(im);
               if (im.img_path.startsWith("web")) {
                 return;
@@ -461,6 +476,9 @@ ProjectConfig.prototype = {
               }
             });
             var time = window.setInterval(function () {
+              if (modImage.img_paths.length == 0) {
+                doUpdate();
+              }
               if (progress >= total) {
                 window.clearInterval(time);
                 if (failed) {
@@ -476,7 +494,7 @@ ProjectConfig.prototype = {
           var doDelFile = function() {
             var delFile = [];
             modImage.img_paths.forEach(function(mmp) {
-              image.img_paths.filter(function(mp) {return mp.img_path == mmp.img_path}).length == 0 && delFile.push(mmp.img_path);
+              image.img_paths.filter(function(mp) {return mp.img_path == mmp.img_path}).length == 0 && mmp.img_path && delFile.push(mmp.img_path);
             });
             if (delFile.length == 0) {
               return doUpdateFile();
@@ -543,6 +561,7 @@ ProjectConfig.prototype = {
       height: 450,
       data: modImage,
       params: modImage,
+      keyboard: false,
       buttons: [{
         name: "关闭",
         class: "btn-primary",
@@ -619,6 +638,30 @@ ProjectConfig.prototype = {
     });
     modalWindow.show();
   },
+  enterConfEvent: function() {
+    var that = this;
+    var image = that.imageTable.select();
+    if (Object.keys(image).length == 0) return;
+    var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
+    modImage.projName = that.curProj.projName;
+    var modalWindow = new ModalWindow({
+      title: "录入配置",
+      url: "enterConf.html",
+      close: false,
+      maximize: true,
+      width: 1000,
+      height: 500,
+      params: modImage,
+      buttons: [{
+        name: "关闭",
+        class: "btn-primary",
+        event: function () {
+          this.hide();
+        }
+      }]
+    });
+    modalWindow.show();
+  }
 }
 
 window.onload = function () {

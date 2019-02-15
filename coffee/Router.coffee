@@ -5,6 +5,8 @@ session = require "express-session"
 multer = require "multer"
 ObjectId = require('mongodb').ObjectId
 ConfigContext = require "./ConfigContext"
+EnterContext = require "./EnterContext"
+UserContext = require "./UserContext"
 ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "Router"
 class Router
@@ -15,7 +17,30 @@ class Router
 		app.use '/css', express.static(path.join(workspace, 'web/css'))
 		app.use '/fonts', express.static(path.join(workspace, 'web/fonts'))
 		app.use '/images', express.static(path.join(workspace, 'web/images'))
+		app.use '/download', express.static(path.join(workspace, 'download'))
 		app.set 'view engine', 'html'
+
+		app.use cookieParser()
+		app.use session({
+			secret: "login"
+			resave: true
+			key: "login"
+			saveUninitialized: true
+			cookie: {
+				secure: false # http有效
+				maxAge: 3 * 60 * 1000
+			}
+		})
+		# 拦截器
+		app.use "/pages", (req, res, next)->
+			if !req.session.user and !req.originalUrl.startsWith("/pages/login.html") and !req.originalUrl.startsWith("/pages/overTime.html")
+				res.redirect 302, "/pages/login.html"
+			else if req.originalUrl.startsWith("/pages/overTime.html")
+				next()
+			else
+				req.session._garbage = Date()
+				req.session.touch()
+				next()
 		app.use '/pages', (req, res, next)->
 			res.setHeader "Content-Type", "text/html"
 			next()
@@ -33,7 +58,6 @@ class Router
 	router: ->
 		app.use bodyParser.json()
 		app.use bodyParser.urlencoded {extended: true}
-		app.use cookieParser()
 
 		configRouter = express.Router() # 配置请求路由
 
@@ -54,7 +78,6 @@ class Router
 			type = data.type;
 			verify = {db: "epcos", col: "deploy"}
 			if type is "proj"
-				verify.filter
 				verify.filter = {$or: [{projName: data.projName}, {projCode: data.projCode}]}
 			else 
 				filter = {type: type}
@@ -238,7 +261,48 @@ class Router
 						LOG.info stderr if stderr.length > 0
 						LOG.info "#{options.src} => #{options.dst} #{spent}ms"
 						res.json "success"
-
+		# 新增、修改录入配置
+		configRouter.post "/addOrUpdateDeploy", (req, res)->
+			configContext = new ConfigContext()
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			configContext.addOrUpdateDeploy data.data, (err)->
+				if err
+					LOG.error err.stack
+					return res.json "error"
+				res.json null
+		# 获取录入实体
+		configRouter.post "/getEnterEntity", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new EnterContext()
+			context.selectByconf data.conf, (err, docs)->
+				if err
+					LOG.error err
+					return res.json err
+				res.json docs
 		app.use "/config", configRouter
+
+		userRouter = express.Router() # 用户信息请求路由
+		## 登陆
+		userRouter.post "/login", (req, res)->
+			userContext = new UserContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			userContext.login param, (err, flags)->
+				if flags is "success"
+					req.session.user = param
+				res.json flags
+		## 获取session
+		userRouter.get "/userInfo", (req, res)->
+			res.json req.session && req.session.user || {}
+		## 注销
+		userRouter.get "/logout", (req, res)->
+			unless req.session
+				return res.json "success"
+			req.session.destroy (err)->
+				if err
+					LOG.error err
+					res.json err
+				else
+					res.json "success"
+		app.use "/user", userRouter
 
 module.exports = Router

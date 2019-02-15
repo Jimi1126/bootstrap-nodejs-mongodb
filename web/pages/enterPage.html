@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>数据录入</title>
+	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+	<link rel='stylesheet' type="text/css" href='../css/initator.css' />
+	<style>
+		.content{
+			min-width: 722px;
+			min-height: 200px;
+		}
+		.content-body{
+			padding: 6px;
+			border: 1px #ccc solid;
+			height: 100%;
+			overflow:auto;
+			display: inline-block;
+			vertical-align: top;
+		}
+		.input-group-addon{
+			text-align: left;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="page-header">
+		<div class="page-title" style="padding-left: 22px;">
+			<h3>数据录入</h3>
+		</div>
+	</div>
+	<div class="fixed float-right" style="top: 40px; right: 88px;">
+		<div id="projectList" class="dropdown"></div>
+		<div id="rankList" class="dropdown"></div>
+    <button title="强过（ctrl+Enter）" id="forceBtn" type="button" class="btn btn-default">
+			<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+		</button>
+		<button title="上一份（PageUp）" id="lastBtn" type="button" class="btn btn-default">
+			<span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+		</button>
+		<button title="下一份（pageDown）" id="nextBtn" type="button" class="btn btn-default">
+			<span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+		</button>
+		<span id="timeSpan" class="glyphicon glyphicon-time" aria-hidden="true" style="margin-left: 6px;width: 44px"></span>
+	</div>
+	<div style="margin: 0px 22px 0px 22px">
+		<div class="content">
+			<div class="content-body" style="width: 68%">
+				<img class="img-responsive" alt="图片待加载" src="">
+			</div>
+			<div class="content-body" style="width: 30%;">
+
+			</div>
+		</div>
+		<div class="page-footer">
+
+		</div>
+	</div>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript" src='../js/bootstrap.min.js'></script>
+<script type="text/javascript" src="../js/jquery.Jcrop.js"></script>
+<script type="text/javascript" src="../js/initiator.js"></script>
+<script type="text/javascript" src="../js/enterPage.js"></script>
+
+</html>

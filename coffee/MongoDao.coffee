@@ -9,7 +9,10 @@ class MongoDao
     postfix = "?#{config.auth}"
     for k, v of cont
       @[k] = {}
-      for col in v
-        @[k][col] = new DBProxy (new DBHandler perfix + k + postfix, col, config.DB_OPTS)
+      unless Array.isArray v
+        @[k][v] = new DBProxy (new DBHandler perfix + k + postfix, v, config.DB_OPTS)
+      else
+        for col in v
+          @[k][col] = new DBProxy (new DBHandler perfix + k + postfix, col, config.DB_OPTS)
 
 module.exports = MongoDao

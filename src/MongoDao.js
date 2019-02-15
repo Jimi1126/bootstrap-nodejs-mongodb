@@ -20,9 +20,13 @@
       for (k in cont) {
         v = cont[k];
         this[k] = {};
-        for (i = 0, len = v.length; i < len; i++) {
-          col = v[i];
-          this[k][col] = new DBProxy(new DBHandler(perfix + k + postfix, col, config.DB_OPTS));
+        if (!Array.isArray(v)) {
+          this[k][v] = new DBProxy(new DBHandler(perfix + k + postfix, v, config.DB_OPTS));
+        } else {
+          for (i = 0, len = v.length; i < len; i++) {
+            col = v[i];
+            this[k][col] = new DBProxy(new DBHandler(perfix + k + postfix, col, config.DB_OPTS));
+          }
         }
       }
     }
