@@ -19,7 +19,6 @@ class Router
 		app.use '/images', express.static(path.join(workspace, 'web/images'))
 		app.use '/download', express.static(path.join(workspace, 'download'))
 		app.set 'view engine', 'html'
-
 		app.use cookieParser()
 		app.use session({
 			secret: "login"
@@ -28,14 +27,19 @@ class Router
 			saveUninitialized: true
 			cookie: {
 				secure: false # http有效
-				maxAge: 3 * 60 * 1000
+				maxAge: 5 * 60 * 1000
 			}
 		})
 		# 拦截器
 		app.use "/pages", (req, res, next)->
+			global.curPageName = pageName = req.originalUrl.split("/")[2].split(".")[0]
+			global.curSession = req.session.id
 			if !req.session.user and !req.originalUrl.startsWith("/pages/login.html") and !req.originalUrl.startsWith("/pages/overTime.html")
+				if global.sockets[req.session.id]
+						for name, socket of global.sockets[req.session.id]
+							pageName isnt name && socket && socket.emit "closeWindow"
 				res.redirect 302, "/pages/login.html"
-			else if req.originalUrl.startsWith("/pages/overTime.html")
+			else if req.originalUrl.startsWith("/pages/login.html") or req.originalUrl.startsWith("/pages/overTime.html")
 				next()
 			else
 				req.session._garbage = Date()
@@ -45,6 +49,17 @@ class Router
 			res.setHeader "Content-Type", "text/html"
 			next()
 		app.use '/pages', express.static(path.join(workspace, 'web/pages'))
+		app.all "*", (req, res, next)->
+			if req.session && req.session.user
+				req.session._garbage = Date()
+				req.session.touch()
+			if req.session.user or req.originalUrl.startsWith("/user/login")
+				next()
+			else
+				if global.sockets[req.session.id] && req.session
+					for name, socket of global.sockets[req.session.id]
+						socket && socket.emit "overTime", !!req.session.user
+				res.json null
 		###
 		# 开启跨域，便于接口访问.
 		###
@@ -59,8 +74,39 @@ class Router
 		app.use bodyParser.json()
 		app.use bodyParser.urlencoded {extended: true}
 
-		configRouter = express.Router() # 配置请求路由
+		userRouter = express.Router() # 用户信息请求路由
+		## 登陆
+		userRouter.post "/login", (req, res)->
+			userContext = new UserContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			userContext.login param, (err, flags)->
+				if flags is "success"
+					req.session.user = param
+					req.session._garbage = Date()
+					req.session.touch()
+					if global.sockets[req.session.id] && req.session
+						for name, socket of global.sockets[req.session.id]
+							socket && socket.emit "overTime", !!req.session.user
+				res.json flags
+		## 获取session
+		userRouter.get "/userInfo", (req, res)->
+			res.json req.session && req.session.user || {}
+		## 注销
+		userRouter.get "/logout", (req, res)->
+			unless req.session
+				return res.json "success"
+			req.session.destroy (err)->
+				if err
+					LOG.error err
+					res.json err
+				else
+					if global.sockets[req.session.id]
+						for name, socket of global.sockets[req.session.id]
+							socket && socket.emit "closeWindow"
+					res.json "success"
+		app.use "/user", userRouter
 
+		configRouter = express.Router() # 配置请求路由
 		## 获取配置信息
 		configRouter.get "/getDeploy", (req, res)->
 			configContext = new ConfigContext()
@@ -279,30 +325,9 @@ class Router
 					LOG.error err
 					return res.json err
 				res.json docs
+		configRouter.post "/updateEnterEntity", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new EnterContext()
 		app.use "/config", configRouter
-
-		userRouter = express.Router() # 用户信息请求路由
-		## 登陆
-		userRouter.post "/login", (req, res)->
-			userContext = new UserContext()
-			param = if Object.keys(req.query).length is 0 then req.body else req.query
-			userContext.login param, (err, flags)->
-				if flags is "success"
-					req.session.user = param
-				res.json flags
-		## 获取session
-		userRouter.get "/userInfo", (req, res)->
-			res.json req.session && req.session.user || {}
-		## 注销
-		userRouter.get "/logout", (req, res)->
-			unless req.session
-				return res.json "success"
-			req.session.destroy (err)->
-				if err
-					LOG.error err
-					res.json err
-				else
-					res.json "success"
-		app.use "/user", userRouter
 
 module.exports = Router

@@ -44,14 +44,24 @@
         saveUninitialized: true,
         cookie: {
           secure: false, // http有效
-          maxAge: 3 * 60 * 1000
+          maxAge: 5 * 60 * 1000
         }
       }));
       // 拦截器
       app.use("/pages", function(req, res, next) {
+        var name, pageName, ref, socket;
+        global.curPageName = pageName = req.originalUrl.split("/")[2].split(".")[0];
+        global.curSession = req.session.id;
         if (!req.session.user && !req.originalUrl.startsWith("/pages/login.html") && !req.originalUrl.startsWith("/pages/overTime.html")) {
+          if (global.sockets[req.session.id]) {
+            ref = global.sockets[req.session.id];
+            for (name in ref) {
+              socket = ref[name];
+              pageName !== name && socket && socket.emit("closeWindow");
+            }
+          }
           return res.redirect(302, "/pages/login.html");
-        } else if (req.originalUrl.startsWith("/pages/overTime.html")) {
+        } else if (req.originalUrl.startsWith("/pages/login.html") || req.originalUrl.startsWith("/pages/overTime.html")) {
           return next();
         } else {
           req.session._garbage = Date();
@@ -64,6 +74,25 @@
         return next();
       });
       app.use('/pages', express.static(path.join(workspace, 'web/pages')));
+      app.all("*", function(req, res, next) {
+        var name, ref, socket;
+        if (req.session && req.session.user) {
+          req.session._garbage = Date();
+          req.session.touch();
+        }
+        if (req.session.user || req.originalUrl.startsWith("/user/login")) {
+          return next();
+        } else {
+          if (global.sockets[req.session.id] && req.session) {
+            ref = global.sockets[req.session.id];
+            for (name in ref) {
+              socket = ref[name];
+              socket && socket.emit("overTime", !!req.session.user);
+            }
+          }
+          return res.json(null);
+        }
+      });
       /*
        * 开启跨域，便于接口访问.
        */
@@ -83,8 +112,57 @@
       app.use(bodyParser.urlencoded({
         extended: true
       }));
+      userRouter = express.Router(); // 用户信息请求路由
+      //# 登陆
+      userRouter.post("/login", function(req, res) {
+        var param, userContext;
+        userContext = new UserContext();
+        param = Object.keys(req.query).length === 0 ? req.body : req.query;
+        return userContext.login(param, function(err, flags) {
+          var name, ref, socket;
+          if (flags === "success") {
+            req.session.user = param;
+            req.session._garbage = Date();
+            req.session.touch();
+            if (global.sockets[req.session.id] && req.session) {
+              ref = global.sockets[req.session.id];
+              for (name in ref) {
+                socket = ref[name];
+                socket && socket.emit("overTime", !!req.session.user);
+              }
+            }
+          }
+          return res.json(flags);
+        });
+      });
+      //# 获取session
+      userRouter.get("/userInfo", function(req, res) {
+        return res.json(req.session && req.session.user || {});
+      });
+      //# 注销
+      userRouter.get("/logout", function(req, res) {
+        if (!req.session) {
+          return res.json("success");
+        }
+        return req.session.destroy(function(err) {
+          var name, ref, socket;
+          if (err) {
+            LOG.error(err);
+            return res.json(err);
+          } else {
+            if (global.sockets[req.session.id]) {
+              ref = global.sockets[req.session.id];
+              for (name in ref) {
+                socket = ref[name];
+                socket && socket.emit("closeWindow");
+              }
+            }
+            return res.json("success");
+          }
+        });
+      });
+      app.use("/user", userRouter);
       configRouter = express.Router(); // 配置请求路由
-      
       //# 获取配置信息
       configRouter.get("/getDeploy", function(req, res) {
         var configContext, param;
@@ -447,39 +525,12 @@
           return res.json(docs);
         });
       });
-      app.use("/config", configRouter);
-      userRouter = express.Router(); // 用户信息请求路由
-      //# 登陆
-      userRouter.post("/login", function(req, res) {
-        var param, userContext;
-        userContext = new UserContext();
-        param = Object.keys(req.query).length === 0 ? req.body : req.query;
-        return userContext.login(param, function(err, flags) {
-          if (flags === "success") {
-            req.session.user = param;
-          }
-          return res.json(flags);
-        });
+      configRouter.post("/updateEnterEntity", function(req, res) {
+        var context, data;
+        data = Object.keys(req.query).length === 0 ? req.body : req.query;
+        return context = new EnterContext();
       });
-      //# 获取session
-      userRouter.get("/userInfo", function(req, res) {
-        return res.json(req.session && req.session.user || {});
-      });
-      //# 注销
-      userRouter.get("/logout", function(req, res) {
-        if (!req.session) {
-          return res.json("success");
-        }
-        return req.session.destroy(function(err) {
-          if (err) {
-            LOG.error(err);
-            return res.json(err);
-          } else {
-            return res.json("success");
-          }
-        });
-      });
-      return app.use("/user", userRouter);
+      return app.use("/config", configRouter);
     }
 
   };

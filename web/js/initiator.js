@@ -1,24 +1,88 @@
-if ($) {
-	$.namespace = function () {
-		var a = arguments, o = null, i, j, d;
-		for (i = 0; i < a.length; i = i + 1) {
-			d = a[i].split(".");
-			o = window;
-			for (j = 0; j < d.length; j = j + 1) {
-				o[d[j]] = o[d[j]] || {};
-				o = o[d[j]];
-			}
-		}
-		return o;
-	};
-	$.bindMenuBtn = function () {
-		var params;
-		params = arguments;
-		return function() {
-			window.open.apply(window, params);
-		}
-	};
+function loadJs(url,callback) {
+  var script = document.createElement('script');
+  script.type="text/javascript";
+  if(typeof(callback) != "undefined") {
+    if(script.readyState) {
+      script.onreadystatechange=function(){
+        if(script.readyState == "loaded" || script.readyState == "complete"){
+          script.onreadystatechange=null;
+          callback();
+        }
+      }
+    } else {
+      script.onload=function(){
+        callback();
+      }
+    }
+  }
+  script.src=url;
+  document.body.appendChild(script);
 }
+
+function loadJsSync(url) {
+  var xhr, script;
+  script = document.createElement('script');
+  script.type="text/javascript";
+  if ( window.XMLHttpRequest ) {
+    xhr = new XMLHttpRequest(); 
+  } else if ( window.ActiveXObject ) {
+    xhr = new ActiveXObject("MsXml2.XmlHttp");
+  }
+  xhr.onreadystatechange = function() {
+    if ( xhr.readyState == 4 ) {
+      if ( xhr.status == 200 || xhr.status == 304 ) {
+        script.text = xhr.responseText;
+        document.body.appendChild(script);
+      }
+    }
+  }
+  xhr.open('GET', url, false);
+  xhr.send(null); 
+}
+
+function closeWindow() {
+  // 重置window.opener用来获取打开当前窗口的窗口引用
+  // 这里置为null,避免IE下弹出关闭页面确认框
+  window.opener = null;
+  // JS重写当前页面
+  window.open("", "_self", "");
+  // 顺理成章的关闭当前被重写的窗口
+  window.close();
+}
+
+var socket;
+loadJs("/socket.io/socket.io.js", function() {
+  socket = io.connect('http://192.168.3.69:8090');
+  socket.on("overTime", function(user) {
+    if (!user) {
+      Util.overTimeWin();
+    } else {
+      Util.showOverTimeWin = false;
+      Util.overTimeModalWindow && Util.overTimeModalWindow.hide();
+    }
+  });
+  socket.on("closeWindow", closeWindow);
+});
+
+$.namespace = function () {
+	var a = arguments, o = null, i, j, d;
+	for (i = 0; i < a.length; i = i + 1) {
+		d = a[i].split(".");
+		o = window;
+		for (j = 0; j < d.length; j = j + 1) {
+			o[d[j]] = o[d[j]] || {};
+			o = o[d[j]];
+		}
+	}
+	return o;
+};
+$.bindMenuBtn = function () {
+	var params;
+	params = arguments;
+	return function() {
+		window.open.apply(window, params);
+	}
+};
 
 function Util() { }
 Util.uuid = function (len, radix) {
@@ -83,70 +147,48 @@ Util.isChange = function (bef, cur) {
 Util.showOverTimeWin = false;
 Util.overTimeWin = function() {
 	if (Util.showOverTimeWin) return;
-	Util.showOverTimeWin = true;
-	Util.overTimeModalWindow = new ModalWindow({
-		title: "登录",
-		url: "overTime.html",
-		close: false,
-		window: window.top,
-		backdrop: "static",
-		keyboard: false,
-		width: 400,
-		height: 125,
-		buttons: [{
-		name: "确定",
-		class: "btn-primary",
-		event: function () {
-			var param = {
-				usercode: Util.overTimeModalWindow.contentWindow.$("#usercode").val(),
-				password: Util.overTimeModalWindow.contentWindow.$("#password").val()
-			};
-			Util.isEmpty(param.password) && $("#tip").text("请输入密码");
-			Util.isEmpty(param.usercode) && $("#tip").text("请输入用户名");
-			if (Util.isEmpty(param.usercode) || Util.isEmpty(param.password)) return;
-			$.post('/user/login', param, function (data, status, xhr) {
-				if (status == "success") {
-					data == "error" && $("#tip").text("系统繁忙");
-					data == "no exist" && $("#tip").text("用户不存在");
-					data == "failed" && $("#tip").text("密码有误");
-					data == "success" && $("#tip").text("") && Util.overTimeModalWindow.hide();
-					data == "success" && (Util.showOverTimeWin = false);
-					data == "success" && (Util.isOutTime = false);
-				}
-			});
-		}
-	}, {
-		name: "取消",
-		class: "btn-default",
-		event: function () {
-			window.location.href = "../pages/login.html";
-		}
-	}]
-	});
-	Util.overTimeModalWindow && Util.overTimeModalWindow.show();
+		Util.showOverTimeWin = true;
+		Util.overTimeModalWindow = new ModalWindow({
+			title: "登录",
+			url: "overTime.html",
+			close: false,
+			window: window.top,
+			backdrop: "static",
+			keyboard: false,
+			width: 400,
+			height: 125,
+			buttons: [{
+			name: "确定",
+			class: "btn-primary",
+			event: function () {
+				var param = {
+					usercode: Util.overTimeModalWindow.contentWindow.$("#usercode").val(),
+					password: Util.overTimeModalWindow.contentWindow.$("#password").val()
+				};
+				Util.isEmpty(param.password) && $("#tip").text("请输入密码");
+				Util.isEmpty(param.usercode) && $("#tip").text("请输入用户名");
+				if (Util.isEmpty(param.usercode) || Util.isEmpty(param.password)) return;
+				$.post('/user/login', param, function (data, status, xhr) {
+					if (status == "success") {
+						data == "error" && $("#tip").text("系统繁忙");
+						data == "no exist" && $("#tip").text("用户不存在");
+						data == "failed" && $("#tip").text("密码有误");
+						data == "success" && $("#tip").text("") && Util.overTimeModalWindow.hide();
+						data == "success" && (Util.showOverTimeWin = false);
+					}
+				});
+			}
+		}, {
+			name: "取消",
+			class: "btn-default",
+			event: function () {
+				window.location.reload(true);
+			}
+		}]
+		});
+	Util.overTimeModalWindow.show();
 	$(".modal-footer").append($(`<span id="tip" style="color:red;float: left;"></span>`));
 }
-
-Util.isOutTime = false;
-var checkOutTime = window.setInterval(function() {
-	if (Util.isOutTime) return;
-	$.ajax({
-		url:"/user/userInfo",
-		method: "get",
-		success: function (data) {
-			Util.userInfo = data;
-			if (Object.keys(data).length == 0) {
-				Util.isOutTime = true;
-				Util.overTimeWin();
-			} else {
-        Util.overTimeModalWindow.hide();
-      }
-		},
-		error: function (data) {
-			console.log("error");
-		}
-	});
-}, 5000);
 
 function LoadUI(target) {
 	this.target = target ? target : window.top;
@@ -245,13 +287,13 @@ function ModalWindow(options) {
 		+ '</div>'
 		+ '</div>'
 		+ '</div>';
-	this.$modal = $(html);
-	this.$modal.on("hidden.bs.modal", function () {
+	that.$modal = $(html);
+	that.$modal.on("hidden.bs.modal", function () {
 		that.$modal.remove();
 		that.target.$('.ic-LoadUI').remove();
 	});
-	this.target = options.window ? options.window : window;
-	$(this.target.document.body).append(this.$modal);
+	that.target = options.window ? options.window : window;
+	$(that.target.document.body).append(that.$modal);
 
 	var $html = null;
 	if (options.close == undefined || options.close == null || options.close) {
@@ -277,7 +319,7 @@ function ModalWindow(options) {
 		});
 	}
 	options.width && that.$modal.find(".modal-dialog").width(options.width);
-	this.maximize = function() {
+	that.maximize = function() {
 		if (options.maximize) {
 			that.$modal.css("padding", "0px");
 			that.$modal.css("margin", "0px");
@@ -335,7 +377,13 @@ ModalWindow.prototype = {
 		}
 	},
 	show: function () {
-		this.$modal.modal(this.showOptions);
+		var that = this;
+		that.$modal.modal(that.showOptions);
+		// $.get("/user/userInfo", function(data,status, xhr) {
+		// 	if (status == "success" && data && Object.keys(data).length > 0) {
+		// 		that.$modal.modal(that.showOptions);
+		// 	}
+		// });
 	},
 	hide: function () {
 		this.$modal.modal("hide");
@@ -702,7 +750,7 @@ $.fn.icTable = function (options) {
 			width = header.find('th:eq(' + $(this).index() + ')').width();
 			$(this).width(width);
 			$(this).css("max-width", width + "px");
-		});
+    });
 	}
 	this.refresh();
 	return this;

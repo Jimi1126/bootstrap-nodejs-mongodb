@@ -52,6 +52,7 @@ EnterConf.prototype = {
     $("#addBtn").bind('click', $.proxy(this.addBtnEvent, this));
     $('#saveBtn').bind('click', $.proxy(this.saveBtnEvent, this));
     $('#delBtn').bind('click', $.proxy(this.delBtnEvent, this));
+    $('#updateBtn').bind('click', $.proxy(this.updateBtnEvent, this));
   },
   /**
    * 初始化数据.
@@ -245,6 +246,51 @@ EnterConf.prototype = {
     });
     modalWindow.show();
   },
+  /**
+   * 新增、更新配置.
+   */
+  updateBtnEvent: function() {
+    var modalWindow = new ModalWindow({
+      title: "更新进度",
+      body: `<div class="progress" style="margin:0px;">
+        <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>`,
+      width: 350,
+      height: 20,
+      buttons: [{
+        name: "确定",
+        class: "btn-primary",
+        event: function () {
+          $.post("/", config, function (data, status, xhr) {
+            if (status == 'success') {
+              that.dialog.show('删除成功');
+              that.confTable.remove(index);
+              that.src_config = [].concat(that.src_config.slice(0, index), that.src_config.slice(index + 1));
+              modalWindow.hide();
+            } else {
+              that.dialog.show('删除失败');
+            }
+          });
+        }
+      }, {
+        name: "取消",
+        class: "btn-default",
+        event: function () {
+          this.hide();
+        }
+      }]
+    });
+    modalWindow.show();
+    var index = 0;
+    var bar = modalWindow.$modal.find(".progress-bar");
+    var time = window.setInterval(function() {
+      bar.css("width", ++index + "%");
+      bar.text(index + "%");
+      if (index >= 100) {
+        window.clearInterval(time);
+      }
+    }, 100);
+  }
 }
 
 window.initPage = function (modImage) {
