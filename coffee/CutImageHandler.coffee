@@ -12,7 +12,7 @@ class CutImageHandler extends Handler
 			return callback null
 		@data.bills = []
 		exec = new ExecHandler().queue_exec 3
-		dao = new MongoDao __b_config.dbInfo, {epcos: ["bill"]}
+		dao = new MongoDao __b_config.dbInfo, {epcos: ["entity"]}
 		cut_stat = {total: 0, success: 0, exist: 0, failure: 0}
 		async.each @data.images, (image, cb)->
 			return cb null if image.state isnt 2 and image.state isnt -3
@@ -20,35 +20,40 @@ class CutImageHandler extends Handler
 				rel_path =  image.s_url
 			else
 				rel_path = "#{image.s_url}/"
-			bills = that.data.deploy.bills.filter (b)-> b.image is image.image_type
-			if image.image_name.endsWith "pdf"
-				fs.readdir "#{rel_path}#{image.image_name.replace(".pdf", "")}/", (err, menu)->
+			bills = that.data.deploy.bills.filter (b)-> b.image is image.deploy_id
+			if image.img_name.endsWith "pdf"
+				fs.readdir "#{rel_path}#{image.img_name.replace(".pdf", "")}/", (err, menu)->
 					return cb err if err
-					async.each menu, (f_nm, cb1)->
+					async.each menu, (f_nm, cb1)-> 
 						async.each bills, (bill, cb2)->
 							cut_path = rel_path.replace "image", "bill"
 							cut_path = "#{cut_path}#{bill.code}/"
-							img_path = "#{rel_path}#{image.image_name.replace(".pdf", "")}/"
-							cut_path = "#{cut_path}#{image.image_name.replace(".pdf", "")}/"
+							img_path = "#{rel_path}#{image.img_name.replace(".pdf", "")}/"
+							cut_path = "#{cut_path}#{image.img_name.replace(".pdf", "")}/"
 							mkdirp cut_path, (err)->
 								return cb2 err if err
 								cut_stat.total++
 								dbBill = {
-									bill_type: bill._id.toString()
+									deploy_id: bill._id.toString()
+									type: "bill"
+									source_img: image._id
 									code: bill.code
-									bill_name: f_nm
+									img_name: f_nm
 									path: cut_path
-									state: 0 #待切图
 								}
 								that.data.bills.push dbBill
-								dao.epcos.bill.selectOne dbBill, (err, doc)->
+								dao.epcos.entity.selectOne dbBill, (err, doc)->
 									return cb2 err if err
 									if doc
 										cut_stat.exist++
-										dbBill._id = doc._id
+										dbBill._id = doc._id.toString()
+										dbBill.inDB = true
 										dbBill.state = doc.state
+									else
+										dbBill._id = Utils.uuid 24, 16
+										dbBill.state = 0
+										dbBill.create_at = moment().format "YYYYMMDDHHmmss"
 									return cb2 null if doc and (doc.state is 1 or Math.abs(doc.state) > 1)
-									doc or dbBill.create_at = moment().format "YYYYMMDDHHmmss"
 									async.series [
 										(cb3)->
 											return cb3 null if !bill.filter
@@ -109,25 +114,30 @@ class CutImageHandler extends Handler
 						return cb1 err if err
 						cut_stat.total++
 						dbBill = {
-							bill_type: bill._id.toString()
+							deploy_id: bill._id.toString()
+							type: "bill"
+							source_img: image._id
 							code: bill.code
-							bill_name: image.image_name
+							img_name: image.img_name
 							path: cut_path
-							state: 0 #待切图
 						}
 						that.data.bills.push dbBill
-						dao.epcos.bill.selectOne dbBill, (err, doc)->
+						dao.epcos.entity.selectOne dbBill, (err, doc)->
 							return cb1 err if err
 							if doc
 								cut_stat.exist++
-								dbBill._id = doc._id
+								dbBill._id = doc._id.toString()
+								dbBill.inDB = true
 								dbBill.state = doc.state
+							else
+								dbBill._id = Utils.uuid 24, 16
+								dbBill.state = 0
+								dbBill.create_at = moment().format "YYYYMMDDHHmmss"
 							return cb1 null if doc and (doc.state is 1 or Math.abs(doc.state) > 1)
-							doc or dbBill.create_at = moment().format "YYYYMMDDHHmmss"
 							async.series [
 								(cb2)->
 									return cb2 null if !bill.filter
-									exec "gm identify #{rel_path}#{image.image_name}", (error, stdout = "", stderr = "")->
+									exec "gm identify #{rel_path}#{image.img_name}", (error, stdout = "", stderr = "")->
 										return cb2 error if error
 										info = stdout.split " "
 										width = +info[2].substring(0, info[2].indexOf("x"))
@@ -143,8 +153,8 @@ class CutImageHandler extends Handler
 											cb2 "break"
 								(cb2)->
 									options = {
-										src: "#{rel_path}#{image.image_name}"
-										dst: "#{cut_path}#{image.image_name}"
+										src: "#{rel_path}#{image.img_name}"
+										dst: "#{cut_path}#{image.img_name}"
 										x0: bill.x0
 										y0: bill.y0
 										x1: bill.x1
@@ -168,7 +178,7 @@ class CutImageHandler extends Handler
 										cb2 null
 							], (err)->
 								if err is "break"
-									LOG.trace "break #{bill.filter} #{rel_path}#{image.image_name}"
+									LOG.trace "break #{bill.filter} #{rel_path}#{image.img_name}"
 									return cb1 null
 								cb1 err
 				, (err)->

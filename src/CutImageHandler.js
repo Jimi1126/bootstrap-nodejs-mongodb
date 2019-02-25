@@ -22,7 +22,7 @@
       this.data.bills = [];
       exec = new ExecHandler().queue_exec(3);
       dao = new MongoDao(__b_config.dbInfo, {
-        epcos: ["bill"]
+        epcos: ["entity"]
       });
       cut_stat = {
         total: 0,
@@ -41,10 +41,10 @@
           rel_path = `${image.s_url}/`;
         }
         bills = that.data.deploy.bills.filter(function(b) {
-          return b.image === image.image_type;
+          return b.image === image.deploy_id;
         });
-        if (image.image_name.endsWith("pdf")) {
-          return fs.readdir(`${rel_path}${image.image_name.replace(".pdf", "")}/`, function(err, menu) {
+        if (image.img_name.endsWith("pdf")) {
+          return fs.readdir(`${rel_path}${image.img_name.replace(".pdf", "")}/`, function(err, menu) {
             if (err) {
               return cb(err);
             }
@@ -53,8 +53,8 @@
                 var cut_path, img_path;
                 cut_path = rel_path.replace("image", "bill");
                 cut_path = `${cut_path}${bill.code}/`;
-                img_path = `${rel_path}${image.image_name.replace(".pdf", "")}/`;
-                cut_path = `${cut_path}${image.image_name.replace(".pdf", "")}/`;
+                img_path = `${rel_path}${image.img_name.replace(".pdf", "")}/`;
+                cut_path = `${cut_path}${image.img_name.replace(".pdf", "")}/`;
                 return mkdirp(cut_path, function(err) {
                   var dbBill;
                   if (err) {
@@ -62,26 +62,31 @@
                   }
                   cut_stat.total++;
                   dbBill = {
-                    bill_type: bill._id.toString(),
+                    deploy_id: bill._id.toString(),
+                    type: "bill",
+                    source_img: image._id,
                     code: bill.code,
-                    bill_name: f_nm,
-                    path: cut_path,
-                    state: 0 //待切图
+                    img_name: f_nm,
+                    path: cut_path
                   };
                   that.data.bills.push(dbBill);
-                  return dao.epcos.bill.selectOne(dbBill, function(err, doc) {
+                  return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
                     if (err) {
                       return cb2(err);
                     }
                     if (doc) {
                       cut_stat.exist++;
-                      dbBill._id = doc._id;
+                      dbBill._id = doc._id.toString();
+                      dbBill.inDB = true;
                       dbBill.state = doc.state;
+                    } else {
+                      dbBill._id = Utils.uuid(24, 16);
+                      dbBill.state = 0;
+                      dbBill.create_at = moment().format("YYYYMMDDHHmmss");
                     }
                     if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
                       return cb2(null);
                     }
-                    doc || (dbBill.create_at = moment().format("YYYYMMDDHHmmss"));
                     return async.series([
                       function(cb3) {
                         if (!bill.filter) {
@@ -187,32 +192,37 @@
               }
               cut_stat.total++;
               dbBill = {
-                bill_type: bill._id.toString(),
+                deploy_id: bill._id.toString(),
+                type: "bill",
+                source_img: image._id,
                 code: bill.code,
-                bill_name: image.image_name,
-                path: cut_path,
-                state: 0 //待切图
+                img_name: image.img_name,
+                path: cut_path
               };
               that.data.bills.push(dbBill);
-              return dao.epcos.bill.selectOne(dbBill, function(err, doc) {
+              return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
                 if (err) {
                   return cb1(err);
                 }
                 if (doc) {
                   cut_stat.exist++;
-                  dbBill._id = doc._id;
+                  dbBill._id = doc._id.toString();
+                  dbBill.inDB = true;
                   dbBill.state = doc.state;
+                } else {
+                  dbBill._id = Utils.uuid(24, 16);
+                  dbBill.state = 0;
+                  dbBill.create_at = moment().format("YYYYMMDDHHmmss");
                 }
                 if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
                   return cb1(null);
                 }
-                doc || (dbBill.create_at = moment().format("YYYYMMDDHHmmss"));
                 return async.series([
                   function(cb2) {
                     if (!bill.filter) {
                       return cb2(null);
                     }
-                    return exec(`gm identify ${rel_path}${image.image_name}`,
+                    return exec(`gm identify ${rel_path}${image.img_name}`,
                   function(error,
                   stdout = "",
                   stderr = "") {
@@ -244,8 +254,8 @@
                   e,
                   options;
                     options = {
-                      src: `${rel_path}${image.image_name}`,
-                      dst: `${cut_path}${image.image_name}`,
+                      src: `${rel_path}${image.img_name}`,
+                      dst: `${cut_path}${image.img_name}`,
                       x0: bill.x0,
                       y0: bill.y0,
                       x1: bill.x1,
@@ -284,7 +294,7 @@
                   }
                 ], function(err) {
                   if (err === "break") {
-                    LOG.trace(`break ${bill.filter} ${rel_path}${image.image_name}`);
+                    LOG.trace(`break ${bill.filter} ${rel_path}${image.img_name}`);
                     return cb1(null);
                   }
                   return cb1(err);

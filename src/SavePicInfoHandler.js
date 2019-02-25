@@ -10,137 +10,58 @@
 
   SavePicInfoHandler = class SavePicInfoHandler extends Handler {
     handle(callback) {
-      var b_dao, f_dao, i_dao, that;
+      var addArr, dao, data, that, updArr;
       that = this;
-      i_dao = new MongoDao(__b_config.dbInfo, {
-        epcos: ["image"]
+      dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["entity", "resultData"]
       });
-      b_dao = new MongoDao(__b_config.dbInfo, {
-        epcos: ["bill"]
+      data = [];
+      that.data.images && (data = data.concat(that.data.images));
+      that.data.bills && (data = data.concat(that.data.bills));
+      that.data.fields && (data = data.concat(that.data.fields));
+      if (data.length === 0) {
+        return callback(null);
+      }
+      addArr = data.filter(function(d) {
+        return !d.inDB;
       });
-      f_dao = new MongoDao(__b_config.dbInfo, {
-        epcos: ["field"]
+      updArr = data.filter(function(d) {
+        if (d.inDB) {
+          return delete d.inDB;
+        } else {
+          return false;
+        }
       });
       return async.parallel([
         function(cb) {
-          var data;
-          if (!that.data.images) {
-            LOG.trace("没有需要保存的图片内容");
+          if (addArr.length === 0) {
             return cb(null);
           }
-          data = that.data.images.filter(function(i) {
-            return !i._id;
-          });
-          if (data.length !== 0) {
-            return i_dao.epcos.image.insert(data,
+          return dao.epcos.entity.insert(addArr,
         cb);
-          } else {
-            return cb(null);
-          }
         },
         function(cb) {
-          var data;
-          if (!that.data.images) {
-            LOG.trace("没有需要保存的图片内容");
+          if (updArr.length === 0) {
             return cb(null);
           }
-          data = that.data.images.filter(function(i) {
-            return i._id;
-          });
-          if (data.length !== 0) {
-            return async.each(data,
-        function(d,
+          return async.eachLimit(updArr,
+        50,
+        function(dd,
         cb1) {
-              return i_dao.epcos.image.update({
-                _id: d._id
-              },
-        d,
-        cb1);
+            return dao.epcos.entity.update({
+              _id: dd._id
             },
-        cb);
-          } else {
-            return cb(null);
-          }
-        },
-        function(cb) {
-          var data;
-          if (!that.data.bills) {
-            LOG.trace("没有需要保存的分块内容");
-            return cb(null);
-          }
-          data = that.data.bills.filter(function(b) {
-            return !b._id;
-          });
-          if (data.length !== 0) {
-            return b_dao.epcos.bill.insert(data,
-        cb);
-          } else {
-            return cb(null);
-          }
-        },
-        function(cb) {
-          var data;
-          if (!that.data.bills) {
-            LOG.trace("没有需要保存的分块内容");
-            return cb(null);
-          }
-          data = that.data.bills.filter(function(b) {
-            return b._id;
-          });
-          if (data.length !== 0) {
-            return async.each(data,
-        function(d,
-        cb1) {
-              return b_dao.epcos.bill.update({
-                _id: d._id
-              },
-        d,
+        dd,
         cb1);
-            },
+          },
         cb);
-          } else {
-            return cb(null);
-          }
         },
         function(cb) {
-          var data;
-          if (!that.data.fields) {
-            LOG.trace("没有需要保存的字段内容");
+          if (that.data.enterEntitys.length === 0) {
             return cb(null);
           }
-          data = that.data.fields.filter(function(f) {
-            return !f._id;
-          });
-          if (data.length !== 0) {
-            return f_dao.epcos.field.insert(data,
+          return dao.epcos.resultData.insert(that.data.enterEntitys,
         cb);
-          } else {
-            return cb(null);
-          }
-        },
-        function(cb) {
-          var data;
-          if (!that.data.fields) {
-            LOG.trace("没有需要保存的字段内容");
-            return cb(null);
-          }
-          data = that.data.fields.filter(function(f) {
-            return f._id;
-          });
-          if (data.length !== 0) {
-            return async.each(data,
-        function(d,
-        cb1) {
-              return f_dao.epcos.field.update({
-                _id: d._id
-              },
-        d,
-        cb1);
-            },
-        cb);
-          } else {
-            return cb(null);
-          }
         }
       ], function(err) {
         if (err) {

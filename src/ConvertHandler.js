@@ -26,20 +26,20 @@
         if (image.state !== 1 && image.state !== -2) {
           return cb(null);
         }
-        if (image.image_name && image.image_name.endsWith("pdf")) {
+        if (image.img_name && image.img_name.endsWith("pdf")) {
           conv_stat.total++;
           if (image.s_url.endsWith("/")) {
             rel_path = image.s_url;
           } else {
             rel_path = `${image.s_url}/`;
           }
-          name = image.image_name.replace(".pdf", "");
+          name = image.img_name.replace(".pdf", "");
           return mkdirp(`${rel_path}${name}`, function(err) {
             var conv_cmd;
             if (err && (image.state = -2)) { //解析失败
               return cb(err);
             }
-            conv_cmd = `gswin64c -o ${rel_path}${name}/${name}_%d.jpg -sDEVICE=jpeg ${rel_path}${image.image_name}`;
+            conv_cmd = `gswin64c -o ${rel_path}${name}/${name}_%d.jpg -sDEVICE=jpeg ${rel_path}${image.img_name}`;
             return exec(conv_cmd, function(err, stdout, stderr, spent) {
               image.state = 2; //解析完成
               if (err && (image.state = -2)) { //解析失败
@@ -73,35 +73,6 @@
 
   };
 
-  // async.eachOf @data.billInfos, (billInfo, cmd, cb1)=>
-  // 	rel_path = path.join workspace, "download" + cmd.substring cmd.lastIndexOf("EPCOS") - 1
-  // 	async.each billInfo, (bill, cb2)=>
-  // 		if bill.bill_name and bill.bill_name.endsWith "pdf"
-  // 			conv_stat.total++
-  // 			bill_name = bill.bill_name.replace ".pdf", ""
-  // 			# bill.bill_name = []
-  // 			conv_cmd = "gswin64c -o %(bill_name)s_%%d.jpg -sDEVICE=%(type)s %(bill_name)s.pdf"
-  // 			conv_cmd = sprintf.sprintf conv_cmd, {
-  // 				bill_name: rel_path + bill_name
-  // 				type: "jpeg"
-  // 			}
-  // 			exec conv_cmd, (err, stdout, stderr, spent) ->
-  // 				if err
-  // 					bill.status = "异常"
-  // 					return cb2()
-  // 				stdout = "#{stdout}".trim()
-  // 				stderr = "#{stderr}".trim()
-  // 				LOG.info stdout if stdout.length > 0
-  // 				LOG.info stderr if stderr.length > 0
-  // 				conv_stat.success++
-  // 				cb2()
-  // 		else
-  // 			cb2()
-  // 	, cb1
-  // , ()->
-  // 	conv_stat.failure = conv_stat.total - conv_stat.success
-  // 	LOG.info JSON.stringify conv_stat
-  // 	callback.apply this, arguments
   module.exports = ConvertHandler;
 
 }).call(this);

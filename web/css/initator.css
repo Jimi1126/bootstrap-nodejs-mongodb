@@ -3,18 +3,25 @@
 .relative{position: relative;}
 .float-left{float: left;}
 .float-right{float: right;}
+.query-region{width: 100%; background-image: linear-gradient(to bottom , #60b5ff, #2671b1);margin-top: 0px;padding: 5px 0px 16px 16px;color:#fff}
+.region .input-group .input-group-addon{background: none;border: 0px;color: #fff;padding: 6px 0px 0px 14px}
+.region .input-group .form-control{color: #fff;background: none;border: 0px;border-bottom: 1px #fff solid;box-shadow:inset 0 0px 0px rgba(0,0,0,0.075)}
+.region .input-group .btn{background: none;position:absolute;margin-left: 19px;color: #fff;border: 1px #fff solid}
 .ic-LoadUI{top: 0px; left: 0px; position: absolute; text-align: center; line-height: 758px; background-color: rgb(255, 255, 255); opacity: 0.4; z-index: 9999;}
 .ic-Dialog{ bottom: 20px; right: 16px; padding: 16px; position: absolute; text-align: center; color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(233, 236, 239); border-radius: 8px; border: 1px solid rgb(204, 204, 204); opacity: 1; z-index: 9999;}
 .ic-Dialog div{display: inline;}
 .dropdown-toggle input{width: 90%;border: 0px;}
 .dropdown-toggle .caret{margin-left: 6px;}
-.dropdown{display: inline;}
+.dropdown{height:36px;display: inline-block;}
+.input-group .dropdown .btn{vertical-align: bottom;border-radius:0px}
 .dropdown-menu{width: 100%;min-width: auto; overflow: auto; z-index: 999;}
+.dropdown-menu li a{height: 26px;}
 .form-control.dropdown{padding: 0px;border: 0px;}
 .table{margin-bottom: 0px;border: 0px;}
 .table-header{position: absolute; background-color:#eee;z-index: 999}
 .table-header th,.table-body td{text-align: center; border: 1px solid #ccc}
 .table-header thead tr th{padding: 0px}
+.table-body .dropdown{display: block;}
 .table-body tbody tr td{padding: 0px; border-top: 0px;}
 .table-header thead tr th input{padding: 8px;border: 0px;width: 100%;text-align: center;background-color: #f5f5f5}
 .table-body tbody tr td input{padding: 8px;border: 0px;width: 100%}
@@ -31,3 +38,7 @@
 .menu{padding-top:8px}
 .menu:hover{cursor: pointer;background-color: #ccc}
 .nav-menu > .menu > a {text-decoration:none;padding: 3px 20px;line-height: 1.42857143;color: #333333;}
+.nav-bar{width: 100%;height: 36px;background-color: #f5f5f5;text-align: center;margin-bottom: 20px;}
+.nav-bar .nav-tag{display: inline-block;padding: 7px 15px 7px 15px;margin: 0px 3px 0px}
+.nav-bar .nav-tag.active{background-color: #ccc;}
+.nav-bar .nav-tag:hover{cursor: pointer;background-color: #ccc}

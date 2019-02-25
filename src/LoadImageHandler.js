@@ -17,7 +17,7 @@
         return callback(null);
       }
       dao = new MongoDao(__b_config.dbInfo, {
-        epcos: ["image"]
+        epcos: ["entity"]
       });
       exec = new ExecHandler().queue_exec(3);
       down_stat = {
@@ -27,20 +27,25 @@
         failure: 0
       };
       return async.each(this.data.images, function(image, cb) {
-        return dao.epcos.image.selectOne(image, function(err, doc) {
+        return dao.epcos.entity.selectOne({
+          deploy_id: image.deploy_id,
+          img_name: image.img_name,
+          upload_at: image.upload_at
+        }, function(err, doc) {
           var rel_path;
           if (err) {
             return cb(err);
           }
-          image.state = 0; //未下载
           if (doc) {
             down_stat.exist++;
-            image._id = doc._id;
+            image.inDB = true;
+            image._id = doc._id.toString();
             image.state = doc.state;
           }
           if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
             return cb(null);
           }
+          doc || (image.create_at = moment().format("YYYYMMDDHHmmss"));
           if (image.s_url.endsWith("/")) {
             rel_path = image.s_url;
           } else {
@@ -55,8 +60,8 @@
             if (!cmd.startsWith("curl")) {
               cmd = `curl ${cmd}`;
             }
-            cmd = cmd.endsWith("/") ? `${cmd}${image.image_name}` : `${cmd}/${image.image_name}`;
-            cmd = `${cmd} -o ${rel_path}${image.image_name}`;
+            cmd = cmd.endsWith("/") ? `${cmd}${image.img_name}` : `${cmd}/${image.img_name}`;
+            cmd = `${cmd} -o ${rel_path}${image.img_name}`;
             cmd_display = cmd != null ? cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码
             LOG.info(`开始下载: ${cmd_display}`);
             return exec(cmd, function(err, stdout, stderr, spent) {

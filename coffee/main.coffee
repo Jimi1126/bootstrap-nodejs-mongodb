@@ -16,8 +16,6 @@ express = require "express"
 global.app = app = express()
 httpServer = require("http").Server(app)
 global.socketIO = require("socket.io")(httpServer)
-# global.socket = null
-global.sockets = {}
 
 Router = require "./Router"
 SocketIORouter = require "./SocketIORouter"
@@ -29,6 +27,4 @@ httpServer.listen __b_config.serverInfo.port, __b_config.serverInfo.hostName, ->
 	new Router().router()
 
 socketIO.on "connection", (socket)->
-	global.sockets[global.curSession] || (global.sockets[global.curSession] = {})
-	global.sockets[global.curSession][global.curPageName] = socket
-	new SocketIORouter().router()
+	new SocketIORouter().router(socket)

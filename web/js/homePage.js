@@ -23,12 +23,13 @@ HomePage.prototype = {
 		$(".content-body:first").navMenu({
 			data: [
 				{id:"1",code:"1",name: "系统管理", subMenu: [
-					{id:"1",code:"1",name: "项目配置", winName: "项目配置", type: "newWin", url: "../pages/projectConfig.html"}
+					{id:"1",code:"1",name: "项目配置", winName: "项目配置", type: "newWin", url: "../pages/projectConfig.html"},
+					{id:"1",code:"1",name: "业务管理", winName: "业务管理", type: "newWin", url: "../pages/businessManagement.html"}
 				]},
 				{id:"1",code:"1",name: "数据录入", subMenu: [
 					{id:"1",code:"1",name: "项目录入", winName: "项目录入", type: "newWin", url: "../pages/enterPage.html"}
-						]},
-						{id:"1",code:"1",name: "统计分析"}
+				]},
+				{id:"1",code:"1",name: "统计分析"}
 			]
 		});
 		},
@@ -50,8 +51,8 @@ HomePage.prototype = {
 						$.get("/user/logout", function (data, status, xhr) {
 							that.loadUI.hide();
 							if (status == 'success') {
-                modalWindow.hide();
-                data == "success" && (window.location.href = "/pages/login.html")
+								modalWindow.hide();
+								data == "success" && (window.location.href = "/pages/login.html")
 							} else {
 								that.dialog.show('系统繁忙');
 							}

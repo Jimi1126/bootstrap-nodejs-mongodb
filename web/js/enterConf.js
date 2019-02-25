@@ -4,6 +4,7 @@ var EnterConf = function () { }
 EnterConf.prototype = {
   loadUI: new LoadUI(),
   dialog: new Dialog(),
+  progressing: false,
   image: {},
   images: [],
   bills: [],
@@ -250,46 +251,59 @@ EnterConf.prototype = {
    * 新增、更新配置.
    */
   updateBtnEvent: function() {
+    var that = this;
+    if (that.progressing) {
+      return that.dialog.show("配置正在刷新");
+    }
+    that.progressing = true;
     var modalWindow = new ModalWindow({
-      title: "更新进度",
+      title: "刷新进度",
       body: `<div class="progress" style="margin:0px;">
         <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
         </div>`,
       width: 350,
       height: 20,
+      window: window,
+      close: false,
+      backdrop: false,
+      keyboard: false,
       buttons: [{
-        name: "确定",
+        name: "隐藏",
         class: "btn-primary",
-        event: function () {
-          $.post("/", config, function (data, status, xhr) {
-            if (status == 'success') {
-              that.dialog.show('删除成功');
-              that.confTable.remove(index);
-              that.src_config = [].concat(that.src_config.slice(0, index), that.src_config.slice(index + 1));
-              modalWindow.hide();
-            } else {
-              that.dialog.show('删除失败');
-            }
-          });
-        }
-      }, {
-        name: "取消",
-        class: "btn-default",
         event: function () {
           this.hide();
         }
       }]
     });
-    modalWindow.show();
-    var index = 0;
-    var bar = modalWindow.$modal.find(".progress-bar");
-    var time = window.setInterval(function() {
-      bar.css("width", ++index + "%");
-      bar.text(index + "%");
-      if (index >= 100) {
-        window.clearInterval(time);
+    var tableData = that.confTable.value();
+    $.post("/config/refreshEnterEntity", function (data, status, xhr) {
+      if (status == 'success' && data) {
+        var bar, length, index, progress;
+        bar = modalWindow.$modal.find(".progress-bar");
+        bar.css("width", "0%");
+        bar.text("0%");
+        length = tableData.length;
+        index = 0;
+        
+        for (var i = 0; i < length; i++) {
+          console.log(i);
+          socket.emit("refreshEnterEntity", tableData[i], function() {
+            index++;
+            progress = Math.floor(index * 100 / length);
+            bar.css("width", progress + "%");
+            bar.text(progress + "%");
+            if (progress == 100) {
+              that.progressing = false;
+              window.setTimeout(function(){modalWindow.hide()}, 1000);
+            }
+          });
+        }
+        modalWindow.show();
+      } else {
+        that.progressing = false;
+        that.dialog.show('刷新失败');
       }
-    }, 100);
+    });
   }
 }
 

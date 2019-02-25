@@ -1,67 +1,69 @@
 function loadJs(url,callback) {
-  var script = document.createElement('script');
-  script.type="text/javascript";
-  if(typeof(callback) != "undefined") {
-    if(script.readyState) {
-      script.onreadystatechange=function(){
-        if(script.readyState == "loaded" || script.readyState == "complete"){
-          script.onreadystatechange=null;
-          callback();
-        }
-      }
-    } else {
-      script.onload=function(){
-        callback();
-      }
-    }
-  }
-  script.src=url;
-  document.body.appendChild(script);
+	var script = document.createElement('script');
+	script.type="text/javascript";
+	if(typeof(callback) != "undefined") {
+		if(script.readyState) {
+			script.onreadystatechange=function(){
+				if(script.readyState == "loaded" || script.readyState == "complete"){
+					script.onreadystatechange=null;
+					callback();
+				}
+			}
+		} else {
+			script.onload=function(){
+				callback();
+			}
+		}
+	}
+	script.src=url;
+	document.body.appendChild(script);
 }
 
 function loadJsSync(url) {
-  var xhr, script;
-  script = document.createElement('script');
-  script.type="text/javascript";
-  if ( window.XMLHttpRequest ) {
-    xhr = new XMLHttpRequest(); 
-  } else if ( window.ActiveXObject ) {
-    xhr = new ActiveXObject("MsXml2.XmlHttp");
-  }
-  xhr.onreadystatechange = function() {
-    if ( xhr.readyState == 4 ) {
-      if ( xhr.status == 200 || xhr.status == 304 ) {
-        script.text = xhr.responseText;
-        document.body.appendChild(script);
-      }
-    }
-  }
-  xhr.open('GET', url, false);
-  xhr.send(null); 
+	var xhr, script;
+	script = document.createElement('script');
+	script.type="text/javascript";
+	if ( window.XMLHttpRequest ) {
+		xhr = new XMLHttpRequest(); 
+	} else if ( window.ActiveXObject ) {
+		xhr = new ActiveXObject("MsXml2.XmlHttp");
+	}
+	xhr.onreadystatechange = function() {
+		if ( xhr.readyState == 4 ) {
+			if ( xhr.status == 200 || xhr.status == 304 ) {
+				script.text = xhr.responseText;
+				document.body.appendChild(script);
+			}
+		}
+	}
+	xhr.open('GET', url, false);
+	xhr.send(null); 
 }
 
 function closeWindow() {
-  // 重置window.opener用来获取打开当前窗口的窗口引用
-  // 这里置为null,避免IE下弹出关闭页面确认框
-  window.opener = null;
-  // JS重写当前页面
-  window.open("", "_self", "");
-  // 顺理成章的关闭当前被重写的窗口
-  window.close();
+	// 重置window.opener用来获取打开当前窗口的窗口引用
+	// 这里置为null,避免IE下弹出关闭页面确认框
+	window.opener = null;
+	// JS重写当前页面
+	window.open("", "_self", "");
+	// 顺理成章的关闭当前被重写的窗口
+	window.close();
 }
 
 var socket;
 loadJs("/socket.io/socket.io.js", function() {
-  socket = io.connect('http://192.168.3.69:8090');
-  socket.on("overTime", function(user) {
-    if (!user) {
-      Util.overTimeWin();
-    } else {
-      Util.showOverTimeWin = false;
-      Util.overTimeModalWindow && Util.overTimeModalWindow.hide();
-    }
-  });
-  socket.on("closeWindow", closeWindow);
+	socket = io.connect('http://192.168.3.69:8090');
+	// socket.emit("checkOverTime");
+	socket.on("unlogin", function() {window.location.reload(true);});
+	socket.on("overTime", function(flag) {
+		if (flag) {
+			Util.overTimeWin();
+		} else {
+			Util.showOverTimeWin = false;
+			Util.overTimeModalWindow.hide();
+		}
+	});
+	socket.on("closeWindow", closeWindow);
 });
 
 $.namespace = function () {
@@ -173,8 +175,14 @@ Util.overTimeWin = function() {
 						data == "error" && $("#tip").text("系统繁忙");
 						data == "no exist" && $("#tip").text("用户不存在");
 						data == "failed" && $("#tip").text("密码有误");
-						data == "success" && $("#tip").text("") && Util.overTimeModalWindow.hide();
-						data == "success" && (Util.showOverTimeWin = false);
+						if (data == "success") {
+							$("#tip").text("") && Util.overTimeModalWindow.hide();
+							Util.showOverTimeWin = false;
+							window.setTimeout(function() {
+								socket.emit("checkOverTime");
+								socket.emit("refreshOverTime");
+							}, 0)
+						}
 					}
 				});
 			}
@@ -314,6 +322,7 @@ function ModalWindow(options) {
 		options.buttons.forEach(function (button) {
 			html = '<button type="button" class="btn ' + button['class'] + '">' + button.name + '</button>';
 			$html = $(html);
+			button.title && $html.attr("title", button.title);
 			$html.bind("click", $.proxy(button.event, that));
 			that.$modal.find(".modal-footer").append($html);
 		});
@@ -380,9 +389,9 @@ ModalWindow.prototype = {
 		var that = this;
 		that.$modal.modal(that.showOptions);
 		// $.get("/user/userInfo", function(data,status, xhr) {
-		// 	if (status == "success" && data && Object.keys(data).length > 0) {
-		// 		that.$modal.modal(that.showOptions);
-		// 	}
+		// if (status == "success" && data && Object.keys(data).length > 0) {
+		// that.$modal.modal(that.showOptions);
+		// }
 		// });
 	},
 	hide: function () {
@@ -530,15 +539,17 @@ $.fn.dropMenu = function (options) {
 			$menu.append(li);
 		});
 		$menu.find("li").bind('click', function () {
+			var old = that._id;
 			that._id = this.id;
 			$menu.find("li").removeClass("active");
 			$(this).addClass("active");
 			$input.val($(this).find('a').text());
 			$backdrop.hide();
 			$menu.css("display", "none");
-			that.onChange(this.id);
+			that.onChange(this.id, old);
 		});
 	}
+	options.code && $input.attr("datafield", options.code);
 	options.width && $menu.width(options.width);
 	options.height && $menu.height(options.height);
 	options.data && initData(options.data);
@@ -750,7 +761,7 @@ $.fn.icTable = function (options) {
 			width = header.find('th:eq(' + $(this).index() + ')').width();
 			$(this).width(width);
 			$(this).css("max-width", width + "px");
-    });
+				});
 	}
 	this.refresh();
 	return this;
@@ -816,6 +827,31 @@ var NavMenu = function(option) {
 	}
 	return this;
 }
-
-
 $.fn.navMenu = NavMenu;
+
+var NavBar = function(options) {
+	var that = this, tag, fun;
+	that.addClass("nav-bar");
+	that.onChange = function(newCode, oldCode) { }
+	fun = function() {
+		var old = that.find(".active").attr("code");
+		that.find(".active").removeClass("active");
+		$(this).addClass("active");
+		that.onChange($(this).attr("code"), old);
+	}
+	options && options.data && options.data.forEach(function(t) {
+		tag = $(`<div class="nav-tag" code="${t.code}">${t.text}</div>`);
+		tag.bind("click", fun);
+		t.hidden && tag.hide();
+		that.append(tag);
+	});
+	that.select = function(code) {
+		if (arguments.length == 0) {
+			return this.find(".active").attr("code");
+		} else {
+			this.find(".nav-tag[code='" + code + "']").click();
+		}
+	}
+	return that;
+}
+$.fn.navBar = NavBar;

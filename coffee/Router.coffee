@@ -25,6 +25,7 @@ class Router
 			resave: true
 			key: "login"
 			saveUninitialized: true
+			rolling: false
 			cookie: {
 				secure: false # http有效
 				maxAge: 5 * 60 * 1000
@@ -32,12 +33,7 @@ class Router
 		})
 		# 拦截器
 		app.use "/pages", (req, res, next)->
-			global.curPageName = pageName = req.originalUrl.split("/")[2].split(".")[0]
-			global.curSession = req.session.id
 			if !req.session.user and !req.originalUrl.startsWith("/pages/login.html") and !req.originalUrl.startsWith("/pages/overTime.html")
-				if global.sockets[req.session.id]
-						for name, socket of global.sockets[req.session.id]
-							pageName isnt name && socket && socket.emit "closeWindow"
 				res.redirect 302, "/pages/login.html"
 			else if req.originalUrl.startsWith("/pages/login.html") or req.originalUrl.startsWith("/pages/overTime.html")
 				next()
@@ -56,9 +52,6 @@ class Router
 			if req.session.user or req.originalUrl.startsWith("/user/login")
 				next()
 			else
-				if global.sockets[req.session.id] && req.session
-					for name, socket of global.sockets[req.session.id]
-						socket && socket.emit "overTime", !!req.session.user
 				res.json null
 		###
 		# 开启跨域，便于接口访问.
@@ -84,9 +77,8 @@ class Router
 					req.session.user = param
 					req.session._garbage = Date()
 					req.session.touch()
-					if global.sockets[req.session.id] && req.session
-						for name, socket of global.sockets[req.session.id]
-							socket && socket.emit "overTime", !!req.session.user
+					global.sessions || (global.sessions = {})
+					global.sessions[req.session.id] || (global.sessions[req.session.id] = req.session)
 				res.json flags
 		## 获取session
 		userRouter.get "/userInfo", (req, res)->
@@ -100,9 +92,6 @@ class Router
 					LOG.error err
 					res.json err
 				else
-					if global.sockets[req.session.id]
-						for name, socket of global.sockets[req.session.id]
-							socket && socket.emit "closeWindow"
 					res.json "success"
 		app.use "/user", userRouter
 
@@ -319,15 +308,51 @@ class Router
 		# 获取录入实体
 		configRouter.post "/getEnterEntity", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			global.enter || (global.enter = {})
+			global.enter.entitys || (global.enter.entitys = {})
+			global.enter.entitys.cache_length || (global.enter.entitys.cache_length = 50)
+			global.enter.entitys[data.project] || (global.enter.entitys[data.project] = {})
+			entitys = global.enter.entitys[data.project][data.stage] || (global.enter.entitys[data.project][data.stage] = {
+				isEmpty: false,
+				data:[],
+				entering: []
+			})
+			if entitys.isEmpty
+				entity = entitys.data.shift() || null
+				entity && entitys.entering.push entity
+				return res.json entity
+			if entitys.data.length > 0
+				entity = entitys.data.shift()
+				entitys.entering.push entity
+				res.json entity
+			num = global.enter.entitys.cache_length - entitys.data.length
 			context = new EnterContext()
-			context.selectByconf data.conf, (err, docs)->
-				if err
-					LOG.error err
-					return res.json err
-				res.json docs
-		configRouter.post "/updateEnterEntity", (req, res)->
+			num > 0 && context.getEnterEntity {data: data, limit: num}, (err)->
+				LOG.error err if err
+				if num is global.enter.entitys.cache_length
+					entity = entitys.data.shift() || null
+					entity && entitys.entering.push entity
+					res.json entity
+		# 保存录入实体
+		configRouter.post "/saveEnterEntity", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
 			context = new EnterContext()
+			context.saveEnterEntity data, (err)->
+				LOG.error err if err
+				res.json entity
+		# 刷新配置.
+		configRouter.post "/refreshEnterEntity", (req, res)->
+			socket = global.sockets[req.session.id] && global.sockets[req.session.id]["enterConf"];
+			context = new EnterContext()
+			if socket and !socket.onRefreshEnterEntity
+				socket.onRefreshEnterEntity = true
+				socket.on "refreshEnterEntity", (conf, callback)->
+					context.refreshEnterEntity {data: conf}, (err, data)->
+						if err
+							LOG.error err
+						else
+							callback err
+			res.json !!socket
 		app.use "/config", configRouter
 
 module.exports = Router

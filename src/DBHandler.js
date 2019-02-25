@@ -6,9 +6,11 @@
    * 通过数据库链接、所连接集合、连接参数来实例化DB操作对象
    * 一般的实例化对象提供增删改查操作
    */
-  var DBHandler, ObjectId, mongoClient;
+  var DBHandler, InsertManyOptions, ObjectId, mongoClient;
 
   mongoClient = require('mongodb').MongoClient;
+
+  InsertManyOptions = require('mongodb').InsertManyOptions;
 
   ObjectId = require('mongodb').ObjectId;
 
@@ -75,8 +77,17 @@
         if (err) {
           throw err;
         }
-        docs._id && typeof docs._id === "string" && (docs._id = ObjectId(docs._id));
-        return db.collection(this.collection).insert(docs, callback);
+        if (Array.isArray(docs)) {
+          docs.forEach(function(d) {
+            return d._id && typeof d._id === "string" && (d._id = ObjectId(d._id));
+          });
+          return db.collection(this.collection).insert(docs, callback);
+        } else if (docs instanceof Object) {
+          docs._id && typeof docs._id === "string" && (docs._id = ObjectId(docs._id));
+          return db.collection(this.collection).insertOne(docs, callback);
+        } else {
+          return callback("param Invalid");
+        }
       });
     }
 

@@ -38,9 +38,6 @@
 
   global.socketIO = require("socket.io")(httpServer);
 
-  // global.socket = null
-  global.sockets = {};
-
   Router = require("./Router");
 
   SocketIORouter = require("./SocketIORouter");
@@ -55,9 +52,7 @@
   });
 
   socketIO.on("connection", function(socket) {
-    global.sockets[global.curSession] || (global.sockets[global.curSession] = {});
-    global.sockets[global.curSession][global.curPageName] = socket;
-    return new SocketIORouter().router();
+    return new SocketIORouter().router(socket);
   });
 
 }).call(this);

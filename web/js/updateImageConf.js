@@ -178,6 +178,7 @@ UpdateImageConf.prototype = {
               bill.image = that.image._id;
               bill.type = "bill";
               bill._id = Util.uuid(24, 16).toLowerCase();
+              bill.state = 1; //启用
               $.post("/config/saveDeploy", bill, function (data, status, xhr) {
                 if (status == 'success') {
                   if (data == "exist") {
@@ -372,6 +373,7 @@ UpdateImageConf.prototype = {
               field.src_img = curBill.src_img;
               field.type = "field";
               field._id = Util.uuid(24, 16).toLowerCase();
+              field.state = 1; //启用
               $.post("/config/saveDeploy", field, function (data, status, xhr) {
                 if (status == 'success') {
                   if (data == "exist") {

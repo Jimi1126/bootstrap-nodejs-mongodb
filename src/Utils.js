@@ -29,6 +29,28 @@
     }
   };
 
+  Utils.uuid = function(len, radix) {
+    var chars, i, j, k, r, ref, uuid;
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+    uuid = [];
+    radix = radix || chars.length;
+    if (len) {
+      for (i = j = 0, ref = len; (0 <= ref ? j < ref : j > ref); i = 0 <= ref ? ++j : --j) {
+        uuid[i] = chars[0 | Math.random() * radix];
+      }
+    } else {
+      uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+      uuid[14] = '4';
+      for (i = k = 0; k < 36; i = ++k) {
+        if (!uuid[i]) {
+          r = 0 | Math.random() * 16;
+          uuid[i] = chars[i === 19 ? (r & 0x3) | 0x8 : r];
+        }
+      }
+    }
+    return uuid.join('');
+  };
+
   module.exports = Utils;
 
 }).call(this);

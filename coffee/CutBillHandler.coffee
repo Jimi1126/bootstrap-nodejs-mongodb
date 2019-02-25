@@ -1,5 +1,5 @@
 ###
-#	對分快进行裁剪操作
+#	对分块进行裁剪操作
 ###
 Handler = require "./Handler"
 ExecHandler = require "./ExecHandler"
@@ -12,37 +12,43 @@ class CutBillHandler extends Handler
 			return callback null
 		@data.fields = []
 		exec = new ExecHandler().queue_exec 3
-		dao = new MongoDao __b_config.dbInfo, {epcos: ["field"]}
+		dao = new MongoDao __b_config.dbInfo, {epcos: ["entity"]}
 		cut_stat = {total: 0, success: 0, failure: 0, exist: 0}
 		async.each @data.bills, (bill, cb)->
 			return cb null if bill.state isnt 1 and bill.state isnt -2
 			bill_path = bill.path
-			fields = that.data.deploy.fields.filter (f)-> f.bill is bill.bill_type
+			fields = that.data.deploy.fields.filter (f)-> f.bill is bill.deploy_id
 			async.each fields, (field, cb1)->
 				field_path = bill_path.replace "bill", "field"
 				field_path = "#{field_path}/#{field.code}/"
 				dbField = {
-					field_type: field._id.toString()
+					deploy_id: field._id.toString()
+					type: "field"
+					source_img: bill.source_img
+					source_bill: bill._id
 					code: field.code
-					field_name: bill.bill_name
+					img_name: bill.img_name
 					path: field_path
-					state: 0 #待切图
 				}
 				that.data.fields.push dbField
-				dao.epcos.field.selectOne dbField, (err, doc)->
+				dao.epcos.entity.selectOne dbField, (err, doc)->
 					return cb1 err if err
 					if doc
 						cut_stat.exist++
-						dbField._id = doc._id
+						dbField._id = doc._id.toString()
+						dbField.inDB = true
 						dbField.state = doc.state
+					else
+						dbField._id = Utils.uuid 24, 16
+						dbField.state = 0 #待切图
+						dbField.create_at = moment().format "YYYYMMDDHHmmss"
 					return cb2 null if doc and doc.state is 1
-					doc or dbField.create_at = moment().format "YYYYMMDDHHmmss"
 					mkdirp field_path, (err)->
 						return cb1 err if err and dbField.state = -1 #切字段失败
 						cut_stat.total++
 						options = {
-							src: "#{bill_path}#{bill.bill_name}"
-							dst: "#{field_path}#{bill.bill_name}"
+							src: "#{bill_path}#{bill.img_name}"
+							dst: "#{field_path}#{bill.img_name}"
 							x0: field.x0
 							y0: field.y0
 							x1: field.x1

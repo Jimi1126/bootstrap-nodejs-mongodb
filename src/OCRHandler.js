@@ -10,8 +10,34 @@
 
   OCRHandler = class OCRHandler extends Handler {
     handle(callback) {
-      LOG.info("OCR");
-      return callback();
+      var that;
+      that = this;
+      if (!this.data.enterEntitys) {
+        LOG.warn(`${argv.project}：没有录入的内容`);
+        return callback(null);
+      }
+      return async.eachLimit(this.data.enterEntitys, 50, function(enterEntity, cb) {
+        var file_path;
+        file_path = enterEntity.path + enterEntity.img_name;
+        return fs.readFile(file_path, function(err) {
+          var en, i, len, ref, result;
+          if (err) {
+            enterEntity.stage = "error";
+            enterEntity.remark = err;
+            return cb(null);
+          }
+          result = {};
+          enterEntity.stage = "ocr";
+          ref = enterEntity.enter;
+          for (i = 0, len = ref.length; i < len; i++) {
+            en = ref[i];
+            delete en.src_type;
+            // en.value = result[en.field_id]
+            en.value = "123";
+          }
+          return cb(null);
+        });
+      }, callback);
     }
 
   };

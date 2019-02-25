@@ -21,7 +21,8 @@ global.HandlerProxy = require "./HandlerProxy"
 # 下载前动作（有序）
 beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"]
 # 下载动作（有序）
-downHandle = ["LoadImageHandler", "ConvertHandler", "ParseProHandler", "CutImageHandler", "CutBillHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
+downHandle = ["LoadImageHandler", "ConvertHandler", "ParseProHandler", "CutImageHandler", "CutBillHandler", 
+	"EnterEntityHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"]
 # 下载后动作
 afterDownHandle = ["", "", "", ""]
 LOG = LoggerUtil.getLogger "default"

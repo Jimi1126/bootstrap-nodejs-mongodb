@@ -42,6 +42,7 @@
         resave: true,
         key: "login",
         saveUninitialized: true,
+        rolling: false,
         cookie: {
           secure: false, // http有效
           maxAge: 5 * 60 * 1000
@@ -49,17 +50,7 @@
       }));
       // 拦截器
       app.use("/pages", function(req, res, next) {
-        var name, pageName, ref, socket;
-        global.curPageName = pageName = req.originalUrl.split("/")[2].split(".")[0];
-        global.curSession = req.session.id;
         if (!req.session.user && !req.originalUrl.startsWith("/pages/login.html") && !req.originalUrl.startsWith("/pages/overTime.html")) {
-          if (global.sockets[req.session.id]) {
-            ref = global.sockets[req.session.id];
-            for (name in ref) {
-              socket = ref[name];
-              pageName !== name && socket && socket.emit("closeWindow");
-            }
-          }
           return res.redirect(302, "/pages/login.html");
         } else if (req.originalUrl.startsWith("/pages/login.html") || req.originalUrl.startsWith("/pages/overTime.html")) {
           return next();
@@ -75,7 +66,6 @@
       });
       app.use('/pages', express.static(path.join(workspace, 'web/pages')));
       app.all("*", function(req, res, next) {
-        var name, ref, socket;
         if (req.session && req.session.user) {
           req.session._garbage = Date();
           req.session.touch();
@@ -83,13 +73,6 @@
         if (req.session.user || req.originalUrl.startsWith("/user/login")) {
           return next();
         } else {
-          if (global.sockets[req.session.id] && req.session) {
-            ref = global.sockets[req.session.id];
-            for (name in ref) {
-              socket = ref[name];
-              socket && socket.emit("overTime", !!req.session.user);
-            }
-          }
           return res.json(null);
         }
       });
@@ -119,18 +102,12 @@
         userContext = new UserContext();
         param = Object.keys(req.query).length === 0 ? req.body : req.query;
         return userContext.login(param, function(err, flags) {
-          var name, ref, socket;
           if (flags === "success") {
             req.session.user = param;
             req.session._garbage = Date();
             req.session.touch();
-            if (global.sockets[req.session.id] && req.session) {
-              ref = global.sockets[req.session.id];
-              for (name in ref) {
-                socket = ref[name];
-                socket && socket.emit("overTime", !!req.session.user);
-              }
-            }
+            global.sessions || (global.sessions = {});
+            global.sessions[req.session.id] || (global.sessions[req.session.id] = req.session);
           }
           return res.json(flags);
         });
@@ -145,18 +122,10 @@
           return res.json("success");
         }
         return req.session.destroy(function(err) {
-          var name, ref, socket;
           if (err) {
             LOG.error(err);
             return res.json(err);
           } else {
-            if (global.sockets[req.session.id]) {
-              ref = global.sockets[req.session.id];
-              for (name in ref) {
-                socket = ref[name];
-                socket && socket.emit("closeWindow");
-              }
-            }
             return res.json("success");
           }
         });
@@ -514,21 +483,75 @@
       });
       // 获取录入实体
       configRouter.post("/getEnterEntity", function(req, res) {
+        var context, data, entity, entitys, num;
+        data = Object.keys(req.query).length === 0 ? req.body : req.query;
+        global.enter || (global.enter = {});
+        global.enter.entitys || (global.enter.entitys = {});
+        global.enter.entitys.cache_length || (global.enter.entitys.cache_length = 50);
+        global.enter.entitys[data.project] || (global.enter.entitys[data.project] = {});
+        entitys = global.enter.entitys[data.project][data.stage] || (global.enter.entitys[data.project][data.stage] = {
+          isEmpty: false,
+          data: [],
+          entering: []
+        });
+        if (entitys.isEmpty) {
+          entity = entitys.data.shift() || null;
+          entity && entitys.entering.push(entity);
+          return res.json(entity);
+        }
+        if (entitys.data.length > 0) {
+          entity = entitys.data.shift();
+          entitys.entering.push(entity);
+          res.json(entity);
+        }
+        num = global.enter.entitys.cache_length - entitys.data.length;
+        context = new EnterContext();
+        return num > 0 && context.getEnterEntity({
+          data: data,
+          limit: num
+        }, function(err) {
+          if (err) {
+            LOG.error(err);
+          }
+          if (num === global.enter.entitys.cache_length) {
+            entity = entitys.data.shift() || null;
+            entity && entitys.entering.push(entity);
+            return res.json(entity);
+          }
+        });
+      });
+      // 保存录入实体
+      configRouter.post("/saveEnterEntity", function(req, res) {
         var context, data;
         data = Object.keys(req.query).length === 0 ? req.body : req.query;
         context = new EnterContext();
-        return context.selectByconf(data.conf, function(err, docs) {
+        return context.saveEnterEntity(data, function(err) {
           if (err) {
             LOG.error(err);
-            return res.json(err);
           }
-          return res.json(docs);
+          return res.json(entity);
         });
       });
-      configRouter.post("/updateEnterEntity", function(req, res) {
-        var context, data;
-        data = Object.keys(req.query).length === 0 ? req.body : req.query;
-        return context = new EnterContext();
+      // 刷新配置.
+      configRouter.post("/refreshEnterEntity", function(req, res) {
+        var context, socket;
+        socket = global.sockets[req.session.id] && global.sockets[req.session.id]["enterConf"];
+        context = new EnterContext();
+        if (socket && !socket.onRefreshEnterEntity) {
+          socket.onRefreshEnterEntity = true;
+          socket.on("refreshEnterEntity", function(conf, callback) {
+            return context.refreshEnterEntity({
+              data: conf
+            }, function(err, data) {
+              if (err) {
+                return LOG.error(err);
+              } else {
+                return callback(err);
+              }
+            });
+          });
+        }
+        return res.json(!!socket);
       });
       return app.use("/config", configRouter);
     }

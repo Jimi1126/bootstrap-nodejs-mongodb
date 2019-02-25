@@ -5,6 +5,7 @@
 # 一般的实例化对象提供增删改查操作
 ###
 mongoClient = require('mongodb').MongoClient
+InsertManyOptions = require('mongodb').InsertManyOptions
 ObjectId = require('mongodb').ObjectId
 class DBHandler
   constructor: (@url, @collection, @DB_OPTS)->
@@ -38,8 +39,15 @@ class DBHandler
   insert: (docs, callback) ->
     @connect (err, db) =>
       throw err if err
-      docs._id and typeof docs._id is "string" and (docs._id = ObjectId(docs._id))
-      db.collection(@collection).insert docs, callback
+      if Array.isArray docs
+        docs.forEach (d)->
+          d._id and typeof d._id is "string" and (d._id = ObjectId(d._id))
+        db.collection(@collection).insert docs, callback
+      else if docs instanceof Object
+        docs._id and typeof docs._id is "string" and (docs._id = ObjectId(docs._id))
+        db.collection(@collection).insertOne docs, callback
+      else
+        callback "param Invalid"
   addOrUpdate: (docs, callback) ->
     if docs instanceof Object or Array.isArray docs
       that = @

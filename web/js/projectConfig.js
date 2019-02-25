@@ -89,7 +89,7 @@ ProjectConfig.prototype = {
       that.projects = data ? data : [];
       if (status == "success") {
         var menu = [];
-        data.forEach(function (proj) {
+        that.projects.forEach(function (proj) {
           menu.push({ id: proj._id, text: proj.projName });
         });
         that.dropdown.initData(menu);
@@ -170,6 +170,7 @@ ProjectConfig.prototype = {
           }
           that.loadUI.show();
           project._id = Util.uuid(24, 16).toLowerCase();
+          project.state = 1 //启用
           project.type = "proj";
           $.post("/config/saveDeploy", project, function (data, status, xhr) {
             if (status == 'success') {
@@ -336,6 +337,7 @@ ProjectConfig.prototype = {
           var doSave = function () {
             image.project = that.curProj._id;
             image._id = Util.uuid(24, 16).toLowerCase();
+            image.state = 1 //启用
             image.type = "image";
             $.post("/config/saveDeploy", image, function (data, status, xhr) {
               if (status == 'success') {
