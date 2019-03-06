@@ -41,16 +41,13 @@
             image.inDB = true;
             image._id = doc._id.toString();
             image.state = doc.state;
+            image.isDeploy = doc.isDeploy;
           }
           if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
             return cb(null);
           }
           doc || (image.create_at = moment().format("YYYYMMDDHHmmss"));
-          if (image.s_url.endsWith("/")) {
-            rel_path = image.s_url;
-          } else {
-            rel_path = `${image.s_url}/`;
-          }
+          rel_path = image.s_url;
           return mkdirp(rel_path, function(err) {
             var cmd, cmd_display;
             if (err && (image.state = -1)) { //下载失败

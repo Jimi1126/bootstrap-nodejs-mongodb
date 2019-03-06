@@ -35,11 +35,7 @@
         if (image.state !== 2 && image.state !== -3) {
           return cb(null);
         }
-        if (image.s_url.endsWith("/")) {
-          rel_path = image.s_url;
-        } else {
-          rel_path = `${image.s_url}/`;
-        }
+        rel_path = image.s_url;
         bills = that.data.deploy.bills.filter(function(b) {
           return b.image === image.deploy_id;
         });
@@ -52,7 +48,7 @@
               return async.each(bills, function(bill, cb2) {
                 var cut_path, img_path;
                 cut_path = rel_path.replace("image", "bill");
-                cut_path = `${cut_path}${bill.code}/`;
+                // cut_path = "#{cut_path}#{bill.code}/"
                 img_path = `${rel_path}${image.img_name.replace(".pdf", "")}/`;
                 cut_path = `${cut_path}${image.img_name.replace(".pdf", "")}/`;
                 return mkdirp(cut_path, function(err) {
@@ -67,7 +63,8 @@
                     source_img: image._id,
                     code: bill.code,
                     img_name: f_nm,
-                    path: cut_path
+                    path: cut_path,
+                    isDeploy: 0
                   };
                   that.data.bills.push(dbBill);
                   return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
@@ -79,6 +76,7 @@
                       dbBill._id = doc._id.toString();
                       dbBill.inDB = true;
                       dbBill.state = doc.state;
+                      dbBill.isDeploy = doc.isDeploy;
                     } else {
                       dbBill._id = Utils.uuid(24, 16);
                       dbBill.state = 0;
@@ -107,11 +105,11 @@
                       info[2].indexOf("x"));
                           height = +info[2].substring(info[2].indexOf("x") + 1,
                       info[2].indexOf("+"));
-                          if (bill.filter === "width>height" && width > height) {
+                          if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
                             return cb3(null);
-                          } else if (bill.filter === "width<height" && width < height) {
+                          } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
                             return cb3(null);
-                          } else if (bill.filter === "width=height" && width === height) {
+                          } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
                             return cb3(null);
                           } else {
                             cut_stat.total--;
@@ -184,7 +182,7 @@
           return async.each(bills, function(bill, cb1) {
             var cut_path;
             cut_path = rel_path.replace("image", "bill");
-            cut_path = `${cut_path}${bill.code}/`;
+            // cut_path = "#{cut_path}#{bill.code}/"
             return mkdirp(cut_path, function(err) {
               var dbBill;
               if (err) {
@@ -197,7 +195,8 @@
                 source_img: image._id,
                 code: bill.code,
                 img_name: image.img_name,
-                path: cut_path
+                path: cut_path,
+                isDeploy: 0
               };
               that.data.bills.push(dbBill);
               return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
@@ -209,6 +208,7 @@
                   dbBill._id = doc._id.toString();
                   dbBill.inDB = true;
                   dbBill.state = doc.state;
+                  dbBill.isDeploy = doc.isDeploy;
                 } else {
                   dbBill._id = Utils.uuid(24, 16);
                   dbBill.state = 0;
@@ -237,11 +237,11 @@
                   info[2].indexOf("x"));
                       height = +info[2].substring(info[2].indexOf("x") + 1,
                   info[2].indexOf("+"));
-                      if (bill.filter === "width>height" && width > height) {
+                      if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
                         return cb2(null);
-                      } else if (bill.filter === "width<height" && width < height) {
+                      } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
                         return cb2(null);
-                      } else if (bill.filter === "width=height" && width === height) {
+                      } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
                         return cb2(null);
                       } else {
                         cut_stat.total--;

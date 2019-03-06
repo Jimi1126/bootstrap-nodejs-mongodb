@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
-	<title>业务管理</title>
+	<title>录入清单</title>
 	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
 	<link rel='stylesheet' type="text/css" href='../css/bootstrap-datetimepicker.min.css' />
 	<link rel='stylesheet' type="text/css" href='../css/initator.css' />
@@ -19,16 +19,17 @@
 <body>
 	<div class="page-header query-region">
 		<div class="page-title">
-			<h3>业务管理</h3>
+			<h3>录入清单</h3>
 				</div>
 				<div class="region">
-					<div class="input-group" style="width: 50%">
+					<div class="input-group" style="width: 38%">
 						<span class="input-group-addon">项目：</span>
-						<div class="dropdown"></div>
-						<span class="input-group-addon">区域：</span>
-						<input query_code="region" type="text" class="form-control">
-						<span class="input-group-addon">部门：</span>
-						<input query_code="dept" type="text" class="form-control">
+						<div id="projectList" class="dropdown"></div>
+						<span class="input-group-addon">业务：</span>
+						<div id="taskList" class="dropdown"></div>
+						<!-- <input query_code="region" type="text" class="form-control"> -->
+						<!-- <span class="input-group-addon">部门：</span>
+						<input query_code="dept" type="text" class="form-control"> -->
 						<button id="queryBtn" type="button" class="btn btn-default" style="position:absolute;margin-left: 22px">查询</button>
 					</div>
 					<div class="input-group" style="width: 50%">
@@ -42,17 +43,6 @@
 				</div>
 	</div>
 	<div style="margin: 0px 22px 0px 22px">
-    <div class="btn-group">
-      <button title="新增" id="addBtn" type="button" class="btn btn-default">
-        新增
-      </button>
-      <button title="分配" id="allotBtn" type="button" class="btn btn-default">
-        分配
-      </button>
-      <button title="合并" id="mergeBtn" type="button" class="btn btn-default">
-        合并
-      </button>
-    </div>
 		<div class="content">
 			<div id="mainTable"></div>
 		</div>
@@ -63,6 +53,6 @@
 <script type="text/javascript" src='../js/bootstrap-datetimepicker.min.js'></script>
 <script type="text/javascript" src='../js/bootstrap-datetimepicker.zh-CN.js'></script>
 <script type="text/javascript" src="../js/initiator.js"></script>
-<script type="text/javascript" src="../js/businessManagement.js"></script>
+<script type="text/javascript" src="../js/enterDetail.js"></script>
 
 </html>

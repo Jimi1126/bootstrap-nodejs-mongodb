@@ -12,8 +12,8 @@
 
   ProDownStrategy = (function() {
     class ProDownStrategy extends Istrategy {
-      constructor(execOrderList) {
-        var handler, i, j, len, moduleName;
+      constructor(execOrderList, socket) {
+        var i, j, len, moduleName, proxy;
         super();
         if (execOrderList && execOrderList instanceof Array) {
           for (i = j = 0, len = execOrderList.length; j < len; i = ++j) {
@@ -21,8 +21,12 @@
             if (!(moduleName || moduleName !== "")) {
               continue;
             }
-            handler = require('./' + moduleName);
-            this.handlerList.push(new HandlerProxy(new handler(this.data)));
+            Handler = require('./' + moduleName);
+            proxy = new HandlerProxy(new Handler(this.data));
+            proxy.io = {
+              socket: socket
+            };
+            this.handlerList.push(proxy);
           }
         }
       }
@@ -33,10 +37,14 @@
        * 不同于责任链模式的是，操作链模式节点在操作完成后不会退出模式，
        * 而是继续传递到下一个节点，直到链尾
        */
-      execute(callback) {
-        var handlerProxy, i, j, len, ref, results;
+      execute() {
+        var callback, handlerProxy, i, j, len, params, ref, results;
+        [...params] = arguments;
+        callback = params.pop();
         if (this.handlerList.length === 0) {
-          callback();
+          if (typeof callback === "function") {
+            callback();
+          }
         }
         ref = this.handlerList;
         results = [];
@@ -49,7 +57,7 @@
             handlerProxy.setNextHandler(callback);
           }
           if (i === 0) {
-            results.push(handlerProxy.execute());
+            results.push(handlerProxy.execute.apply(handlerProxy, params));
           } else {
             results.push(void 0);
           }

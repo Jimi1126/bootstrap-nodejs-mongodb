@@ -38,8 +38,9 @@
             code: image.code,
             img_name: arr[3],
             d_url: image.d_url,
-            s_url: image.s_url,
+            s_url: `${image.s_url}/image/`,
             size: parseInt(arr[1]),
+            isDeploy: 0,
             state: 0,
             upload_at: moment(arr[2], "MMM D HH:mm").format("YYYYMMDDHHmmss")
           });

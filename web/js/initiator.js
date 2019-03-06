@@ -50,21 +50,21 @@ function closeWindow() {
 	window.close();
 }
 
-var socket;
-loadJs("/socket.io/socket.io.js", function() {
-	socket = io.connect('http://192.168.3.69:8090');
-	// socket.emit("checkOverTime");
-	socket.on("unlogin", function() {window.location.reload(true);});
-	socket.on("overTime", function(flag) {
-		if (flag) {
-			Util.overTimeWin();
-		} else {
-			Util.showOverTimeWin = false;
-			Util.overTimeModalWindow.hide();
-		}
-	});
-	socket.on("closeWindow", closeWindow);
-});
+// var socket;
+// loadJs("/socket.io/socket.io.js", function() {
+// socket = io.connect('http://192.168.3.69:8090');
+// // socket.emit("checkOverTime");
+// socket.on("unlogin", function() {window.location.reload(true);});
+// socket.on("overTime", function(flag) {
+// if (flag) {
+// Util.overTimeWin();
+// } else {
+// Util.showOverTimeWin = false;
+// Util.overTimeModalWindow.hide();
+// }
+// });
+// socket.on("closeWindow", closeWindow);
+// });
 
 $.namespace = function () {
 	var a = arguments, o = null, i, j, d;
@@ -126,6 +126,38 @@ Util.isEmpty = function (t) {
 	}
 	return false;
 }
+//# 获取当前时间.
+Util.getNowDate = function() {
+	var currentdate, date, month, seperator1, strDate, year;
+	date = new Date();
+	seperator1 = "-";
+	year = date.getFullYear();
+	month = date.getMonth() + 1;
+	strDate = date.getDate();
+	if (month >= 1 && month <= 9) {
+		month = "0" + month;
+	}
+	if (strDate >= 0 && strDate <= 9) {
+		strDate = "0" + strDate;
+	}
+	currentdate = year + seperator1 + month + seperator1 + strDate;
+	return currentdate;
+}
+//获取时间
+Util.getBitDate = function(bit) {
+	var res = "", date, arr;
+	date = new Date();
+	arr = [date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()];
+	for (var i = 0, len = arr.length; i < len; i++) {
+		if (arr[i] >= 1 && arr[i] <= 9) {
+			arr[i] = "0" + arr[i];
+		}
+		res += arr[i];
+		if (res.length >= bit) break;
+	}
+	return res;
+}
+
 Util.isChange = function (bef, cur) {
 	if (Array.isArray(bef)) {
 		if (bef.length != cur.length) return true;
@@ -178,10 +210,6 @@ Util.overTimeWin = function() {
 						if (data == "success") {
 							$("#tip").text("") && Util.overTimeModalWindow.hide();
 							Util.showOverTimeWin = false;
-							window.setTimeout(function() {
-								socket.emit("checkOverTime");
-								socket.emit("refreshOverTime");
-							}, 0)
 						}
 					}
 				});
@@ -274,6 +302,119 @@ Dialog.prototype = {
 	}
 }
 
+function DetailDialog(options) {
+	if (!options) {
+		throw "constructor ModalWindow error the options is undefined or null"
+	};
+	this.options = options;
+}
+
+DetailDialog.prototype = {
+	init: function() {
+		var that = this, detailBtn, sureBtn;
+		that.target = that.options.window ? that.options.window : window;
+		var html = '<div class="modal fade" tabindex="-1" role="dialog">'
+			+ '<div class="modal-dialog" role="document">'
+			+ '<div class="modal-content">'
+			+ '<div class="modal-header">'
+			+ '</div>'
+			+ '<div class="modal-body">'
+			+ '</div>'
+			+ '<div class="modal-footer">'
+			+ '</div>'
+			+ '<div class="detial modal-footer">'
+			+ '</div>'
+			+ '</div>'
+			+ '</div>'
+			+ '</div>';
+		that.$modal = $(html);
+		detailBtn = $('<div class="detail-btn" title="详情"><span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span></div>');
+		that.$modal.find(".modal-footer:first").append(detailBtn);
+		that.detail = {}
+		that.detail.$detailArea = $('<textarea disabled></textarea>');
+		that.$modal.find(".detial").append(that.detail.$detailArea);
+		that.detail.area_line = 1;
+		that.detail.auth_scroll = true;
+		that.detail.isAppendEvent = false;
+		that.detail.$detailArea.scroll(function() {
+			if (!that.detail.isAppendEvent && (this.scrollHeight - this.scrollTop) > 131) {
+				that.detail.auth_scroll = false;
+			} else if (!that.detail.isAppendEvent && (this.scrollHeight - this.scrollTop) == 131) {
+				that.detail.auth_scroll = true;
+			} else {
+				that.detail.isAppendEvent = false;
+			}
+		});
+		
+		detailBtn.bind("click", function() {
+			if (detailBtn.find("span").hasClass("glyphicon-menu-down")) {
+				detailBtn.find("span").removeClass("glyphicon-menu-down").addClass("glyphicon-menu-up");
+				that.$modal.find(".detial").hide();
+			} else {
+				detailBtn.find("span").removeClass("glyphicon-menu-up").addClass("glyphicon-menu-down");
+				that.$modal.find(".detial").show();
+			}
+		});
+		$(that.target.document.body).append(that.$modal);
+		var $html = null;
+		if (that.options.close == undefined || that.options.close == null || that.options.close) {
+			html = '<button type="button" class="close" data-dismiss="modal" aria-label="Close">'
+				+ '<span aria-hidden="true">&times;</span>'
+				+ '</button>';
+			$html = $(html);
+			that.$modal.find(".modal-header").append($html);
+		}
+		if (that.options.title) {
+			html = '<h4 class="modal-title">' + that.options.title + '</h4>';
+		} else {
+			html = '<h4 class="modal-title">提示</h4>';
+		}
+		$html = $(html);
+		that.$modal.find(".modal-header").append($html);
+		if (that.options.buttons) {
+			that.options.buttons.forEach(function (button) {
+				html = '<button type="button" class="btn ' + button['class'] + '">' + button.name + '</button>';
+				$html = $(html);
+				button.title && $html.attr("title", button.title);
+				$html.bind("click", $.proxy(button.event, that));
+				that.$modal.find(".modal-footer:first").append($html);
+			});
+		} else {
+			sureBtn = $('<button type="button" class="btn btn-primary">确定</button>');
+			sureBtn.bind("click", $.proxy(that.hide, that));
+			that.$modal.find(".modal-footer:first").append(sureBtn);
+		}
+		$html = that.options.body instanceof jQuery ? that.options.body : $(that.options.body || "");
+		that.$modal.find(".modal-body").append($html);
+		that.options.width && that.$modal.find(".modal-dialog").width(that.options.width);
+		that.options.height && $html.height(that.options.height);
+		that.options.hideDetail && detailBtn.click();
+	},
+	show: function () {
+		var that = this;
+		!that.$modal && that.init();
+		var showOptions = {
+			backdrop: that.options.backdrop != undefined ? that.options.backdrop : false,
+			keyboard: that.options.keyboard != undefined ? that.options.keyboard : false
+		}
+		that.$modal.modal(showOptions);
+	},
+	hide: function () {
+		this.$modal && this.$modal.modal("hide");
+	},
+	appendDetail: function(content) {
+		var that = this;
+		that.detail && that.detail.$detailArea.text(`${that.detail.$detailArea.text()}${that.detail.area_line++}行：${content}\n`);
+		that.detail.isAppendEvent = true;
+		that.detail.auth_scroll && (that.detail.$detailArea[0].scrollTop = that.detail.$detailArea[0].scrollHeight);
+	},
+	emptyDetail: function() {
+		var that = this;
+		that.detail.area_line && (that.detail.area_line = 1);
+		that.detail && that.detail.$detailArea.text("");
+	}
+}
+
 function ModalWindow(options) {
 	if (!options) {
 		throw "constructor ModalWindow error the options is undefined or null"
@@ -360,8 +501,7 @@ function ModalWindow(options) {
 		}
 		that.$modal.find(".modal-body").append($html);
 	} else {
-		html = options.body || "";
-		$html = $(html);
+		$html = options.body instanceof jQuery ? options.body : $(options.body || "");
 		options.height && $html.height(options.height);
 		that.$modal.find(".modal-body").append($html);
 	}
@@ -369,18 +509,18 @@ function ModalWindow(options) {
 
 ModalWindow.prototype = {
 	value: function (_data) {
-		if (this.contentWindow.value) {
+		if (this.contentWindow && this.contentWindow.value) {
 			return this.contentWindow.value(_data);
 		}
-		var $body = $(this.contentWindow.document.body);
-		if (!!_data) {
+		var $body = this.contentWindow ? $(this.contentWindow.document.body) : $(this.target.document.body);
+		if (arguments.length > 0) {
 			for (key in _data) {
 				$body.find(".input-group input[dataField=" + key + "]").val(_data[key]);
 			}
 		} else {
 			_data = {};
 			$body.find(".input-group input[dataField]").each(function () {
-				_data[$(this).attr("dataField")] = $(this).val()
+				_data[$(this).attr("dataField")] = $(this).val().trim()
 			});
 			return _data;
 		}
@@ -504,14 +644,16 @@ $.fn.dropMenu = function (options) {
 	$span = $('<span class="caret"></span>');
 	$button.append($input);
 	$button.append($span);
-	$button[0].onmouseover = function() {
-		$input.css({
-			cursor: "pointer", 
-			color: "#333", 
-			"background-color": "#e6e6e6"
-		});
+	if (!options.notHover) {
+		$button[0].onmouseover = function() {
+			$input.css({
+				cursor: "pointer", 
+				color: "#333", 
+				"background-color": "#e6e6e6"
+			});
+		}
+		$button[0].onmouseout = function() { $input.removeAttr("style") }
 	}
-	$button[0].onmouseout = function() { $input.removeAttr("style") }
 	options.width && $button.width(options.width);
 	$button.bind("click", function () {
 		if (!$menu.css("display") || $menu.css("display") != "block") {
@@ -532,8 +674,8 @@ $.fn.dropMenu = function (options) {
 		if (!data || data.length == 0) {
 			return;
 		}
-		that._id = data[0].id;
-		$input.val(data[0].text + " ");
+		// that._id = data[0].id;
+		// $input.val(data[0].text + " ");
 		data.forEach(function (d) {
 			li = '<li id=' + d.id + '><a href="#">' + d.text + '</a></li>'
 			$menu.append(li);
@@ -569,7 +711,7 @@ $.fn.dropMenu = function (options) {
 		if (arguments.length == 0) {
 			return that._id
 		} else {
-			_id && $menu.find("#" + _id).click();
+			$menu.find("#" + _id).click();
 		}
 	}
 	return this;
@@ -601,6 +743,194 @@ $.fn.icTable = function (options) {
 			header.find('thead>tr').append($html);
 		});
 	}
+	if (options.pagination) {
+		var $tableDiv, $page, $paging, $total, $previous,$less, $more, $next, $page_li, _amount;
+		$tableDiv = $("<div></div>");
+		this.css("overflow", "hidden");
+		$tableDiv.css({
+			'overflow-x': 'auto',
+			'overflow-y': 'auto',
+			'border-bottom': '1px solid #ccc'
+		});
+		options.width && $tableDiv.css("width", options.width);
+		options.height && $tableDiv.css("height", options.height - 36);
+		$tableDiv.append(header);
+		$tableDiv.append(body);
+		$page = $(`<div style="height:34px;float:right;margin-right:0px;"></div>`);
+		$paging = $(`<ul class="pagination" style="margin:0px;"></ul>`);
+		$total = $(`<div style="float: left;line-height: 34px;margin-right: 12px;">总数：<span></span></div>`);
+		$previous = $(`<li>
+		<a href="#" aria-label="Previous">
+		<span aria-hidden="true">&laquo;</span>
+		</a>
+		</li>`);
+		$less = $(`<li>
+		<a href="#" aria-label="less">
+		<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
+		</a>
+		</li>`);
+		$more = $(`<li>
+		<a href="#" aria-label="more">
+		<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
+		</a>
+		</li>`);
+		$next = $(`<li>
+		<a href="#" aria-label="Next">
+		<span aria-hidden="true">&raquo;</span>
+		</a>
+		</li>`);
+		$amount = $(`<div style="float: left;line-height: 34px;margin-right: 12px;">显示数量：<div class="dropup" style="display:inline-block"></div></div>`);
+		$page.append($total);
+		$paging.append($previous);
+		$paging.append($less);
+		$paging.append($more);
+		$paging.append($next);
+		$page.append($paging);
+		$page.append($amount);
+		var add_li = function(i) {
+			if (i <= 0) return;
+			$page_li = $(`<li page_n><a href="#">${i}</a></li>`);
+			$page_li.bind("click", page_n_click);
+			$more.before($page_li);
+		}
+		var page_n_click = function() {
+			var old = $paging.find(".active").text();
+			var t = +$total.find("span").text();
+			var amount = _amount.value();
+			$paging.find(".active").removeClass("active");
+			$(this).addClass("active");
+			that.pager.onChangePageNum(t, amount, $(this).text(), old);
+		}
+		$previous.bind("click", function() {
+			var prev = $paging.find(".active").prev();
+			var cur_num = +$paging.find(".active").text();
+			cur_num <= 2 && $less.hide();
+			if (cur_num == 1) {
+				$previous.addClass("disabled");
+			} else {
+				$next.removeClass("disabled");
+				if (prev.find("a[aria-label]").length > 0) {
+					$more.show();
+					$page_li = $(`<li page_n><a href="#">${cur_num - 1}</a></li>`);
+					$page_li.bind("click", page_n_click);
+					$paging.find("li[page_n]:last").unbind().remove();
+					$less.after($page_li);
+					$page_li.click();
+				} else {
+					prev.click();
+				}
+			}
+		});
+		$next.bind("click", function() {
+			var next = $paging.find(".active").next();
+			var t = +$total.find("span").text();
+			var pageCount = Math.ceil(t / +_amount.value());
+			var cur_num = +$paging.find(".active").text();
+			(cur_num + 1) >= pageCount && $more.hide();
+			if (cur_num == pageCount) {
+				$next.addClass("disabled");
+			} else {
+				$previous.removeClass("disabled");
+				if (next.find("a[aria-label]").length > 0) {
+					$less.show();
+					$paging.find("li[page_n]:first").unbind().remove();
+					add_li(cur_num + 1);
+					$page_li.click();
+				} else {
+					next.click();
+				}
+			}
+		});
+		$less.bind("click", function() {
+			var firstNum;
+			$more.show();
+			$next.removeClass("disabled");
+			firstNum = +$paging.find("li[page_n]:first").find("a").text();
+			$paging.find("li[page_n]").unbind().remove();
+			if (firstNum <= 6) {
+				$less.hide();
+				firstNum = 6;
+			} else {
+				$less.show();
+			}
+			for (var i = firstNum - 5; i < firstNum; i++) {
+				add_li(i);
+			}
+			$paging.find("li[page_n]:first").addClass("active");
+		});
+		$more.bind("click", function() {
+			var t,pageCount,lastNum;
+			$less.show();
+			$previous.removeClass("disabled");
+			t = +$total.find("span").text();
+			pageCount = Math.ceil(t / +_amount.value());
+			lastNum = +$paging.find("li[page_n]:last").find("a").text();
+			$paging.find("li[page_n]").unbind().remove();
+			if (pageCount - lastNum > 5) {
+				$more.show();
+				for (var i = lastNum + 1; i <= lastNum + 5; i++) {
+					add_li(i);
+				}
+			} else {
+				lastNum = pageCount - 5;
+				$more.hide();
+				for (var i = lastNum + 1; i <= pageCount; i++) {
+					add_li(i);
+				}
+			}
+			$paging.find("li[page_n]:first").addClass("active");
+		});
+		this.pager = {};
+		this.pager.initPaging = function() {
+			var t, pageCount;
+			$paging.find("li[page_n]").unbind().remove();
+			$previous.removeClass("disabled");
+			$next.removeClass("disabled");
+			$less.hide();
+			$more.hide();
+			t = +$total.find("span").text();
+			pageCount = Math.ceil(t / +_amount.value());
+			$less.hide();
+			if (pageCount > 0) {
+				if (pageCount > 5) {
+					$more.show();
+					for (var i = 1; i <= 5; i++) {
+						add_li(i);
+					}
+				} else {
+					$more.hide();
+					for (var i = 1; i <= pageCount; i++) {
+						add_li(i);
+					}
+				}
+			}
+			$paging.find("li[page_n]:first").click();
+		}
+		this.pager.setTotal = function(t) {
+			if (+t) {
+				$total.find("span").text(t);
+				that.pager.initPaging();
+			}
+		}
+		this.pager.onChangePageNum = function(total, amount, cur_num) {}
+		_amount = $amount.find("div").dropMenu({
+			width: 60,
+			data: [
+				{id: 5, text: 5},
+				{id: 10, text: 10},
+				{id: 20, text: 20},
+				{id: 50, text: 50},
+				{id: 100, text: 100}
+			]
+		});
+		_amount.value(10);
+		_amount.onChange = that.pager.initPaging;
+		this.append($tableDiv);
+		this.append($page);
+	} else {
+		this.append(header);
+		this.append(body);
+	}
 	var clickTime = 0;
 	var clickTarget = null;
 	body[0].addEventListener("click", function(e) {
@@ -611,9 +941,6 @@ $.fn.icTable = function (options) {
 			clickTarget = e.target;
 		}
 	});
-
-	this.append(header);
-	this.append(body);
 
 	var func, showTitle, hideTitle;
 	func = function () {
@@ -737,8 +1064,13 @@ $.fn.icTable = function (options) {
 		}
 	}
 	this.refresh = function () {
-		header.width(this[0].clientWidth);
-		body.width(this[0].clientWidth - 1);
+		if (options.pagination) {
+			header.width($tableDiv[0].clientWidth || $tableDiv.width());
+			body.width(($tableDiv[0].clientWidth || $tableDiv.width()) - 1);
+		} else {
+			header.width(this[0].clientWidth || this.width());
+			body.width((this[0].clientWidth || this.width()) - 1);
+		}
 		body.css("margin-top", header.height());
 		var iterator = null;
 		var width = 0;

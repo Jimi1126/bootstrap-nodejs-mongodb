@@ -9,8 +9,8 @@
 
   DownStrategy = (function() {
     class DownStrategy extends Istrategy {
-      constructor(execOrderList) {
-        var handler, i, j, len, moduleName;
+      constructor(execOrderList, socket) {
+        var Handler, i, j, len, moduleName, proxy;
         super();
         if (execOrderList && execOrderList instanceof Array) {
           for (i = j = 0, len = execOrderList.length; j < len; i = ++j) {
@@ -18,8 +18,12 @@
             if (!(moduleName || moduleName !== "")) {
               continue;
             }
-            handler = require('./' + moduleName);
-            this.handlerList.push(new HandlerProxy(new handler(this.data)));
+            Handler = require('./' + moduleName);
+            proxy = new HandlerProxy(new Handler(this.data));
+            proxy.io = {
+              socket: socket
+            };
+            this.handlerList.push(proxy);
           }
         }
       }

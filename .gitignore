@@ -1,0 +1,7 @@
+.vscode/
+config/
+cut/
+download/
+logs/
+node_modules/
+web/images/template

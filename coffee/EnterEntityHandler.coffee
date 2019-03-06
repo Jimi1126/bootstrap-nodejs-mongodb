@@ -23,7 +23,7 @@ class EnterEntityHandler extends Handler
           field_id: conf.field_id
           field_name: conf.field_name
           src_type: conf.src_type
-          value: ""
+          value: {}
           tip: ""
         }
       for key, confs of confMap
@@ -32,15 +32,17 @@ class EnterEntityHandler extends Handler
           enterEntitys.push {
             _id: Utils.uuid 24, 16
             project: filter.project
+            deploy_id: entity.deploy_id
             code: entity.code
             source_img: entity.source_img
             path: entity.path
             img_name: entity.img_name
             enter: confs
-            stage: "new"
+            stage: "ocr"
             priority: "1"
             create_at: moment().format "YYYYMMDDHHmmss"
           }
+          entity.isDeploy = 1
       callback null
 
 module.exports = EnterEntityHandler

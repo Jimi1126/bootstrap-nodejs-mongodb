@@ -32,12 +32,12 @@ EnterPage.prototype = {
 		});
 		this.navBar = $("#barDiv").navBar({
 			data: [
-				{code: "new", text: "OCR"},
-				{code: "ocr", text: "一码"},
-				{code: "op1", text: "二码"},
-				{code: "op2", text: "问题件"},
-				{code: "op3", text: "复核"},
-				{code: "op4", text: "", hidden: true}
+				{code: "ocr", text: "OCR"},
+				{code: "op1", text: "一码"},
+				{code: "op2", text: "二码"},
+				{code: "op3", text: "问题件"},
+				{code: "op4", text: "复核"},
+				{code: "over", text: "", hidden: true}
 			]
 		});
 		this.navBar.select("ocr");
@@ -123,7 +123,6 @@ EnterPage.prototype = {
 		entity.enter.forEach(function(en) {
 			$span = $(`<span class="input-group-addon" field='${en.field_id}'>${en.field_name}</span>`);
 			$input = $(`<input type="text" class="form-control" field='${en.field_id}'>`);
-			en.value && $input.val(en.value);
 			$(".content-body:last").append($span);
 			$(".content-body:last").append($input);
 		});
@@ -135,7 +134,8 @@ EnterPage.prototype = {
 			document.onkeydown = function(e) {
 				if (e.keyCode == 13) {
 					that.curEntity.enter && that.curEntity.enter.forEach(function(en) {
-						en.value = $(`input[field="${en.field_id}"]`).val();
+						var curStage = that.navBar.select();
+						en.value[curStage] = $(`input[field="${en.field_id}"]`).val();
 					});
 					that.submitEvent();
 					that.nextBtnEvent();
@@ -210,11 +210,32 @@ EnterPage.prototype = {
 
 	},
 	/**
+	 * 校验事件.
+	 */
+	verifyEvent: function() {
+		var that = this;
+		if (that.curEntity) return "不存在提交数据";
+		var cur_stage = that.navBar.value();
+		var notpass = [];
+		for (var i = 0, len = that.curEntity.enter.length; i < len; i++) {
+			if (Util.isEmpty(that.curEntity.enter[i].value[cur_stage])) {
+				notpass.push({
+					code: that.curEntity.enter[i].field_name,
+					tip: "数据为空"
+				});
+			}
+		}
+		return notpass;
+	},
+	/**
 	 * 提交事件.
 	 */
 	submitEvent: function(data) {
 		var that = this;
-		// 校验
+		var msg = "";
+		if (msg = that.verifyEvent()) {
+
+		}
 		socket.emit("submitEnter", that.curEntity, $.proxy(that.nextBtnEvent, that));
 	},
 	nextBtnEvent: function() {
@@ -224,9 +245,11 @@ EnterPage.prototype = {
 
 window.onload = function () {
 	enterPage = new EnterPage();
+	loadJs("/socket.io/socket.io.js", function() {
+		socket = io.connect('http://192.168.3.69:8090');
+	});
 	enterPage.init();
 	enterPage.initPage();
-	
 	window.onbeforeunload = function(event) {
 		enterPage.freeEvent.call(enterPage);
 	};

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>EP项目配置</title>
+  <title>项目配置</title>
   <link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
   <link rel='stylesheet' type="text/css" href='../css/initator.css' />
   <style>
@@ -39,12 +39,12 @@
   <div class="container-fluid" style="margin-top: 20px;">
     <div class="page-header">
       <div class="page-title">
-        <h3>EP项目配置</h3>
+        <h3>项目配置</h3>
       </div>
     </div>
     <div class="container">
       <div class="header-div">
-        <div class="dropdown"></div>
+        <div id="projectList" class="dropdown"></div>
         <div id="toolbar" class="btn-group">
           <button title="新增" id="proj_add" type="button" class="btn btn-default">
             <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -87,6 +87,9 @@
                 </button>
                 <button title="录入配置" id="enter_cof" type="button" class="btn btn-default">
                   <span class="glyphicon glyphicon-briefcase" aria-hidden="true"></span>
+                </button>
+                <button title="下载与解析" id="down_parse" type="button" class="btn btn-default">
+                  <span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
                 </button>
               </div>
             </span>

@@ -4,6 +4,7 @@ LOG = LoggerUtil.getLogger "HandlerProxy"
 # 操作者的默认代理类
 ###
 class HandlerProxy extends Proxy
+  io: null
   constructor: (target)->
     super(target)
   proxy: (f)->
@@ -19,6 +20,7 @@ class HandlerProxy extends Proxy
           cb = ->
             endTime = moment()
             LOG.info "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
+            that.io and that.io.socket.emit 1, "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
             callback.apply @, arguments
           params.push cb
         else 
@@ -26,6 +28,7 @@ class HandlerProxy extends Proxy
           cb = ->
             endTime = moment()
             LOG.info "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
+            that.io and that.io.socket.emit 1, "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
           params.push cb
         f.apply that.target, params
       else

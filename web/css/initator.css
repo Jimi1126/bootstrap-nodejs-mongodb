@@ -3,22 +3,27 @@
 .relative{position: relative;}
 .float-left{float: left;}
 .float-right{float: right;}
-.query-region{width: 100%; background-image: linear-gradient(to bottom , #60b5ff, #2671b1);margin-top: 0px;padding: 5px 0px 16px 16px;color:#fff}
+.query-region{width: 100%; background-image: linear-gradient(to bottom , #5ab2ff, #2671b1);margin-top: 0px;padding: 5px 0px 16px 16px;color:#fff}
 .region .input-group .input-group-addon{background: none;border: 0px;color: #fff;padding: 6px 0px 0px 14px}
-.region .input-group .form-control{color: #fff;background: none;border: 0px;border-bottom: 1px #fff solid;box-shadow:inset 0 0px 0px rgba(0,0,0,0.075)}
-.region .input-group .btn{background: none;position:absolute;margin-left: 19px;color: #fff;border: 1px #fff solid}
+.region .input-group .form-control,.region .input-group .dropdown input{color: #fff;background: none;border: 0px;border-bottom: 1px #fff solid;box-shadow:inset 0 0px 0px rgba(0,0,0,0.075)}
+.region .input-group .dropdown{top:-4px;}
+.region .input-group .dropdown input{border: 0px;cursor: pointer;}
+.region .input-group .dropdown button{border: 0px;border-bottom: 1px #fff solid;}
+.region .input-group .dropdown .dropdown-menu{width: 100%;}
+.region .input-group .form_datetime{color: #fff;background: none;border: 0px;border-bottom: 1px #fff solid;box-shadow:inset 0 0px 0px rgba(0,0,0,0.075);height: 34px;}
+.region .input-group .btn{background: none;color: #fff;border: 1px #fff solid}
 .ic-LoadUI{top: 0px; left: 0px; position: absolute; text-align: center; line-height: 758px; background-color: rgb(255, 255, 255); opacity: 0.4; z-index: 9999;}
 .ic-Dialog{ bottom: 20px; right: 16px; padding: 16px; position: absolute; text-align: center; color: rgb(0, 0, 0); font-size: 14px; background-color: rgb(233, 236, 239); border-radius: 8px; border: 1px solid rgb(204, 204, 204); opacity: 1; z-index: 9999;}
 .ic-Dialog div{display: inline;}
 .dropdown-toggle input{width: 90%;border: 0px;}
 .dropdown-toggle .caret{margin-left: 6px;}
 .dropdown{height:36px;display: inline-block;}
-.input-group .dropdown .btn{vertical-align: bottom;border-radius:0px}
+.input-group .dropdown .btn{width: 100%;vertical-align: bottom;border-radius:0px}
 .dropdown-menu{width: 100%;min-width: auto; overflow: auto; z-index: 999;}
 .dropdown-menu li a{height: 26px;}
 .form-control.dropdown{padding: 0px;border: 0px;}
 .table{margin-bottom: 0px;border: 0px;}
-.table-header{position: absolute; background-color:#eee;z-index: 999}
+.table-header{position: absolute; background-color:#eee;z-index: 99}
 .table-header th,.table-body td{text-align: center; border: 1px solid #ccc}
 .table-header thead tr th{padding: 0px}
 .table-body .dropdown{display: block;}
@@ -42,3 +47,6 @@
 .nav-bar .nav-tag{display: inline-block;padding: 7px 15px 7px 15px;margin: 0px 3px 0px}
 .nav-bar .nav-tag.active{background-color: #ccc;}
 .nav-bar .nav-tag:hover{cursor: pointer;background-color: #ccc}
+.detail-btn{float: left;padding: 5px 8px;border: 1px #ccc solid;border-radius: 16px;}
+.detail-btn:hover{cursor: pointer;background-color: #f5f5f5}
+.detial textarea{width: 100%;height: 133px;}

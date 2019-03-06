@@ -27,13 +27,13 @@
             return cb(null);
           }
           result = {};
-          enterEntity.stage = "ocr";
+          enterEntity.stage = "op1";
           ref = enterEntity.enter;
           for (i = 0, len = ref.length; i < len; i++) {
             en = ref[i];
             delete en.src_type;
             // en.value = result[en.field_id]
-            en.value = "123";
+            en.value["ocr"] = "123";
           }
           return cb(null);
         });

@@ -8,17 +8,28 @@
   LOG = LoggerUtil.getLogger("LoadConfigHandler");
 
   LoadConfigHandler = class LoadConfigHandler extends Handler {
-    handle(callback) {
-      var dao, start, that;
+    handle() {
+      var callback, dao, filter, param, params, that;
       that = this;
+      [...params] = arguments;
+      callback = params.pop();
+      if (!params || params.length === 0) {
+        LOG.error("参数不完整");
+        return typeof callback === "function" ? callback() : void 0;
+      }
+      param = params[0];
+      if (!(param != null ? param.project : void 0)) {
+        LOG.error("参数不完整");
+        return typeof callback === "function" ? callback() : void 0;
+      }
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: ["deploy"]
       });
-      start = moment();
-      return dao.epcos.deploy.selectOne({
+      filter = {
         type: "proj",
-        projName: argv.project
-      }, function(err, doc) {
+        _id: param != null ? param.project : void 0
+      };
+      return dao.epcos.deploy.selectOne(filter, function(err, doc) {
         if (err) {
           return callback(err);
         }
@@ -27,29 +38,64 @@
           return callback();
         }
         that.data.deploy.project = doc;
-        return dao.epcos.deploy.selectList({
+        filter = {
           project: doc._id.toString(),
           state: "1"
-        }, function(err, docs) {
-          if (err) {
-            return callback(err);
-          }
-          that.data.deploy.images = [];
-          that.data.deploy.bills = [];
-          that.data.deploy.fields = [];
-          docs.forEach && docs.forEach(function(doc) {
-            switch (doc.type) {
-              case "image":
-                return that.data.deploy.images.push(doc);
-              case "bill":
-                return that.data.deploy.bills.push(doc);
-              case "field":
-                return that.data.deploy.fields.push(doc);
+        };
+        if (param.task) {
+          filter["task"] = param.task;
+          return dao.epcos.deploy.selectList(filter, function(err, docs) {
+            if (err) {
+              return callback(err);
             }
+            that.data.deploy.images = docs;
+            filter = {
+              project: doc._id.toString(),
+              image: {
+                $in: docs.map(function(im) {
+                  return im._id.toString();
+                })
+              },
+              state: "1"
+            };
+            return dao.epcos.deploy.selectList(filter, function(err, docs) {
+              if (err) {
+                return callback(err);
+              }
+              that.data.deploy.bills = [];
+              that.data.deploy.fields = [];
+              docs.forEach && docs.forEach(function(doc) {
+                switch (doc.type) {
+                  case "bill":
+                    return that.data.deploy.bills.push(doc);
+                  case "field":
+                    return that.data.deploy.fields.push(doc);
+                }
+              });
+              return callback();
+            });
           });
-          LOG.info(`加载${argv.project}项目配置 --${moment() - start}ms`);
-          return callback();
-        });
+        } else {
+          return dao.epcos.deploy.selectList(filter, function(err, docs) {
+            if (err) {
+              return callback(err);
+            }
+            that.data.deploy.images = [];
+            that.data.deploy.bills = [];
+            that.data.deploy.fields = [];
+            docs.forEach && docs.forEach(function(doc) {
+              switch (doc.type) {
+                case "image":
+                  return that.data.deploy.images.push(doc);
+                case "bill":
+                  return that.data.deploy.bills.push(doc);
+                case "field":
+                  return that.data.deploy.fields.push(doc);
+              }
+            });
+            return callback();
+          });
+        }
       });
     }
 

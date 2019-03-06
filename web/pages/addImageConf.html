@@ -2,172 +2,62 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Document</title>
-  <link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
-  <style>
-    .body-content,.input-group {
-			margin: 6px;
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Document</title>
+		<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+		<link rel='stylesheet' type="text/css" href='../css/initator.css' />
+	<style>
+		.body-content,.input-group {
+		margin: 6px;
+	}
+		.group-title {
+			margin: 0;
 		}
-    .group-title {
-      margin: 0;
-    }
-    .group-title .input-group-addon{
-      border: 0px;
-    }
-    .input-group-addon {
-      text-align: left;
-    }
-    .custom-btn{
-      cursor: pointer;
-    }
-    .custom-btn:hover{
-      color:#333;background-color:#e6e6e6;border-color:#adadad
-    }
-  </style>
+		.group-title .input-group-addon{
+			border: 0px;
+		}
+		.input-group-addon {
+			text-align: left;
+		}
+		.custom-btn{
+			cursor: pointer;
+		}
+		.custom-btn:hover{
+			color:#333;background-color:#e6e6e6;border-color:#adadad
+		}
+	</style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="input-group">
-      <div style="display: none;">
-        <input type="text" class="form-control" dataField="type" value="image">
-      </div>
-      <span class="input-group-addon">编码</span>
-      <input type="text" class="form-control" dataField="code">
-      <span class="input-group-addon">图片下载地址</span>
-      <input type="text" class="form-control" dataField="d_url">
-      <span class="input-group-addon" id="basic-addon1">图片保存地址</span>
-      <input type="text" class="form-control" readonly dataField="s_url">
-    </div>
-    <div class="input-group" style="width: 111px;height: 34px;">
-      <span class="input-group-addon">多样例配置</span>
-      <span class="input-group-addon custom-btn">
-        <input type="checkbox" dataField="mult">
-      </span>
-      <input type="text" class="form-control" style="display: none;">
-      <span class="input-group-addon custom-btn" id="plusBtn" style="display:none">
-        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-      </span>
-    </div>
-  </div>
+	<div class="container">
+		<div class="input-group" style="width: 111px;height: 34px;">
+			<span class="input-group-addon">业务</span>
+			<div id="taskList" class="dropdown"></div>
+			<input type="text" class="form-control" dataField="task_name" style="display: none;">
+			<span class="input-group-addon">多样例配置</span>
+			<span class="input-group-addon custom-btn">
+				<input type="checkbox" dataField="mult">
+			</span>
+			<input type="text" class="form-control" style="display: none;">
+			<span class="input-group-addon custom-btn" id="plusBtn" style="display:none">
+				<span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+			</span>
+		</div>
+		<div class="input-group">
+			<div style="display: none;">
+				<input type="text" class="form-control" dataField="type" value="image">
+				<input type="text" class="form-control" dataField="s_url">
+				</div>
+			<span class="input-group-addon">编码</span>
+			<input type="text" class="form-control" dataField="code">
+			<span class="input-group-addon">图片下载地址</span>
+			<input type="text" class="form-control" dataField="d_url">
+		</div>
+	</div>
 </body>
 <script type="text/javascript" src="../js/jquery.min.js"></script>
 <script type="text/javascript" src="../js/initiator.js"></script>
-<script>
-  var addUploadInput = function(target, options) {
-    if (!target) {
-      return;
-    }
-    var loader = $(
-      "<div class='input-group upload-input-group'>"
-    + "   <div class='input-group-addon custom-btn' style='cursor: pointer'>"
-    + "     <span></span>"
-    + '     <span class="glyphicon glyphicon-upload" aria-hidden="true"></span>'
-    + '   </div>'
-    + '   <input type="text" class="form-control" readonly dataField="img_path">'
-    + '   <span class="input-group-addon">条件</span>'
-    + '   <input type="text" class="form-control" dataField="filter">'
-    + '   <form action="" style="display: none">'
-    + '     <input type="file">'
-    + '   </form>'
-    + "</div>");
-    var minus = $('<span class="input-group-addon custom-btn">'
-    + '     <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>'
-    + '   </span>');
-    minus.bind("click", function() {
-      loader.remove();
-    });
-    if (!$("input[type='checkbox']")[0].checked) {
-      minus.hide();
-    }
-    loader.append(minus);
-
-    if (options) {
-      options.name && loader.find("span:first").text(options.name);
-    }
-    loader.find("div:first").bind("click", function() {
-      loader.find("form>input").click();
-    });
-    loader.find("form>input")[0].onchange = function() {
-      var value = $(this).val();
-      loader.find("input:first").val(value);
-    }
-    target.append(loader);
-    return loader;
-  }
-
-  window.value = function(_data) {
-    if (!!_data) {
-      $(".input-group input[dataField='type']").val(_data["type"]);
-      $(".input-group input[dataField='code']").val(_data["code"]);
-      $(".input-group input[dataField='d_url']").val(_data["d_url"]);
-      $(".input-group input[dataField='s_url']").val(_data["s_url"]);
-      $("input[type='checkbox']")[0].checked = _data.mult;
-      _data.img_paths && _data.img_paths.forEach(function(c) {
-        var up = addUploadInput($(".container"), {name: "图片样例"});
-        up.find("input[dataField='img_path']").val(c.img_path);
-        up.find("input[dataField='filter']").val(c.filter);
-      });
-    } else {
-      _data = {};
-      _data["type"] = $(".input-group input[dataField='type']").val();
-      _data["code"] = $(".input-group input[dataField='code']").val();
-      _data["d_url"] = $(".input-group input[dataField='d_url']").val();
-      _data["s_url"] = $(".input-group input[dataField='s_url']").val();
-      _data.mult = $("input[type='checkbox']")[0].checked;
-      _data.img_paths = [];
-      var index = 0;
-      $(".input-group input[dataField='img_path']").each(function () {
-        if ($(this).parent().css("display") !== "none") {
-          _data.img_paths.push({
-            img_path: $(this).val(),
-            filter: $(".input-group input[dataField='filter']:eq(" + (index++) + ")").val()
-          });
-        }
-      });
-      return _data;
-    }
-  }
-
-  window.initPage = function (project) {
-    if ($("input[type='checkbox']")[0].checked) {
-      $("#plusBtn").show();
-      $(".custom-btn .glyphicon-minus").parent().show();
-      $(".upload-input-group").show();
-    } else {
-      $("#plusBtn").hide();
-      $(".custom-btn .glyphicon-minus").parent().hide();
-      $(".upload-input-group:gt(0)").hide();
-    }
-    $(".upload-input-group").length == 0 && addUploadInput($(".container"), {name: "图片样例"});
-    $("input[type='checkbox']").parent().bind("click", function(e) {
-      if (!$(e.target).is("input")) {
-        $("input[type='checkbox']")[0].checked = !$("input[type='checkbox']")[0].checked;
-      }
-      if ($("input[type='checkbox']")[0].checked) {
-        $("#plusBtn").show();
-        $(".custom-btn .glyphicon-minus").parent().show();
-        $(".upload-input-group").show();
-      } else {
-        $("#plusBtn").hide();
-        $(".custom-btn .glyphicon-minus").parent().hide();
-        $(".upload-input-group:gt(0)").hide();
-      }
-    });
-    $("#plusBtn").bind("click", function() {
-      addUploadInput($(".container"), {name: "图片样例"});
-    });
-    $("[dataField='code']")[0].onblur = function () {
-      if ($(this).val() != "") {
-        $(".input-group [dataField='s_url']").val("download/image/" + project.projName + "/" + $(this).val() + "/");
-      } else {
-        $(".input-group [dataField='s_url']").val("");
-      }
-    }
-  }
-</script>
-
+<script type="text/javascript" src="../js/addImageConf.js"></script>
 </html>

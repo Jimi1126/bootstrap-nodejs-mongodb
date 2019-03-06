@@ -20,7 +20,7 @@ class CutBillHandler extends Handler
 			fields = that.data.deploy.fields.filter (f)-> f.bill is bill.deploy_id
 			async.each fields, (field, cb1)->
 				field_path = bill_path.replace "bill", "field"
-				field_path = "#{field_path}/#{field.code}/"
+				# field_path = "#{field_path}/#{field.code}/"
 				dbField = {
 					deploy_id: field._id.toString()
 					type: "field"
@@ -29,6 +29,7 @@ class CutBillHandler extends Handler
 					code: field.code
 					img_name: bill.img_name
 					path: field_path
+					isDeploy: 0
 				}
 				that.data.fields.push dbField
 				dao.epcos.entity.selectOne dbField, (err, doc)->
@@ -38,6 +39,7 @@ class CutBillHandler extends Handler
 						dbField._id = doc._id.toString()
 						dbField.inDB = true
 						dbField.state = doc.state
+						dbField.isDeploy = doc.isDeploy
 					else
 						dbField._id = Utils.uuid 24, 16
 						dbField.state = 0 #待切图

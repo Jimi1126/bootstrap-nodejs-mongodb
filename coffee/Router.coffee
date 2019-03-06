@@ -4,6 +4,7 @@ cookieParser = require "cookie-parser"
 session = require "express-session"
 multer = require "multer"
 ObjectId = require('mongodb').ObjectId
+DownloadContext = require "./DownloadContext"
 ConfigContext = require "./ConfigContext"
 EnterContext = require "./EnterContext"
 UserContext = require "./UserContext"
@@ -196,6 +197,8 @@ class Router
 				]
 			if type is "field"
 				filter._id = data._id
+			if type is "enter"
+				filter._id = data._id
 			if Object.keys(filter).length is 0
 				return res.json null
 			configContext.deleteDeploy filter, (err)->
@@ -340,19 +343,42 @@ class Router
 			context.saveEnterEntity data, (err)->
 				LOG.error err if err
 				res.json entity
-		# 刷新配置.
-		configRouter.post "/refreshEnterEntity", (req, res)->
-			socket = global.sockets[req.session.id] && global.sockets[req.session.id]["enterConf"];
-			context = new EnterContext()
-			if socket and !socket.onRefreshEnterEntity
-				socket.onRefreshEnterEntity = true
-				socket.on "refreshEnterEntity", (conf, callback)->
-					context.refreshEnterEntity {data: conf}, (err, data)->
-						if err
-							LOG.error err
-						else
-							callback err
-			res.json !!socket
 		app.use "/config", configRouter
+
+		## 新建任务
+		taskRouter = express.Router() # 任务路由
+		taskRouter.post "/newTask", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			mkdirp data.path_name, (err)->
+				LOG.error err if err
+				return res.json err if err
+				context = new EnterContext()
+				context.save {col: "task", data: data}, (err)->
+					LOG.error err if err
+					res.json err
+		taskRouter.post "/getTasks", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new EnterContext()
+			context.select {col: "task", filter: data}, (err, docs)->
+				LOG.error err if err
+				res.json docs
+		## 获取结果数据
+		taskRouter.post "/getResultData", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new EnterContext()
+			context.getResultData data, (err, docs)->
+				LOG.error err if err
+				res.json docs
+		app.use "/task", taskRouter
+
+		## 下载与解析
+		downRouter = express.Router() # 路由器
+		downRouter.post "/start", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new DownloadContext()
+			context.execute data, (err)->
+				LOG.error err if err
+				res.json err
+		app.use "/dap", downRouter
 
 module.exports = Router

@@ -11,13 +11,15 @@ class DownStrategy extends Istrategy
   data: {}
   ## 操作者名称列表，策略会根据这个顺序调用操作者
   handlerList: []
-  constructor: (execOrderList)->
+  constructor: (execOrderList, socket)->
     super()
     if execOrderList and execOrderList instanceof Array
       for moduleName, i in execOrderList
         continue unless moduleName or moduleName isnt ""
-        handler = require './' + moduleName
-        @handlerList.push new HandlerProxy new handler(@data)
+        Handler = require './' + moduleName
+        proxy = new HandlerProxy new Handler(@data)
+        proxy.io = {socket: socket}
+        @handlerList.push proxy
   ###
   # 执行策略
   # 下载策略也是采用操作链模式，不同与预下载策略

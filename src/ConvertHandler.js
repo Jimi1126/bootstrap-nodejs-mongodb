@@ -28,11 +28,7 @@
         }
         if (image.img_name && image.img_name.endsWith("pdf")) {
           conv_stat.total++;
-          if (image.s_url.endsWith("/")) {
-            rel_path = image.s_url;
-          } else {
-            rel_path = `${image.s_url}/`;
-          }
+          rel_path = image.s_url;
           name = image.img_name.replace(".pdf", "");
           return mkdirp(`${rel_path}${name}`, function(err) {
             var conv_cmd;

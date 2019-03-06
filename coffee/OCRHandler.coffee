@@ -15,11 +15,11 @@ class OCRHandler extends Handler
 					enterEntity.remark = err
 					return cb null
 				result = {}
-				enterEntity.stage = "ocr"
+				enterEntity.stage = "op1"
 				for en in enterEntity.enter
 					delete en.src_type
 					# en.value = result[en.field_id]
-					en.value = "123"
+					en.value["ocr"] = "123"
 				cb null
 		, callback
 

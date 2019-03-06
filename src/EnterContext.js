@@ -13,7 +13,7 @@
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: param.col
       });
-      return dao.epcos.deploy.selectList(param.filter, callback);
+      return dao.epcos[param.col].selectList(param.filter, callback);
     }
 
     selectByconf(conf, callback) {
@@ -91,7 +91,7 @@
     refreshEnterEntity(param, callback) {
       var col, dao, filter;
       if (!param.data || !param.data.src_type) {
-        callback(null);
+        return callback(null);
       }
       col = param.data.src_type;
       dao = new MongoDao(__b_config.dbInfo, {
@@ -128,40 +128,95 @@
       });
     }
 
+    getResultData(param, callback) {
+      var dao;
+      if (!param.filter) {
+        return callback(null);
+      }
+      dao = new MongoDao(__b_config.dbInfo, {
+        epcos: ["deploy", "task", "resultData"]
+      });
+      return async.waterfall([
+        function(cb) {
+          var filter;
+          if (param.filter.task) {
+            filter = {
+              _id: param.filter.task
+            };
+          } else {
+            filter = {
+              project: param.filter.project
+            };
+          }
+          return dao.epcos.task.selectList(filter,
+        cb);
+        },
+        function(tasks,
+        cb) {
+          var filter;
+          filter = {
+            task: {
+              $in: tasks.map(function(t) {
+                return t._id.toString();
+              })
+            }
+          };
+          return dao.epcos.deploy.selectList(filter,
+        function(err,
+        docs) {
+            if (err) {
+              return cb(err);
+            }
+            if (!docs || !docs.length) {
+              return cb(err,
+        []);
+            }
+            filter = {
+              image: {
+                $in: docs.map(function(im) {
+                  return im._id.toString();
+                })
+              }
+            };
+            return dao.epcos.deploy.selectList(filter,
+        function(err,
+        docs2) {
+              if (err) {
+                return cb(err);
+              }
+              if (!docs2 || !docs2.length) {
+                return cb(err,
+        image);
+              }
+              return cb(err,
+        docs.concat(docs2));
+            });
+          });
+        },
+        function(deploys,
+        cb) {
+          var filter;
+          filter = {
+            stage: "over",
+            deploy_id: {
+              $in: deploys.map(function(d) {
+                return d._id.toString();
+              })
+            }
+          };
+          return dao.epcos.resultData.selectBySortOrSkipOrLimit(filter,
+        {
+            create_at: 1
+          },
+        +param.skip,
+        +param.limit,
+        cb);
+        }
+      ], callback);
+    }
+
   };
 
-  
-  // async.waterfall [
-  //   (cb)->
-  //     images = param.data.filter((dd)-> dd.src_type is "image")
-  //     return cb null, 0 if images.length is 0
-  //     dao.epcos.image.count {image_type: {"$in": images.map((dd)-> dd.file_id)}}, cb
-  //   (num, cb)->
-  //     bills = param.data.filter((dd)-> dd.src_type is "bill")
-  //     return cb null, num if bills.length is 0
-  //     dao.epcos.bill.count {bill_type: {"$in": bills.map((dd)-> dd.file_id)}}, (err, res)->
-  //       cb err, num + res
-  //   (num, cb)->
-  //     fields = param.data.filter((dd)-> dd.src_type is "field")
-  //     return cb null, num if fields.length is 0
-  //     dao.epcos.field.count {field_type: {"$in": fields.map((dd)-> dd.file_id)}}, (err, res)->
-  //       cb err, num + res
-  //   (total, cb)->
-  //     count = 0
-  //     param.socket and param.socket.emit "progress", 0
-  //     async.each param.data, (enterConf, cb1)->
-  //       col = enterConf.src_type
-  //       filter = {}
-  //       filter[col+"_type"] = enterConf.file_id
-  //       dao.epcos[enterConf.src_type].selectList filter, (err, entitys)->
-  //         return cb1 err if err
-  //         return cb1 null unless entitys
-  //         for entity in entitys
-  //           count++
-  //           param.socket and param.socket.emit "progress", Math.floor (count * 100 / total)
-  //         cb1 null
-  //     , cb
-  // ], callback
   module.exports = EnterContext;
 
 }).call(this);

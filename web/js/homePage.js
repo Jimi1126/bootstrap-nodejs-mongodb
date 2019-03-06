@@ -27,9 +27,13 @@ HomePage.prototype = {
 					{id:"1",code:"1",name: "业务管理", winName: "业务管理", type: "newWin", url: "../pages/businessManagement.html"}
 				]},
 				{id:"1",code:"1",name: "数据录入", subMenu: [
-					{id:"1",code:"1",name: "项目录入", winName: "项目录入", type: "newWin", url: "../pages/enterPage.html"}
+					{id:"1",code:"1",name: "项目录入", winName: "项目录入", type: "newWin", url: "../pages/enterPage.html"},
+					{id:"1",code:"1",name: "录入清单", winName: "录入清单", type: "newWin", url: "../pages/enterDetail.html"}
 				]},
-				{id:"1",code:"1",name: "统计分析"}
+				{id:"1",code:"1",name: "统计报表", subMenu: [
+					{id:"1",code:"1",name: "产量统计", winName: "产量统计", type: "newWin", url: "../pages/outputStatis.html"},
+					{id:"1",code:"1",name: "页数统计", winName: "页数统计", type: "newWin", url: "../pages/pageStatis.html"}
+				]}
 			]
 		});
 		},
@@ -64,8 +68,8 @@ HomePage.prototype = {
 					event: function () {
 						this.hide();
 					}
-						}
-						]
+				}
+			]
 		});
 		modalWindow.show();
 	}

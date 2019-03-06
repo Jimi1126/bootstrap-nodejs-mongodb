@@ -6,13 +6,15 @@
    * 通过数据库链接、所连接集合、连接参数来实例化DB操作对象
    * 一般的实例化对象提供增删改查操作
    */
-  var DBHandler, InsertManyOptions, ObjectId, mongoClient;
+  var DBHandler, InsertManyOptions, LOG, ObjectId, mongoClient;
 
   mongoClient = require('mongodb').MongoClient;
 
   InsertManyOptions = require('mongodb').InsertManyOptions;
 
   ObjectId = require('mongodb').ObjectId;
+
+  LOG = LoggerUtil.getLogger("DBHandler");
 
   DBHandler = class DBHandler {
     constructor(url, collection, DB_OPTS) {
@@ -27,13 +29,13 @@
       cb = (err, db) => {
         var e;
         if (!db) {
-          throw "数据库连接获取失败";
+          LOG.error("数据库连接获取失败");
         }
         try {
           return callback(err, db.db(this.database));
         } catch (error) {
           e = error;
-          throw `连接数据库${this.database}失败\n${e.stack}`;
+          return LOG.error(e.stack);
         } finally {
           if (db != null) {
             if (typeof db.close === "function") {
@@ -46,7 +48,7 @@
         return mongoClient.connect(this.url, this.DB_OPTS, cb);
       } catch (error) {
         e = error;
-        throw e;
+        return LOG.error(e.stack);
       }
     }
 
@@ -55,27 +57,27 @@
       cb = (err, db) => {
         var e;
         if (!db) {
-          throw "数据库连接获取失败";
+          LOG.error("数据库连接获取失败");
         }
         try {
           return callback(err, db.db(this.database));
         } catch (error) {
           e = error;
-          throw `连接数据库${this.database}失败\n${e.stack}`;
+          return LOG.error(e.stack);
         }
       };
       try {
         return mongoClient.connect(this.url, this.DB_OPTS, cb);
       } catch (error) {
         e = error;
-        throw e;
+        return LOG.error(e.stack);
       }
     }
 
     insert(docs, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         if (Array.isArray(docs)) {
           docs.forEach(function(d) {
@@ -97,7 +99,7 @@
         that = this;
         return this.keepConnect((err, db) => {
           if (err) {
-            throw err;
+            return callback(err);
           }
           if (Array.isArray(docs)) {
             return async.each(docs, function(doc, ccb) {
@@ -158,7 +160,7 @@
     delete(param, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).remove(param, callback);
@@ -168,7 +170,7 @@
     update(filter, setter, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         filter._id && typeof filter._id === "string" && (filter._id = ObjectId(filter._id));
         setter._id && delete setter._id;
@@ -179,7 +181,7 @@
     selectOne(param, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).findOne(param, callback);
@@ -189,7 +191,7 @@
     selectBySortOrLimit(param, sort, limit, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         if (limit === -1) {
@@ -200,10 +202,24 @@
       });
     }
 
+    selectBySortOrSkipOrLimit(param, sort, skip, limit, callback) {
+      return this.connect((err, db) => {
+        if (err) {
+          return callback(err);
+        }
+        param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
+        if (limit === -1) {
+          return db.collection(this.collection).find(param).skip(skip).sort(sort).toArray(callback);
+        } else {
+          return db.collection(this.collection).find(param).skip(skip).limit(limit).sort(sort).toArray(callback);
+        }
+      });
+    }
+
     selectList(param, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).find(param).toArray(callback);
@@ -213,7 +229,7 @@
     count(param, callback) {
       return this.connect((err, db) => {
         if (err) {
-          throw err;
+          return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         return db.collection(this.collection).countDocuments(param, callback);

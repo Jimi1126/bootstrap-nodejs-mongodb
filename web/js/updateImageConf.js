@@ -32,9 +32,9 @@ UpdateImageConf.prototype = {
       });
     });
     this.dropdown = $(".dropdown").dropMenu({
-      width: 120,
       data: menu
     });
+    menu[0] && this.dropdown.value(menu[0].id);
     this.billTable = $("#billTable").icTable({
       title: ["编码", "起点X轴", "起点Y轴", "终点X轴", "终点Y轴", "宽", "高"],
       dataFields: ["code", "x0", "y0", "x1", "y1", "w", "h"]
@@ -153,6 +153,7 @@ UpdateImageConf.prototype = {
       window: window.parent,
       maximize: true,
       params: conf,
+      data: {code: "BI" + Util.getBitDate()},
       buttons: [{
         name: "保存",
         class: "btn-primary",
@@ -347,6 +348,7 @@ UpdateImageConf.prototype = {
       height: 500,
       window: window.parent,
       params: curBill,
+      data: {code: "FI" + Util.getBitDate()},
       maximize: true,
       buttons: [{
         name: "保存",

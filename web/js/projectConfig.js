@@ -5,6 +5,7 @@ ProjectConfig = function () { }
 ProjectConfig.prototype = {
   loadUI: new LoadUI(),
   dialog: new Dialog(),
+  detailWin: null,
   dropdown: {},
   projects: [],
   images: [],
@@ -31,7 +32,7 @@ ProjectConfig.prototype = {
   },
   initComponent: function () {
     var that = this;
-    this.dropdown = $(".dropdown").dropMenu({
+    this.dropdown = $("#projectList").dropMenu({
       width: 120,
       height: 100
     });
@@ -39,8 +40,8 @@ ProjectConfig.prototype = {
       that.loadProjInfo(that.projects.filter(function (p) { return p._id == id })[0]);
     }
     this.imageTable = $("#imageTable").icTable({
-      title: ["图片编码", "图片下载地址", "图片保存地址"],
-      dataFields: ["code", "d_url", "s_url"]
+      title: ["业务名称", "配置编码", "图片下载地址", "图片保存地址"],
+      dataFields: ["task_name", "code", "d_url", "s_url"]
     });
   },
   /**
@@ -54,6 +55,7 @@ ProjectConfig.prototype = {
     $('#image_mod').bind('click', $.proxy(this.modImageConfEvent, this));
     $('#image_del').bind('click', $.proxy(this.delImageConfEvent, this));
     $('#enter_cof').bind('click', $.proxy(this.enterConfEvent, this));
+    $('#down_parse').bind('click', $.proxy(this.downParseEvent, this));
     window.onresize = this.adjustUI;
     this.imageTable.onDbClickRow = $.proxy(this.billAndFieldConfEvent, this);
   },
@@ -153,6 +155,7 @@ ProjectConfig.prototype = {
     var modalWindow = new ModalWindow({
       title: "新增项目配置",
       url: "addProjConf.html",
+      data: {projCode: "PR" + Util.getBitDate()},
       width: 600,
       height: 50,
       backdrop: "static",
@@ -322,6 +325,7 @@ ProjectConfig.prototype = {
       url: "addImageConf.html",
       width: 850,
       height: 210,
+      data: {code: "IM" + Util.getBitDate()},
       params: that.curProj,
       backdrop: "static",
       keyboard: false,
@@ -435,6 +439,7 @@ ProjectConfig.prototype = {
           var doUpdate = function () {
             modImage.code = image.code;
             modImage.mult = image.mult;
+            modImage.task = image.task;
             modImage.d_url = image.d_url;
             modImage.s_url = image.s_url;
             $.post("/config/updateDeploy", modImage, function (data, status, xhr) {
@@ -663,11 +668,101 @@ ProjectConfig.prototype = {
       }]
     });
     modalWindow.show();
-  }
+  },
+  /**
+   * 下载与解析.
+   */
+  downParseEvent: function() {
+    var that = this;
+    if (that.detailWin) {
+      return that.detailWin.show();
+    }
+    var image = that.imageTable.select();
+    var curImage = that.images.filter(function (im) { return im.code == image.code })[0];
+    var modalWindow = new ModalWindow({
+      title: "下载与解析",
+      body: `<div>将进行[${image.task_name}]业务所需的图像下载与解析，系统暂未提供二次切图，
+      请确保所选业务所需的录入分块、字段均已配置，点击确认以继续。</div>`,
+      close: true,
+      width: 500,
+      height: 60,
+      buttons: [{
+        name: "关闭",
+        class: "btn-default",
+        event: function () {
+          this.hide();
+        }
+      },{
+        name: "确认",
+        class: "btn-primary",
+        event: function() {
+          this.hide();
+          that.openUpdateWin(curImage);
+        }
+      }]
+    });
+    modalWindow.show();
+  },
+  /** 
+   * 进行下载与解析.
+   */
+  openUpdateWin : function(curImage) {
+    var that= this;
+    var $progress = $(`<div class="progress" style="margin:0px;">
+      <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>`);
+    that.detailWin = new DetailDialog({
+      title: "操作进度",
+      body: $progress,
+      width: 420,
+      height: 20,
+      window: window,
+      close: false,
+      backdrop: false,
+      keyboard: false,
+      hideDetail: false,
+      buttons: [{
+        name: "后台运行",
+        class: "btn-primary",
+        event: function () {
+          this.hide();
+        }
+      }]
+    });
+    that.detailWin.show();
+    var index = 0;
+    var length = 15;
+    var bar = $progress.find(".progress-bar");
+    bar.css("width", "0%");
+    bar.text("0%");
+    var progress = 0;
+    socket.emit("startDownAndParse", curImage);
+    socket.on("downAndParseProgress", function(isDone, con) {
+      if (isDone == 1) {
+        index++;
+        progress = Math.floor(index * 100 / length);
+        // progress = progress == 100 ? 99 : progress;
+        bar.css("width", progress + "%");
+        bar.text(progress + "%");
+      }
+      con && that.detailWin.appendDetail(con);
+      if (isDone == "final") {
+        socket.removeAllListeners("downAndParseProgress");
+        that.detailWin.$modal.find(".btn.btn-primary").unbind("click").bind("click", function() {
+          that.detailWin.hide();
+          that.detailWin.$modal.remove();
+          that.detailWin = null;
+        }).text("关闭");
+      }
+    });
+  },
 }
 
 window.onload = function () {
   projectConfig = new ProjectConfig();
+  loadJs("/socket.io/socket.io.js", function() {
+		socket = io.connect('http://192.168.3.69:8090');
+	});
   projectConfig.init();
   projectConfig.initPage();
 }

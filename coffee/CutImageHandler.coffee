@@ -16,10 +16,7 @@ class CutImageHandler extends Handler
 		cut_stat = {total: 0, success: 0, exist: 0, failure: 0}
 		async.each @data.images, (image, cb)->
 			return cb null if image.state isnt 2 and image.state isnt -3
-			if image.s_url.endsWith "/"
-				rel_path =  image.s_url
-			else
-				rel_path = "#{image.s_url}/"
+			rel_path = image.s_url
 			bills = that.data.deploy.bills.filter (b)-> b.image is image.deploy_id
 			if image.img_name.endsWith "pdf"
 				fs.readdir "#{rel_path}#{image.img_name.replace(".pdf", "")}/", (err, menu)->
@@ -27,7 +24,7 @@ class CutImageHandler extends Handler
 					async.each menu, (f_nm, cb1)-> 
 						async.each bills, (bill, cb2)->
 							cut_path = rel_path.replace "image", "bill"
-							cut_path = "#{cut_path}#{bill.code}/"
+							# cut_path = "#{cut_path}#{bill.code}/"
 							img_path = "#{rel_path}#{image.img_name.replace(".pdf", "")}/"
 							cut_path = "#{cut_path}#{image.img_name.replace(".pdf", "")}/"
 							mkdirp cut_path, (err)->
@@ -40,6 +37,7 @@ class CutImageHandler extends Handler
 									code: bill.code
 									img_name: f_nm
 									path: cut_path
+									isDeploy: 0
 								}
 								that.data.bills.push dbBill
 								dao.epcos.entity.selectOne dbBill, (err, doc)->
@@ -49,6 +47,7 @@ class CutImageHandler extends Handler
 										dbBill._id = doc._id.toString()
 										dbBill.inDB = true
 										dbBill.state = doc.state
+										dbBill.isDeploy = doc.isDeploy
 									else
 										dbBill._id = Utils.uuid 24, 16
 										dbBill.state = 0
@@ -62,11 +61,11 @@ class CutImageHandler extends Handler
 												info = stdout.split " "
 												width = +info[2].substring(0, info[2].indexOf("x"))
 												height = +info[2].substring(info[2].indexOf("x")+1, info[2].indexOf("+"))
-												if bill.filter is "width>height" && width > height
+												if width > height && (bill.filter is "width>height" || bill.filter is "height<width")
 													cb3 null
-												else if bill.filter is "width<height" && width < height
+												else if width < height && (bill.filter is "width<height" || bill.filter is "height>width")
 													cb3 null
-												else if bill.filter is "width=height" && width == height
+												else if width == height && (bill.filter is "width==height" || bill.filter is "height==width")
 													cb3 null
 												else 
 													cut_stat.total--
@@ -109,7 +108,7 @@ class CutImageHandler extends Handler
 			else
 				async.each bills, (bill, cb1)->
 					cut_path = rel_path.replace "image", "bill"
-					cut_path = "#{cut_path}#{bill.code}/"
+					# cut_path = "#{cut_path}#{bill.code}/"
 					mkdirp cut_path, (err)->
 						return cb1 err if err
 						cut_stat.total++
@@ -120,6 +119,7 @@ class CutImageHandler extends Handler
 							code: bill.code
 							img_name: image.img_name
 							path: cut_path
+							isDeploy: 0
 						}
 						that.data.bills.push dbBill
 						dao.epcos.entity.selectOne dbBill, (err, doc)->
@@ -129,6 +129,7 @@ class CutImageHandler extends Handler
 								dbBill._id = doc._id.toString()
 								dbBill.inDB = true
 								dbBill.state = doc.state
+								dbBill.isDeploy = doc.isDeploy
 							else
 								dbBill._id = Utils.uuid 24, 16
 								dbBill.state = 0
@@ -142,11 +143,11 @@ class CutImageHandler extends Handler
 										info = stdout.split " "
 										width = +info[2].substring(0, info[2].indexOf("x"))
 										height = +info[2].substring(info[2].indexOf("x")+1, info[2].indexOf("+"))
-										if bill.filter is "width>height" && width > height
+										if width > height && (bill.filter is "width>height" || bill.filter is "height<width")
 											cb2 null
-										else if bill.filter is "width<height" && width < height
+										else if width < height && (bill.filter is "width<height" || bill.filter is "height>width")
 											cb2 null
-										else if bill.filter is "width=height" && width == height
+										else if width == height && (bill.filter is "width==height" || bill.filter is "height==width")
 											cb2 null
 										else 
 											cut_stat.total--

@@ -27,7 +27,8 @@
         [...params] = arguments;
         callback = params.pop();
         startTime = moment();
-        paramStr = f.name === "insert" ? ["..."] : (function() {
+        paramStr = "";
+        paramStr = ((function() {
           var i, len, results;
           results = [];
           for (i = 0, len = params.length; i < len; i++) {
@@ -35,18 +36,19 @@
             results.push(JSON.stringify(p));
           }
           return results;
-        })();
+        })()).join(",");
+        paramStr = paramStr.length > 100 ? paramStr.substring(0, 100) + "..." : paramStr;
         params.push(function() {
           var endTime;
           endTime = moment();
-          LOG.info(`${that.target.constructor.name}.${f.name}:${paramStr.join(",")}  --${endTime - startTime}ms`);
+          LOG.info(`${that.target.constructor.name}.${f.name}:${paramStr}  --${endTime - startTime}ms`);
           return callback.apply(this, arguments);
         });
         try {
           return f.apply(that.target, params);
         } catch (error) {
           e = error;
-          LOG.error(`${that.target.constructor.name}.${f.name}:${paramStr.join(",")}  --${moment() - startTime}ms\n${e.stack}`);
+          LOG.error(`${that.target.constructor.name}.${f.name}:${paramStr}  --${moment() - startTime}ms\n${e.stack}`);
           return callback(e);
         }
       };

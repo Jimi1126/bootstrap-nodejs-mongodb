@@ -4,7 +4,7 @@ var EnterConf = function () { }
 EnterConf.prototype = {
   loadUI: new LoadUI(),
   dialog: new Dialog(),
-  progressing: false,
+  detailWin: null,
   image: {},
   images: [],
   bills: [],
@@ -35,10 +35,12 @@ EnterConf.prototype = {
       rowNum: false,
       editable: true,
       height: 556,
-      title: ["主键", "所属项目", "配置类型", "录入字段", "录入名称", "字段所属", "录入文件ID", "录入文件", "录入校验"],
+      title: ["主键", "所属项目", "所属业务", "配置类型", "状态", "录入字段", "录入名称", "字段所属", "录入文件ID", "录入文件", "录入校验"],
       dataFields: [{code: "_id", dataType: "text", hidden: true},
       {code: "project", dataType: "text", hidden: true},
+      {code: "task", dataType: "text", hidden: true},
       {code: "type", dataType: "text", hidden: true},
+      {code: "state", dataType: "text", hidden: true},
       "field_id", "field_name",
       {code: "src_type", dataType: "table_dropdown", data: [{id:"image", text:"图片"}, {id:"bill", text:"分块"}, {id:"field", text:"字段"}]},
       {code: "file_id", dataType: "text", hidden: true},
@@ -63,6 +65,9 @@ EnterConf.prototype = {
     $.get("/config/getDeploy", {project: that.image.project}, function(data, status, xhr) {
       if (status == "success") {
         data.forEach(function(f) {
+          if (f._id != that.image._id && f.image != that.image._id && f.task != that.image.task) {
+            return;
+          }
           if (f.type == "image") {
             f.img_paths && f.img_paths.length > 0 && f.img_paths.forEach(function(p) {
               that.images.push({
@@ -103,6 +108,7 @@ EnterConf.prototype = {
           }
         });
         that.confTable.value(that.src_config);
+        that.confTable.select(that.src_config.length - 1);
       }
     });
   },
@@ -158,7 +164,12 @@ EnterConf.prototype = {
    * 新增按钮事件.
    */
   addBtnEvent: function () {
-    this.confTable.insert({_id: Util.uuid(24, 16).toLowerCase(), project: this.image.project, type: "enter"});
+    this.confTable.insert({
+      _id: Util.uuid(24, 16).toLowerCase(),
+      project: this.image.project,
+      task: this.image.task,
+      type: "enter", state: "1"
+    });
     this.confTable.select(this.confTable.value().length - 1);
   },
   getChange: function (src, cur) {
@@ -252,64 +263,99 @@ EnterConf.prototype = {
    */
   updateBtnEvent: function() {
     var that = this;
-    if (that.progressing) {
-      return that.dialog.show("配置正在刷新");
+    if (that.detailWin) {
+      return that.detailWin.show();
     }
-    that.progressing = true;
     var modalWindow = new ModalWindow({
-      title: "刷新进度",
-      body: `<div class="progress" style="margin:0px;">
-        <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>`,
-      width: 350,
+      title: "新增、更新配置",
+      body: "<div>将进行录入对象的新增、更新配置动作，点击确定以继续。</div>",
+      width: 400,
+      height: 40,
+      buttons: [{
+        name: "取消",
+        class: "btn-default",
+        event: function () {
+          this.hide();
+        }
+      },{
+        name: "确定",
+        class: "btn-primary",
+        event: function() {
+          this.hide();
+          that.openUpdateWin();
+        }
+      }]
+    });
+    modalWindow.show();
+  },
+  /** 
+   * 进行更新配置.
+  */
+  openUpdateWin : function() {
+    var that= this;
+    var $progress = $(`<div class="progress" style="margin:0px;">
+      <div class="progress-bar" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>`);
+    that.detailWin = new DetailDialog({
+      title: "操作进度",
+      body: $progress,
+      width: 420,
       height: 20,
       window: window,
       close: false,
       backdrop: false,
       keyboard: false,
+      hideDetail: false,
       buttons: [{
-        name: "隐藏",
+        name: "后台运行",
         class: "btn-primary",
         event: function () {
           this.hide();
         }
       }]
     });
+    that.detailWin.show();
     var tableData = that.confTable.value();
-    $.post("/config/refreshEnterEntity", function (data, status, xhr) {
-      if (status == 'success' && data) {
-        var bar, length, index, progress;
-        bar = modalWindow.$modal.find(".progress-bar");
-        bar.css("width", "0%");
-        bar.text("0%");
-        length = tableData.length;
-        index = 0;
-        
-        for (var i = 0; i < length; i++) {
-          console.log(i);
-          socket.emit("refreshEnterEntity", tableData[i], function() {
-            index++;
-            progress = Math.floor(index * 100 / length);
-            bar.css("width", progress + "%");
-            bar.text(progress + "%");
-            if (progress == 100) {
-              that.progressing = false;
-              window.setTimeout(function(){modalWindow.hide()}, 1000);
-            }
-          });
-        }
-        modalWindow.show();
-      } else {
-        that.progressing = false;
-        that.dialog.show('刷新失败');
+    var deployIdArr = [];
+    for (var i = 0, len = tableData.length; i < len; i++) {
+      if (deployIdArr.indexOf(tableData[i].file_id) == -1) {
+        deployIdArr.push(tableData[i].file_id);
+      }
+    }
+    var index = 0;
+    var length = deployIdArr.length;
+    var bar = $progress.find(".progress-bar");
+    bar.css("width", "0%");
+    bar.text("0%");
+    var progress = 0;
+    socket.emit("refreshEnterEntity", tableData);
+    socket.on("refreshProgress", function(isDone, con) {
+      if (isDone) {
+        index++;
+        progress = Math.floor(index * 100 / length);
+        bar.css("width", progress + "%");
+        bar.text(progress + "%");
+      }
+      that.detailWin.appendDetail(con);
+      if (progress == 100) {
+        socket.removeAllListeners("refreshProgress");
+        that.detailWin.$modal.find(".btn.btn-primary").unbind("click").bind("click", function() {
+          that.detailWin.hide();
+          that.detailWin.$modal.remove();
+          that.detailWin = null;
+        }).text("关闭");
       }
     });
-  }
+  },
 }
 
 window.initPage = function (modImage) {
   enterConf = new EnterConf();
   enterConf.image = modImage;
+  loadJs("/socket.io/socket.io.js", function() {
+		socket = io.connect('http://192.168.3.69:8090');
+	});
   enterConf.init();
   enterConf.initPage();
+
 }

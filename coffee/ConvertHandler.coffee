@@ -12,10 +12,7 @@ class ConvertHandler extends Handler
 			return cb null if image.state isnt 1 and image.state isnt -2
 			if image.img_name and image.img_name.endsWith "pdf"
 				conv_stat.total++
-				if image.s_url.endsWith "/"
-					rel_path =  image.s_url
-				else
-					rel_path = "#{image.s_url}/"
+				rel_path = image.s_url
 				name = image.img_name.replace(".pdf", "")
 				mkdirp "#{rel_path}#{name}", (err)->
 					return cb err if err and image.state = -2 #解析失败

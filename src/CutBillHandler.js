@@ -42,7 +42,7 @@
         return async.each(fields, function(field, cb1) {
           var dbField, field_path;
           field_path = bill_path.replace("bill", "field");
-          field_path = `${field_path}/${field.code}/`;
+          // field_path = "#{field_path}/#{field.code}/"
           dbField = {
             deploy_id: field._id.toString(),
             type: "field",
@@ -50,7 +50,8 @@
             source_bill: bill._id,
             code: field.code,
             img_name: bill.img_name,
-            path: field_path
+            path: field_path,
+            isDeploy: 0
           };
           that.data.fields.push(dbField);
           return dao.epcos.entity.selectOne(dbField, function(err, doc) {
@@ -62,6 +63,7 @@
               dbField._id = doc._id.toString();
               dbField.inDB = true;
               dbField.state = doc.state;
+              dbField.isDeploy = doc.isDeploy;
             } else {
               dbField._id = Utils.uuid(24, 16);
               dbField.state = 0; //待切图

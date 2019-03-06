@@ -18,12 +18,10 @@ class LoadImageHandler extends Handler
 					image.inDB = true
 					image._id = doc._id.toString()
 					image.state = doc.state
+					image.isDeploy = doc.isDeploy
 				return cb null if doc and (doc.state is 1 or Math.abs(doc.state) > 1)
 				doc or (image.create_at = moment().format "YYYYMMDDHHmmss")
-				if image.s_url.endsWith "/"
-					rel_path = image.s_url
-				else
-					rel_path = "#{image.s_url}/"
+				rel_path = image.s_url
 				mkdirp rel_path, (err)->
 					return cb err if err and image.state = -1 #下载失败
 					cmd = image.d_url

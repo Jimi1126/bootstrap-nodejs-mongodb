@@ -7,38 +7,39 @@
 mongoClient = require('mongodb').MongoClient
 InsertManyOptions = require('mongodb').InsertManyOptions
 ObjectId = require('mongodb').ObjectId
+LOG = LoggerUtil.getLogger "DBHandler"
 class DBHandler
   constructor: (@url, @collection, @DB_OPTS)->
     @database = @url.substring @url.lastIndexOf("/") + 1, @url.lastIndexOf("?")
   connect: (callback)->
     cb = (err, db) =>
       unless db
-        throw "数据库连接获取失败"
+        LOG.error "数据库连接获取失败"
       try
         callback err, db.db(@database)
       catch e
-        throw "连接数据库#{@database}失败\n#{e.stack}"
+        LOG.error e.stack
       finally
         db?.close?()
     try
       mongoClient.connect @url, @DB_OPTS, cb
     catch e
-      throw e
+      LOG.error e.stack
   keepConnect: (callback)->
     cb = (err, db) =>
       unless db
-        throw "数据库连接获取失败"
+        LOG.error "数据库连接获取失败"
       try
         callback err, db.db(@database)
       catch e
-        throw "连接数据库#{@database}失败\n#{e.stack}"
+        LOG.error e.stack
     try
       mongoClient.connect @url, @DB_OPTS, cb
     catch e
-      throw e
+      LOG.error e.stack
   insert: (docs, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       if Array.isArray docs
         docs.forEach (d)->
           d._id and typeof d._id is "string" and (d._id = ObjectId(d._id))
@@ -52,7 +53,7 @@ class DBHandler
     if docs instanceof Object or Array.isArray docs
       that = @
       @keepConnect (err, db) =>
-        throw err if err
+        return callback err if err
         if Array.isArray docs
           async.each docs, (doc, ccb)->
             doc._id and typeof doc._id is "string" and (doc._id = ObjectId(doc._id))
@@ -79,36 +80,44 @@ class DBHandler
       callback null
   delete: (param, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).remove param, callback
   update: (filter, setter, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       filter._id and typeof filter._id is "string" and (filter._id = ObjectId(filter._id))
       setter._id and delete setter._id
       db.collection(@collection).update filter, setter, callback
   selectOne: (param, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).findOne param, callback
   selectBySortOrLimit: (param, sort, limit, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       if limit is -1
         db.collection(@collection).find(param).sort(sort).toArray callback
       else
         db.collection(@collection).find(param).sort(sort).limit(limit).toArray callback
+  selectBySortOrSkipOrLimit: (param, sort, skip, limit, callback) ->
+    @connect (err, db) =>
+      return callback err if err
+      param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
+      if limit is -1
+        db.collection(@collection).find(param).skip(skip).sort(sort).toArray callback
+      else
+        db.collection(@collection).find(param).skip(skip).limit(limit).sort(sort).toArray callback
   selectList: (param, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).find(param).toArray callback
   count: (param, callback) ->
     @connect (err, db) =>
-      throw err if err
+      return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).countDocuments param, callback
 

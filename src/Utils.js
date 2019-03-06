@@ -19,6 +19,9 @@
       files.forEach(function(file, index) {
         var curPath;
         curPath = path + "/" + file;
+        if (!fs.existsSync(curPath)) {
+          return;
+        }
         if (fs.statSync(curPath).isDirectory()) {
           return Utils.rmdir(curPath, function() {});
         } else {

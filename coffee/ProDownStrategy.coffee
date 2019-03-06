@@ -14,26 +14,30 @@ class ProDownStrategy extends Istrategy
   data: {}
   ## 操作者名称列表，预下载策略会根据这个顺序调用操作者
   handlerList: []
-  constructor: (execOrderList)->
+  constructor: (execOrderList, socket)->
     super()
     if execOrderList and execOrderList instanceof Array
       for moduleName, i in execOrderList
         continue unless moduleName or moduleName isnt ""
-        handler = require './' + moduleName
-        @handlerList.push new HandlerProxy new handler(@data)
+        Handler = require './' + moduleName
+        proxy = new HandlerProxy new Handler(@data)
+        proxy.io = {socket: socket}
+        @handlerList.push proxy
   ###
   # 执行策略
   # 预下载策略采用操作链模式，延伸于责任链模式
   # 不同于责任链模式的是，操作链模式节点在操作完成后不会退出模式，
   # 而是继续传递到下一个节点，直到链尾
   ###
-  execute: (callback)->
-    callback() if @handlerList.length is 0
+  execute: ()->
+    [...params] = arguments
+    callback = params.pop()
+    callback?() if @handlerList.length is 0
     for handlerProxy, i in @handlerList
       handlerProxy.setLastHandler @handlerList[i - 1]
       if @handlerList[i + 1]
         handlerProxy.setNextHandler @handlerList[i + 1]
       else
         handlerProxy.setNextHandler callback
-      handlerProxy.execute() if i is 0
+      handlerProxy.execute.apply handlerProxy, params if i is 0
 module.exports = ProDownStrategy

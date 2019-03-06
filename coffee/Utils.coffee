@@ -11,6 +11,7 @@ Utils.rmdir = (path, callback)->
 		files = fs.readdirSync path
 		files.forEach (file, index)->
 			curPath = path + "/" + file
+			return if !fs.existsSync curPath
 			if fs.statSync(curPath).isDirectory()
 				Utils.rmdir curPath, ()->
 			else
