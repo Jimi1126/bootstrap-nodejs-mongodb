@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>权限设置</title>
+	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
+	<link rel='stylesheet' type="text/css" href='../css/bootstrap-datetimepicker.min.css' />
+	<link rel='stylesheet' type="text/css" href='../css/initator.css' />
+	<style>
+		.dropdown-menu{
+			width: auto;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="page-header query-region">
+		<div class="page-title">
+			<h3>权限设置</h3>
+				</div>
+				<div class="region">
+					<div class="input-group" style="width: 50%">
+						<span class="input-group-addon">工号：</span>
+						<input query_code="username" type="text" class="form-control">
+						<span class="input-group-addon">姓名：</span>
+						<input query_code="nickname" type="text" class="form-control">
+						<span class="input-group-addon">状态：</span>
+						<input query_code="state" type="text" class="form-control">
+						<button id="queryBtn" type="button" class="btn btn-default" style="position:absolute;margin-left: 22px">查询</button>
+					</div>
+				</div>
+	</div>
+	<div style="margin: 0px 22px 0px 22px">
+    <div class="btn-group">
+      <button title="新增" id="addBtn" type="button" class="btn btn-default">
+        新增
+      </button>
+      <button title="权限设置" id="authBtn" type="button" class="btn btn-default">
+        权限设置
+      </button>
+      <button title="修改用户" id="modifyBtn" type="button" class="btn btn-default">
+        修改用户
+      </button>
+    </div>
+		<div class="content">
+			<div id="mainTable"></div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript" src="../js/jquery.min.js"></script>
+<script type="text/javascript" src='../js/bootstrap.min.js'></script>
+<script type="text/javascript" src='../js/bootstrap-datetimepicker.min.js'></script>
+<script type="text/javascript" src='../js/bootstrap-datetimepicker.zh-CN.js'></script>
+<script type="text/javascript" src="../js/initiator.js"></script>
+<script type="text/javascript" src="../js/authConfig.js"></script>
+
+</html>

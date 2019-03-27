@@ -15,15 +15,15 @@
         var that;
         that = this;
         return async.queue(function(task, next) {
-          var check_timer, child, start_at;
-          check_timer = setTimeout(function() {
-            return child.kill("SIGHUP");
-          }, task.timeout);
+          var child, start_at;
+          // check_timer = setTimeout ->
+          //   child.kill "SIGHUP"
+          // , task.timeout
           LOG.info(task.cmd);
           start_at = Date.now();
           return child = exec(task.cmd, that.opts, function(error, stdout = "", stderr = "") {
             var e, spent;
-            clearTimeout(check_timer);
+            // clearTimeout check_timer
             stderr = stderr.trim();
             if (error) {
               LOG.error(`错误: ${task.cmd} ${error}\n${stderr}`);

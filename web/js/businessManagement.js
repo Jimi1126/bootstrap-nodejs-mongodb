@@ -44,8 +44,10 @@ BusinessManagement.prototype = {
       rowNum: true,
       editable: false,
       height: 519,
-      title: ["业务编码","业务名称","区域", "部门", "日期", "文件名", "上传时间", "导出时间", "页数", "状态", "处理", "操作人"],
-      dataFields: ["code", "name","region", "dept", "create_at", "file_name", "upload_time", "export_time", "page_num", "state", "manage", "handler"]
+      title: ["gid","业务编码","业务名称","区域", "部门", "日期", "文件名", "上传时间", "导出时间", "页数", "状态", "处理", "操作人"],
+      dataFields: [
+        {code: "_id", dataType: "text", hidden: true},
+        "code", "name","region", "dept", "create_at", "file_name", "scan_at", "export_time", "pages", "state", "manage", "handler"]
     });
   },
   /**
@@ -102,8 +104,11 @@ BusinessManagement.prototype = {
       that.loadUI.hide();
       if (status == "success") {
         that.tasks = data || [];
+        that.tasks.forEach(function(t) {
+          t.scan_at = Util.parseDate(t.scan_at);
+        });
         that.taskTable.value(that.tasks);
-        that.taskTable.select(that.tasks.length - 1);
+        that.taskTable.select(0);
       }
     });
   },
@@ -156,7 +161,7 @@ BusinessManagement.prototype = {
           newData.project = that.projectList.value();
           newData.path_name = `download/${newData.region}/${newData.dept}_${newData.create_at}/${newData.content}/${newData.b_box}/${newData.s_box}`;
           newData.file_name = `${newData.dept}-${newData.create_at}`;
-          newData.state = "待分配";
+          newData.state = "待下载";
           $.post("/task/newTask", newData, function (data, status, xhr) {
             that.loadUI.hide();
             if (status == 'success' && !data) {
@@ -214,29 +219,39 @@ BusinessManagement.prototype = {
       width: 600,
       height: 200,
       buttons: [{
-        name: "确认",
-        title: "点击确认对列表中文件夹进行分配",
-        class: "btn-primary",
-        event: function () {
-          mainTable.value();
-        }
-      },{
         name: "取消",
         class: "btn-default",
         event: function () {
           modalWindow.hide();
         }
+      },{
+        name: "确认",
+        title: "点击确认对列表中文件夹进行分配",
+        class: "btn-primary",
+        event: function () {
+          var allotList = mainTable.multSelect();
+          $.post("/task/allotImage", {data: allotList}, function (data, status, xhr) {
+            that.dialog.show("分配成功");
+            modalWindow.hide();
+          });
+        }
       }]
     });
     mainTable = modalWindow.$modal.find("#mainTable").icTable({
+      mult: true,
       rowNum: true,
       editable: false,
       width: 565,
       height: 200,
-      title: ["区域", "部门", "文件名", "状态", "页数", "处理"],
-      dataFields: ["region", "dept", "file_name", "state", "page_num", "manage"]
+      title: ["gid","区域", "部门", "文件名", "状态", "页数", "处理"],
+      dataFields: [
+        {code: "_id", dataType: "text", hidden: true},
+        "region", "dept", "file_name", "state", "pages", "manage"]
     });
     modalWindow.show();
+    modalWindow.$modal.on("shown.bs.modal", function() {
+      mainTable.value(that.taskTable.value().filter(function(t) {return t.state == "待分配"}));
+    });
   },
   /**
    * 合并按钮事件.
@@ -249,29 +264,51 @@ BusinessManagement.prototype = {
       width: 600,
       height: 200,
       buttons: [{
-        name: "确认",
-        title: "点击确认对列表中文件夹进行分配",
-        class: "btn-primary",
-        event: function () {
-          mainTable.value();
-        }
-      },{
         name: "取消",
         class: "btn-default",
         event: function () {
           modalWindow.hide();
         }
+      }, {
+        name: "确认",
+        title: "点击确认对列表中文件夹进行合并",
+        class: "btn-primary",
+        event: function () {
+          var curTask = mainTable.select();
+          if (Util.isEmpty(curTask)) {
+            return that.dialog.show("无合并内容");
+          }
+          var param = {filter: {task: curTask._id, project: curTask.project}};
+          that.loadUI.show();
+          $.post("/task/mergeImage", param, function (data, status, xhr) {
+            that.loadUI.hide();
+            if (status == "success" && data == "success") {
+              that.dialog.show("合并成功");
+              modalWindow.hide();
+            } else if(typeof data == "object") {
+              that.dialog.show(JSON.stringify(data));
+            } else {
+              that.dialog.show("合并失败");
+            }
+          });
+        }
       }]
     });
     mainTable = modalWindow.$modal.find("#mainTable").icTable({
+      mult: true,
       rowNum: true,
       editable: false,
       width: 565,
       height: 200,
-      title: ["区域", "部门", "文件名", "状态", "页数", "处理"],
-      dataFields: ["region", "dept", "file_name", "state", "page_num", "manage"]
+      title: ["gid","区域", "部门", "文件名", "状态", "页数", "处理"],
+      dataFields: [
+        {code: "_id", dataType: "text", hidden: true},
+        "region", "dept", "file_name", "state", "pages", "manage"]
     });
     modalWindow.show();
+    modalWindow.$modal.on("shown.bs.modal", function() {
+      mainTable.value(that.taskTable.value().filter(function(t) {return t.state == "已导出"}));
+    });
   },
 }
 

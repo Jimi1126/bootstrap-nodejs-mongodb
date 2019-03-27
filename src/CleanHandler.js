@@ -12,9 +12,9 @@
   LOG = LoggerUtil.getLogger("CleanHandler");
 
   CleanHandler = class CleanHandler extends Handler {
-    handle(callback) {
+    handle(param, callback) {
       LOG.info("清理");
-      return callback();
+      return typeof callback === "function" ? callback() : void 0;
     }
 
   };

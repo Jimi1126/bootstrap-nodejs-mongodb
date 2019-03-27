@@ -3,15 +3,26 @@
   /*
    * 下载策略
    */
-  var DownStrategy, Istrategy;
+  var DownStrategy, Istrategy, LOG;
 
   Istrategy = require("./Istrategy");
 
+  LOG = LoggerUtil.getLogger("DownStrategy");
+
   DownStrategy = (function() {
     class DownStrategy extends Istrategy {
-      constructor(execOrderList, socket) {
+      constructor(execOrderList, socket1) {
         var Handler, i, j, len, moduleName, proxy;
         super();
+        this.socket = socket1;
+        /*
+         * 策略的业务数据
+         * 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
+         * 因此一个操作者将访问上一位操作者处理完的数据
+         */
+        this.data = {};
+        //# 操作者名称列表，策略会根据这个顺序调用操作者
+        this.handlerList = [];
         if (execOrderList && execOrderList instanceof Array) {
           for (i = j = 0, len = execOrderList.length; j < len; i = ++j) {
             moduleName = execOrderList[i];
@@ -21,7 +32,7 @@
             Handler = require('./' + moduleName);
             proxy = new HandlerProxy(new Handler(this.data));
             proxy.io = {
-              socket: socket
+              socket: this.socket
             };
             this.handlerList.push(proxy);
           }
@@ -37,31 +48,61 @@
        *   下载策略需用到预下载中的业务数据，将下载策略对象的业务数据引用指向预下载策略对象中的业务数据时
        *   操作者所持有的业务数据对象引用也应该重新指向下载策略的业务数据
        */
-      execute(callback) {
-        var arr;
-        if (this.handlerList.length === 0) {
-          callback();
+      execute(files, callback) {
+        var down_stat, hand, j, len, ref, socket, that;
+        if (this.handlerList.length === 0 || !files || !files.length) {
+          return callback();
         }
-        arr = this.handlerList.map((handler) => {
-          handler.target.data = this.data;
-          return function(next) {
-            return handler.execute.call(handler, next);
-          };
+        that = this;
+        ref = this.handlerList;
+        for (j = 0, len = ref.length; j < len; j++) {
+          hand = ref[j];
+          hand.target.data = this.data;
+        }
+        socket = this.socket;
+        down_stat = {
+          total: files.length,
+          success: 0,
+          exist: 0,
+          failure: 0
+        };
+        return async.eachLimit(files, this.MAX_LENGTH, function(file, cb) {
+          var arr, startTime;
+          startTime = moment();
+          arr = that.handlerList.map(function(handler, i) {
+            if (i === 0) {
+              return function(next) {
+                return handler.handle.call(handler, {
+                  data: file,
+                  socket: socket
+                }, next);
+              };
+            } else {
+              return handler.handle;
+            }
+          });
+          return async.waterfall(arr, function(err) {
+            var endTime;
+            endTime = moment();
+            if (err) {
+              LOG.error(file.img_name + "：" + err);
+              socket.emit(0, file.img_name + "：" + err);
+              down_stat.failure++;
+            } else {
+              down_stat.success++;
+            }
+            socket.emit(1, `${file.img_name}：下载解析完成  --${endTime - startTime}ms`);
+            return cb(null);
+          });
+        }, function(err) {
+          socket.emit(0, JSON.stringify(down_stat));
+          return callback();
         });
-        return async.series(arr, callback);
       }
 
     };
 
-    /*
-     * 策略的业务数据
-     * 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
-     * 因此一个操作者将访问上一位操作者处理完的数据
-     */
-    DownStrategy.prototype.data = {};
-
-    //# 操作者名称列表，策略会根据这个顺序调用操作者
-    DownStrategy.prototype.handlerList = [];
+    DownStrategy.prototype.MAX_LENGTH = 50;
 
     return DownStrategy;
 

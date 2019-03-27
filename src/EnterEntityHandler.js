@@ -9,44 +9,83 @@
   LOG = LoggerUtil.getLogger("EnterEntityHandler");
 
   EnterEntityHandler = class EnterEntityHandler extends Handler {
-    handle(callback) {
-      var dao, enterEntitys, filter, that;
+    handle(param, callback) {
+      var b, dao, deploy_ids, enterEntitys, f, filter, i, j, len, len1, original, ref, ref1, ref2, ref3, that;
       that = this;
-      that.data.enterEntitys = enterEntitys = [];
-      if (!this.data.images || this.data.images.length === 0) {
-        return callback(null);
+      if (!param || !param.data) {
+        LOG.warn("没有要构造的实体");
+        return callback("没有要构造的实体");
+      }
+      original = param.data;
+      if (original.state !== 1) {
+        LOG.warn(`${original.img_name}：构造实体-原件异常`);
+        if ((ref = param.socket) != null) {
+          ref.emit(-1, `${original.img_name}：构造实体-原件异常`);
+        }
+        return callback(null, param);
+      }
+      param.enterEntitys = enterEntitys = [];
+      if ((ref1 = param.socket) != null) {
+        ref1.emit(0, `${original.img_name}：开始构造录入实体`);
       }
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: ["deploy", "resultData"]
       });
+      deploy_ids = [];
+      deploy_ids.push(param.data.deploy_id);
+      ref2 = param.bill;
+      for (i = 0, len = ref2.length; i < len; i++) {
+        b = ref2[i];
+        if (deploy_ids.indexOf(b.deploy_id) === -1) {
+          deploy_ids.push(b.deploy_id);
+        }
+      }
+      ref3 = param.field;
+      for (j = 0, len1 = ref3.length; j < len1; j++) {
+        f = ref3[j];
+        if (deploy_ids.indexOf(f.deploy_id) === -1) {
+          deploy_ids.push(f.deploy_id);
+        }
+      }
       filter = {
         project: that.data.deploy.project._id.toString(),
+        deploy_id: {
+          $in: deploy_ids
+        },
         type: "enter",
         state: "1" //启用
       };
       return dao.epcos.deploy.selectList(filter, function(err, docs) {
-        var conf, confMap, confs, entity, i, j, key, len, len1, ref;
+        var conf, confMap, confs, entity, entityName, k, key, l, len2, len3, ref4, ref5, ref6;
         if (err) {
           LOG.error(err);
-          return callback(null);
+          if ((ref4 = param.socket) != null) {
+            ref4.emit(0, `${original.img_name}：构造录入实体失败`);
+          }
+          return callback(null, param);
         }
         confMap = {};
-        for (i = 0, len = docs.length; i < len; i++) {
-          conf = docs[i];
-          confMap[conf.file_id] || (confMap[conf.file_id] = []);
-          confMap[conf.file_id].push({
+        for (k = 0, len2 = docs.length; k < len2; k++) {
+          conf = docs[k];
+          confMap[conf.deploy_id] || (confMap[conf.deploy_id] = []);
+          confMap[conf.deploy_id].push({
             field_id: conf.field_id,
             field_name: conf.field_name,
             src_type: conf.src_type,
+            handler: {},
             value: {},
             tip: ""
           });
         }
         for (key in confMap) {
           confs = confMap[key];
-          ref = that.data[confs[0].src_type + "s"];
-          for (j = 0, len1 = ref.length; j < len1; j++) {
-            entity = ref[j];
+          entityName = confs[0].src_type;
+          ref5 = param[entityName] || [];
+          for (l = 0, len3 = ref5.length; l < len3; l++) {
+            entity = ref5[l];
+            if (entity.modify === void 0) {
+              continue;
+            }
             if (entity.deploy_id !== key) {
               continue;
             }
@@ -59,14 +98,17 @@
               path: entity.path,
               img_name: entity.img_name,
               enter: confs,
-              stage: "ocr",
+              stage: "op1",
               priority: "1",
-              create_at: moment().format("YYYYMMDDHHmmss")
+              create_at: entity.create_at
             });
             entity.isDeploy = 1;
           }
         }
-        return callback(null);
+        if ((ref6 = param.socket) != null) {
+          ref6.emit(0, `${original.img_name}：构造录入实体完成`);
+        }
+        return callback(null, param);
       });
     }
 

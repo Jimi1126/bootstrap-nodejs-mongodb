@@ -23,6 +23,7 @@ class LoadConfigHandler extends Handler
 			filter = {project: doc._id.toString(), state: "1"}
 			if param.task
 				filter["task"] = param.task
+				filter["type"] = "image"
 				dao.epcos.deploy.selectList filter, (err, docs)->
 					return callback err if err
 					that.data.deploy.images = docs

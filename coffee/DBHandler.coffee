@@ -20,7 +20,7 @@ class DBHandler
       catch e
         LOG.error e.stack
       finally
-        db?.close?()
+        # db?.close?()
     try
       mongoClient.connect @url, @DB_OPTS, cb
     catch e
@@ -95,26 +95,36 @@ class DBHandler
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).findOne param, callback
   selectBySortOrLimit: (param, sort, limit, callback) ->
-    @connect (err, db) =>
+    @keepConnect (err, db) =>
       return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       if limit is -1
-        db.collection(@collection).find(param).sort(sort).toArray callback
+        db.collection(@collection).find(param).sort(sort).toArray (err, docs)->
+          db?.close?()
+          callback err, docs
       else
-        db.collection(@collection).find(param).sort(sort).limit(limit).toArray callback
+        db.collection(@collection).find(param).sort(sort).limit(limit).toArray (err, docs)->
+          db?.close?()
+          callback err, docs
   selectBySortOrSkipOrLimit: (param, sort, skip, limit, callback) ->
-    @connect (err, db) =>
+    @keepConnect (err, db) =>
       return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       if limit is -1
-        db.collection(@collection).find(param).skip(skip).sort(sort).toArray callback
+        db.collection(@collection).find(param).skip(skip).sort(sort).toArray (err, docs)->
+          db?.close?()
+          callback err, docs
       else
-        db.collection(@collection).find(param).skip(skip).limit(limit).sort(sort).toArray callback
+        db.collection(@collection).find(param).skip(skip).limit(limit).sort(sort).toArray (err, docs)->
+          db?.close?()
+          callback err, docs
   selectList: (param, callback) ->
-    @connect (err, db) =>
+    @keepConnect (err, db) =>
       return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
-      db.collection(@collection).find(param).toArray callback
+      db.collection(@collection).find(param).toArray (err, docs)->
+        db?.close?()
+        callback err, docs
   count: (param, callback) ->
     @connect (err, db) =>
       return callback err if err

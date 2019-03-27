@@ -11,13 +11,13 @@ class ExecHandler
   create_queue: (n) ->
     that = @
     async.queue (task, next) ->
-      check_timer = setTimeout ->
-        child.kill "SIGHUP"
-      , task.timeout
+      # check_timer = setTimeout ->
+      #   child.kill "SIGHUP"
+      # , task.timeout
       LOG.info task.cmd
       start_at = Date.now()
       child = exec task.cmd, that.opts, (error, stdout = "", stderr = "") ->
-        clearTimeout check_timer
+        # clearTimeout check_timer
         stderr = stderr.trim()
         LOG.error "错误: #{task.cmd} #{error}\n#{stderr}" if error
         spent = Date.now() - start_at

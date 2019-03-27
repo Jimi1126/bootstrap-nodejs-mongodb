@@ -43,7 +43,7 @@ EnterConf.prototype = {
       {code: "state", dataType: "text", hidden: true},
       "field_id", "field_name",
       {code: "src_type", dataType: "table_dropdown", data: [{id:"image", text:"图片"}, {id:"bill", text:"分块"}, {id:"field", text:"字段"}]},
-      {code: "file_id", dataType: "text", hidden: true},
+      {code: "deploy_id", dataType: "text", hidden: true},
       {code: "file", dataType: "table_button", event: $.proxy(that.openFileList, that)},
       "verify"]
     });
@@ -138,7 +138,7 @@ EnterConf.prototype = {
           dataList.forEach(function(dd) {
             if (dd._id == sval._id) {
               dd.file = selectVal.img_path;
-              dd.file_id = selectVal._id;
+              dd.deploy_id = selectVal._id;
             }
           });
           that.confTable.asyncData(dataList);
@@ -318,8 +318,8 @@ EnterConf.prototype = {
     var tableData = that.confTable.value();
     var deployIdArr = [];
     for (var i = 0, len = tableData.length; i < len; i++) {
-      if (deployIdArr.indexOf(tableData[i].file_id) == -1) {
-        deployIdArr.push(tableData[i].file_id);
+      if (deployIdArr.indexOf(tableData[i].deploy_id) == -1) {
+        deployIdArr.push(tableData[i].deploy_id);
       }
     }
     var index = 0;

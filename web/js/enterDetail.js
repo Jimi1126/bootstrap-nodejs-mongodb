@@ -6,6 +6,7 @@ EnterDetail.prototype = {
   dialog: new Dialog(),
   projects: [],
   tasks: [],
+  queryObj: {},
   init: function () {
     this.initCompent();
     this.adjustUI();
@@ -53,19 +54,39 @@ EnterDetail.prototype = {
     this.mainTable = $("#mainTable").icTable({
       rowNum: true,
       editable: false,
-      pagination: true,
-      height: 519,
-      title: ["业务名称", "工号", "姓名", "字符总量", "有效字符总量", "准确率", "时间", "分块数量", "分块效率", "字符效率", "录入？数量", "录入？比例", "OCR字符", "OCR字符占比"],
-      dataFields: ["date", "usercode", "username", "char_total", "char_valid", "valid_precision", "time", "bill_num", "bill_precision", "char_precision", "enter_char", "enter_char_prop", "char_ocr", "char_ocr_prop"]
+      // pagination: true,
+      height: 500,
+      title: ["FileID", "ProdNO", "MatNO", "FileName", "FilePath", "ScanDate", "Pages", "DocBoxID"],
+      dataFields: ["fileID", "prodNO", "matNO","fileName", "filePath", "scanDate", "pages", "docBoxID"]
     });
-    that.mainTable.pager.onChangePageNum = function(total, amount, cur_num, old_num) {
-      that.loadUI.show();
-      $.post("/task/getResultData", {filter: query, skip: +amount * (+cur_num - 1), limit: amount}, function(data, status, xhr) {
-        that.mainTable.value(data || []);
-        that.mainTable.select(0);
-        that.loadUI.hide();
-      });
-    }
+    // that.mainTable.pager.onChangePageNum = function(total, amount, cur_num, old_num) {
+    //   that.loadUI.show();
+    //   $.post("/task/getResultData", {filter: that.queryObj, skip: +amount * (+cur_num - 1), limit: amount}, function(data, status, xhr) {
+    //     data = data || [];
+    //     var displayList = [];
+    //     data.forEach(function(res, i) {
+    //       var fc001 = res.enter.filter(function(e) {return e.field_id == "fc001"})[0];
+    //       var fc002 = res.enter.filter(function(e) {return e.field_id == "fc002"})[0];
+    //       var fc003 = res.enter.filter(function(e) {return e.field_id == "fc003"})[0];
+    //       var moNo = fc001 ? (fc001.value.op4 ? fc001.value.op4 : fc001.value.op2) : "";
+    //       var prodNO = fc002 ? (fc002.value.op4 ? fc002.value.op4 : fc002.value.op2) : "";
+    //       var matNO = fc003 ? (fc003.value.op4 ? fc003.value.op4 : fc003.value.op2) : "";
+    //       displayList.push({
+    //         fileID: `FK${Util.getBitDate(8)}-${Util.LPAD(i + 1, 6, "0")}`,
+    //         prodNO: prodNO,
+    //         matNO: matNO,
+    //         fileName: prodNO + ".pdf",
+    //         filePath: res.create_at.substring(0, 4),
+    //         scanDate: res.create_at,
+    //         pages: "",
+    //         docBoxID: res.path.split("/")[4]
+    //       });
+    //     });
+    //     that.mainTable.value(displayList);
+    //     that.mainTable.select(0);
+    //     that.loadUI.hide();
+    //   });
+    // }
   },
   /**
    * 事件绑定.
@@ -73,6 +94,7 @@ EnterDetail.prototype = {
   bindEvent: function () {
     var that = this;
     $("#queryBtn").bind("click", $.proxy(this.loadTableData, this));
+    $("#exportBtn").bind("click", $.proxy(this.downExecl, this));
     window.onresize = function() {
       that.mainTable.refresh();
     };
@@ -131,44 +153,55 @@ EnterDetail.prototype = {
    */
   loadTableData: function() {
     var that = this;
-    var query = {}
-    query.project = this.projectList.value();
-    if (!query.project) {
+    that.queryObj = {}
+    that.queryObj.project = this.projectList.value();
+    that.queryObj.task = this.taskList.value();
+    that.queryObj.stage = "over"
+    if (!that.queryObj.project) {
       return;
     }
-    // var tableData = [];
-    // for (var i = 0; i < 200; i++) {
-    //   tableData.push({
-    //     "date" : "日期" + i,
-    //     "usercode" : "886" + i,
-    //     "username" : "张三" + i,
-    //     "char_total" : (Math.random() * 1000000000 + "").substr(0, Math.ceil(Math.random() * 10)),
-    //     "char_valid" : (Math.random() * 1000000000 + "").substr(0, Math.ceil(Math.random() * 10)),
-    //     "valid_precision" : (Math.random() * 100 + "").substr(0, 4) + "%",
-    //     "time": "41",
-    //     "bill_num": (Math.random() * 1000000000 + "").substr(0, Math.ceil(Math.random() * 10)),
-    //     "bill_precision": (Math.random() * 100 + "").substr(0, 4) + "%",
-    //     "char_precision": (Math.random() * 100 + "").substr(0, 4) + "%",
-    //     "enter_char": (Math.random() * 1000000000 + "").substr(0, Math.ceil(Math.random() * 10)),
-    //     "enter_char_prop": (Math.random() * 100 + "").substr(0, 4) + "%",
-    //     "char_ocr": (Math.random() * 1000000000 + "").substr(0, Math.ceil(Math.random() * 10)),
-    //     "char_ocr_prop" : (Math.random() * 100 + "").substr(0, 4) + "%"
-    //   });
-    // }
-    that.mainTable.pager.setTotal(18);
-    // that.loadUI.show();
-    // $("input[query_code]").each(function() {
-    //   $(this).val() && (query[$(this).attr("query_code")] = $(this).val());
-    // });
-    // $.post("/task/getTasks", query, function(data, status, xhr) {
+    that.loadUI.show();
+    // $.post("/task/getResultData", {filter: that.queryObj, isCount: true}, function(data, status, xhr) {
     //   that.loadUI.hide();
     //   if (status == "success") {
-    //     that.tasks = data || [];
-    //     that.mainTable.value(that.tasks);
-    //     that.mainTable.select(that.tasks.length - 1);
+    //     data && that.mainTable.pager.setTotal(data);
+    //     !data && that.mainTable.pager.setTotal(0);
+    //   } else {
+    //     that.dialog.show("系统繁忙");
     //   }
     // });
+    $.post("/task/getResultData", {filter: that.queryObj}, function(data, status, xhr) {
+      data = data || [];
+      var displayList = [];
+      data.forEach(function(res, i) {
+        var fc001 = res.enter.filter(function(e) {return e.field_id == "fc001"})[0];
+        var fc002 = res.enter.filter(function(e) {return e.field_id == "fc002"})[0];
+        var fc003 = res.enter.filter(function(e) {return e.field_id == "fc003"})[0];
+        var moNo = fc001 ? (fc001.value.op4 ? fc001.value.op4 : fc001.value.op2) : "";
+        var prodNO = fc002 ? (fc002.value.op4 ? fc002.value.op4 : fc002.value.op2) : "";
+        var matNO = fc003 ? (fc003.value.op4 ? fc003.value.op4 : fc003.value.op2) : "";
+        displayList.push({
+          fileID: `FK${Util.getBitDate(8)}-${Util.LPAD(i + 1, 6, "0")}`,
+          prodNO: prodNO,
+          matNO: matNO,
+          fileName: prodNO + ".pdf",
+          filePath: res.create_at.substring(0, 4),
+          scanDate: res.create_at,
+          pages: "",
+          docBoxID: res.path.split("/")[4]
+        });
+      });
+      that.mainTable.value(displayList);
+      that.mainTable.select(0);
+      that.loadUI.hide();
+    });
   },
+  /**
+   * 下载表格.
+   */
+  downExecl: function() {
+    Util.saveCSV(encodeURIComponent(JSON.stringify(this.mainTable.value())), "test.xls");
+  }
 }
 
 window.onload = function () {

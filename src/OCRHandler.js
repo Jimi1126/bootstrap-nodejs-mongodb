@@ -9,35 +9,86 @@
   LOG = LoggerUtil.getLogger("OCRHandler");
 
   OCRHandler = class OCRHandler extends Handler {
-    handle(callback) {
-      var that;
+    handle(param, callback) {
+      var image, outputStatis, ref, ref1, that;
       that = this;
-      if (!this.data.enterEntitys) {
-        LOG.warn(`${argv.project}：没有录入的内容`);
-        return callback(null);
+      if (!param || !param.data) {
+        LOG.warn("没有OCR的实体");
+        return callback("没有OCR的实体");
       }
+      image = param.data;
+      if (!param.enterEntitys) {
+        LOG.warn("没有OCR的实体");
+        if ((ref = param.socket) != null) {
+          ref.emit(0, `${image.img_name}：没有OCR的实体`);
+        }
+        return callback(null, param);
+      }
+      if ((ref1 = param.socket) != null) {
+        ref1.emit(0, `${image.img_name}：开始进行OCR`);
+      }
+      outputStatis = [];
       return async.eachLimit(this.data.enterEntitys, 50, function(enterEntity, cb) {
         var file_path;
         file_path = enterEntity.path + enterEntity.img_name;
         return fs.readFile(file_path, function(err) {
-          var en, i, len, ref, result;
+          var en, i, len, ref2, ref3, ref4, res, statis;
           if (err) {
             enterEntity.stage = "error";
             enterEntity.remark = err;
+            if ((ref2 = param.socket) != null) {
+              ref2.emit(-1, `${image.img_name}：OCR失败`);
+            }
             return cb(null);
           }
-          result = {};
-          enterEntity.stage = "op1";
-          ref = enterEntity.enter;
-          for (i = 0, len = ref.length; i < len; i++) {
-            en = ref[i];
-            delete en.src_type;
-            // en.value = result[en.field_id]
-            en.value["ocr"] = "123";
+          if ((ref3 = param.socket) != null) {
+            ref3.emit(-1, `${image.img_name}：OCR完成`);
           }
+          res = {
+            "fc001": "123",
+            "fc002": "123",
+            "fc003": "123"
+          };
+          enterEntity.stage = "op2";
+          statis = {
+            project: enterEntity.project,
+            deploy_id: enterEntity.deploy_id,
+            usercode: "ocr",
+            chatLength: 0,
+            symbol: 0
+          };
+          ref4 = enterEntity.enter;
+          for (i = 0, len = ref4.length; i < len; i++) {
+            en = ref4[i];
+            delete en.src_type;
+            if (res[en.field_id]) {
+              en.handler["op1"] = "ocr";
+              en.value["op1"] = res[en.field_id];
+              statis.chatLength += Utils.getLength(res[en.field_id]);
+              statis.symbol += Utils.replaceAll(res[en.field_id], "？", "").length === 0 ? 1 : 0;
+            }
+          }
+          outputStatis.push(statis);
           return cb(null);
         });
-      }, callback);
+      }, function(err) {
+        var dao;
+        if (err) {
+          LOG.error(err);
+        }
+        dao = new MongoDao(__b_config.dbInfo, {
+          epcos: ["outputData"]
+        });
+        if (!outputStatis.length) {
+          return callback(null, param);
+        }
+        return dao.epcos.outputData.insert(outputStatis, function(error) {
+          if (error) {
+            LOG.error(error);
+          }
+          return callback(null, param);
+        });
+      });
     }
 
   };

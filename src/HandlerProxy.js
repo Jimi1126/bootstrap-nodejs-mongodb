@@ -20,7 +20,7 @@
         var that;
         that = this;
         return function() {
-          var callback, cb, haveParam, params, startTime;
+          var callback, cb, e, haveParam, params, startTime;
           //# 默认只代理操作者的执行方法，并只添加日志记录能力
           if (f.name === "execute") {
             startTime = moment();
@@ -50,9 +50,19 @@
               };
               params.push(cb);
             }
-            return f.apply(that.target, params);
+            try {
+              return f.apply(that.target, params);
+            } catch (error) {
+              e = error;
+              return LOG.error(e.stack);
+            }
           } else {
-            return f.apply(that.target, arguments);
+            try {
+              return f.apply(that.target, arguments);
+            } catch (error) {
+              e = error;
+              return LOG.error(e.stack);
+            }
           }
         };
       }

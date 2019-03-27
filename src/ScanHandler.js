@@ -27,7 +27,7 @@
           return cb(null);
         }
         cmd = image.d_url;
-        if (!cmd.startsWith("curl")) {
+        if (!/^dir/.test(cmd) && !/^curl/.test(cmd)) {
           cmd = `curl ${cmd}`;
         }
         cmd_display = cmd != null ? cmd.replace(/\s+\-u\s+\S+/g, " -u '***:***'") : void 0; //不打印密码

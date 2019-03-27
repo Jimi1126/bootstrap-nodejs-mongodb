@@ -28,7 +28,7 @@
             startTime = moment();
             [...params] = arguments;
             callback = params.pop();
-            cb = () => {
+            cb = function() {
               var endTime;
               endTime = moment();
               LOG.info(`策略${that.target.constructor.name}.${f.name}执行结束 --${endTime - startTime}ms`);

@@ -2,32 +2,53 @@ Handler = require "./Handler"
 ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "EnterEntityHandler"
 class EnterEntityHandler extends Handler
-  handle: (callback)->
+  handle: (param, callback)->
     that = @
-    that.data.enterEntitys = enterEntitys = []
-    return callback null if !@data.images or @data.images.length is 0
+    if !param or !param.data
+      LOG.warn "没有要构造的实体"
+      return callback "没有要构造的实体"
+    original = param.data
+    if original.state isnt 1
+      LOG.warn "#{original.img_name}：构造实体-原件异常"
+      param.socket?.emit -1, "#{original.img_name}：构造实体-原件异常"
+      return callback null, param
+    param.enterEntitys = enterEntitys = []
+    param.socket?.emit 0, "#{original.img_name}：开始构造录入实体"
     dao = new MongoDao __b_config.dbInfo, {epcos: ["deploy", "resultData"]}
+    deploy_ids = []
+    deploy_ids.push param.data.deploy_id
+    for b in param.bill
+      if deploy_ids.indexOf(b.deploy_id) is -1
+        deploy_ids.push b.deploy_id
+    for f in param.field
+      if deploy_ids.indexOf(f.deploy_id) is -1
+        deploy_ids.push f.deploy_id
     filter = {
       project: that.data.deploy.project._id.toString()
+      deploy_id: {$in: deploy_ids}
       type: "enter"
       state: "1" #启用
     }
     dao.epcos.deploy.selectList filter, (err, docs)->
       if err
         LOG.error err
-        return callback null
+        param.socket?.emit 0, "#{original.img_name}：构造录入实体失败"
+        return callback null, param
       confMap = {}
       for conf in docs
-        confMap[conf.file_id] || (confMap[conf.file_id] = [])
-        confMap[conf.file_id].push {
+        confMap[conf.deploy_id] || (confMap[conf.deploy_id] = [])
+        confMap[conf.deploy_id].push {
           field_id: conf.field_id
           field_name: conf.field_name
           src_type: conf.src_type
+          handler:{}
           value: {}
           tip: ""
         }
       for key, confs of confMap
-        for entity in that.data[confs[0].src_type + "s"]
+        entityName = confs[0].src_type
+        for entity in param[entityName] || []
+          continue if entity.modify is undefined
           continue unless entity.deploy_id is key
           enterEntitys.push {
             _id: Utils.uuid 24, 16
@@ -38,11 +59,12 @@ class EnterEntityHandler extends Handler
             path: entity.path
             img_name: entity.img_name
             enter: confs
-            stage: "ocr"
+            stage: "op1"
             priority: "1"
-            create_at: moment().format "YYYYMMDDHHmmss"
+            create_at: entity.create_at
           }
           entity.isDeploy = 1
-      callback null
+      param.socket?.emit 0, "#{original.img_name}：构造录入实体完成"
+      callback null, param
 
 module.exports = EnterEntityHandler

@@ -19,7 +19,10 @@ EnterPage.prototype = {
 	 * 初始化页面.
 	 */
 	initPage: function () {
-		this.loadProjList(this.loadData);
+		var that = this;
+		this.loadProjList(function() {
+			that.loadTaskList(that.initData);
+		});
 	},
 	/**
 		* 初始化组件.
@@ -27,12 +30,16 @@ EnterPage.prototype = {
 	initComponent: function () {
 		var that = this;
 		this.projectList = $("#projectList").dropMenu({
-			width: 120,
+			width: 130,
+			height: 100
+		});
+		this.taskList = $("#taskList").dropMenu({
+			width: 180,
 			height: 100
 		});
 		this.navBar = $("#barDiv").navBar({
 			data: [
-				{code: "ocr", text: "OCR"},
+				// {code: "ocr", text: "OCR"},
 				{code: "op1", text: "一码"},
 				{code: "op2", text: "二码"},
 				{code: "op3", text: "问题件"},
@@ -40,8 +47,11 @@ EnterPage.prototype = {
 				{code: "over", text: "", hidden: true}
 			]
 		});
-		this.navBar.select("ocr");
-		this.projectList.onChange = this.navBar.onChange = function(id, old) {
+		this.navBar.select("op1");
+		this.projectList.onChange = function(id, old) {
+			that.loadTaskList();
+		};
+		this.taskList.onChange = this.navBar.onChange = function(id, old) {
 			if (id != old) {
 				that.freeEvent(that.loadData);
 			}
@@ -93,6 +103,25 @@ EnterPage.prototype = {
 			}
 		});
 	},
+ /**
+	* 加载业务信息.
+	*/
+	loadTaskList: function (callback) {
+		var that = this;
+		$.post("/task/getTasks", {project: that.projectList.value(), state: "录入中"}, function(data, status, xhr) {
+			that.loadUI.hide();
+			that.tasks = data ? data : [];
+			if (status == "success") {
+				var menu = [];
+				that.tasks.forEach(function (proj) {
+					menu.push({ id: proj._id, text: proj.name });
+				});
+				that.taskList.initData(menu);
+				menu[0] && that.taskList.value(menu[0].id);
+				callback && callback.call(that);
+			}
+		});
+	},
 	/**
 		* 加载数据.
 		*/
@@ -103,10 +132,14 @@ EnterPage.prototype = {
 			that.addInput(null);
 			return;
 		}
-		var filter = {project: that.projectList.value(), stage: that.navBar.select()};
+		var task_id = that.taskList.value();
+		that.loadUI.show();
+		var filter = {project: that.projectList.value(), task: task_id, stage: that.navBar.select()};
 		$.post("/config/getEnterEntity", filter, function(data, status, xhr) {
+			that.loadUI.hide();
 			if (status == "success") {
-				that.curEntity = data;
+				data && (data.task = task_id);
+				that.curEntity = data || {};
 				that.loadImg(data);
 				that.addInput(data);
 			}
@@ -138,7 +171,6 @@ EnterPage.prototype = {
 						en.value[curStage] = $(`input[field="${en.field_id}"]`).val();
 					});
 					that.submitEvent();
-					that.nextBtnEvent();
 				}
 			}
 		});
@@ -196,7 +228,8 @@ EnterPage.prototype = {
 		if (!this.curEntity) {
 			return callback && callback.call(that, null);
 		}
-		socket.emit("letEnterEntity", this.curEntity, function(data) {
+		that.loadUI.show();
+		$.post("/config/letEnterEntity", {data: this.curEntity}, function(data, status, xhr) {
 			callback && callback.call(that, data);
 		});
 	},
@@ -236,7 +269,11 @@ EnterPage.prototype = {
 		if (msg = that.verifyEvent()) {
 
 		}
-		socket.emit("submitEnter", that.curEntity, $.proxy(that.nextBtnEvent, that));
+		that.loadUI.show();
+		$.post("/config/submitEnter", {data: that.curEntity}, function(data, status, xhr) {
+			that.loadData();
+		});
+		// socket.emit("submitEnter", that.curEntity, $.proxy(that.nextBtnEvent, that));
 	},
 	nextBtnEvent: function() {
 		this.freeEvent(this.loadData);
@@ -245,9 +282,9 @@ EnterPage.prototype = {
 
 window.onload = function () {
 	enterPage = new EnterPage();
-	loadJs("/socket.io/socket.io.js", function() {
-		socket = io.connect('http://192.168.3.69:8090');
-	});
+	// loadJs("/socket.io/socket.io.js", function() {
+	// 	socket = io.connect('http://192.168.3.69:8090');
+	// });
 	enterPage.init();
 	enterPage.initPage();
 	window.onbeforeunload = function(event) {

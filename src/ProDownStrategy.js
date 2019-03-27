@@ -10,77 +10,70 @@
 
   Handler = require("./Handler");
 
-  ProDownStrategy = (function() {
-    class ProDownStrategy extends Istrategy {
-      constructor(execOrderList, socket) {
-        var i, j, len, moduleName, proxy;
-        super();
-        if (execOrderList && execOrderList instanceof Array) {
-          for (i = j = 0, len = execOrderList.length; j < len; i = ++j) {
-            moduleName = execOrderList[i];
-            if (!(moduleName || moduleName !== "")) {
-              continue;
-            }
-            Handler = require('./' + moduleName);
-            proxy = new HandlerProxy(new Handler(this.data));
-            proxy.io = {
-              socket: socket
-            };
-            this.handlerList.push(proxy);
-          }
-        }
-      }
-
+  ProDownStrategy = class ProDownStrategy extends Istrategy {
+    constructor(execOrderList, socket) {
+      var i, j, len, moduleName, proxy;
+      super();
       /*
-       * 执行策略
-       * 预下载策略采用操作链模式，延伸于责任链模式
-       * 不同于责任链模式的是，操作链模式节点在操作完成后不会退出模式，
-       * 而是继续传递到下一个节点，直到链尾
+       * 策略的业务数据
+       * 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
+       * 因此一个操作者将访问上一位操作者处理完的数据
+       * 一般地操作者通过verify方法检查业务数据以决定是否进行本身的操作
        */
-      execute() {
-        var callback, handlerProxy, i, j, len, params, ref, results;
-        [...params] = arguments;
-        callback = params.pop();
-        if (this.handlerList.length === 0) {
-          if (typeof callback === "function") {
-            callback();
+      this.data = {};
+      //# 操作者名称列表，预下载策略会根据这个顺序调用操作者
+      this.handlerList = [];
+      if (execOrderList && execOrderList instanceof Array) {
+        for (i = j = 0, len = execOrderList.length; j < len; i = ++j) {
+          moduleName = execOrderList[i];
+          if (!(moduleName || moduleName !== "")) {
+            continue;
           }
+          Handler = require('./' + moduleName);
+          proxy = new HandlerProxy(new Handler(this.data));
+          proxy.io = {
+            socket: socket
+          };
+          this.handlerList.push(proxy);
         }
-        ref = this.handlerList;
-        results = [];
-        for (i = j = 0, len = ref.length; j < len; i = ++j) {
-          handlerProxy = ref[i];
-          handlerProxy.setLastHandler(this.handlerList[i - 1]);
-          if (this.handlerList[i + 1]) {
-            handlerProxy.setNextHandler(this.handlerList[i + 1]);
-          } else {
-            handlerProxy.setNextHandler(callback);
-          }
-          if (i === 0) {
-            results.push(handlerProxy.execute.apply(handlerProxy, params));
-          } else {
-            results.push(void 0);
-          }
-        }
-        return results;
       }
-
-    };
+    }
 
     /*
-     * 策略的业务数据
-     * 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
-     * 因此一个操作者将访问上一位操作者处理完的数据
-     * 一般地操作者通过verify方法检查业务数据以决定是否进行本身的操作
+     * 执行策略
+     * 预下载策略采用操作链模式，延伸于责任链模式
+     * 不同于责任链模式的是，操作链模式节点在操作完成后不会退出模式，
+     * 而是继续传递到下一个节点，直到链尾
      */
-    ProDownStrategy.prototype.data = {};
+    execute() {
+      var callback, handlerProxy, i, j, len, params, ref, results;
+      [...params] = arguments;
+      callback = params.pop();
+      if (this.handlerList.length === 0) {
+        if (typeof callback === "function") {
+          callback();
+        }
+      }
+      ref = this.handlerList;
+      results = [];
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        handlerProxy = ref[i];
+        handlerProxy.setLastHandler(this.handlerList[i - 1]);
+        if (this.handlerList[i + 1]) {
+          handlerProxy.setNextHandler(this.handlerList[i + 1]);
+        } else {
+          handlerProxy.setNextHandler(callback);
+        }
+        if (i === 0) {
+          results.push(handlerProxy.execute.apply(handlerProxy, params));
+        } else {
+          results.push(void 0);
+        }
+      }
+      return results;
+    }
 
-    //# 操作者名称列表，预下载策略会根据这个顺序调用操作者
-    ProDownStrategy.prototype.handlerList = [];
-
-    return ProDownStrategy;
-
-  }).call(this);
+  };
 
   module.exports = ProDownStrategy;
 

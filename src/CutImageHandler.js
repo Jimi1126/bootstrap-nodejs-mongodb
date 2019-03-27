@@ -12,311 +12,418 @@
   LOG = LoggerUtil.getLogger("CutImageHandler");
 
   CutImageHandler = class CutImageHandler extends Handler {
-    handle(callback) {
-      var cut_stat, dao, exec, that;
+    handle(param, callback) {
+      var dao, deploy_bills, exec, image, original, ref, ref1, rel_path, that;
       that = this;
-      if (!this.data.images) {
-        LOG.warn(`${argv.project}：没有需要切割的分快`);
-        return callback(null);
+      if (!param || !param.data) {
+        LOG.warn(`${argv.project}：没有需要切割的图片`);
+        return typeof callback === "function" ? callback("没有需要切割的图片") : void 0;
       }
-      this.data.bills = [];
+      param.bill = [];
+      original = param.data;
+      if (original.state !== 1) {
+        LOG.warn(`${original.img_name}：分块-原件异常`);
+        if ((ref = param.socket) != null) {
+          ref.emit(-1, `${original.img_name}：分块-原件异常`);
+        }
+        return callback(null, param);
+      }
+      image = param.image;
+      if ((ref1 = param.socket) != null) {
+        ref1.emit(0, `${original.img_name}：开始切分块`);
+      }
       exec = new ExecHandler().queue_exec(3);
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: ["entity"]
       });
-      cut_stat = {
-        total: 0,
-        success: 0,
-        exist: 0,
-        failure: 0
-      };
-      return async.each(this.data.images, function(image, cb) {
-        var bills, rel_path;
-        if (image.state !== 2 && image.state !== -3) {
-          return cb(null);
-        }
-        rel_path = image.s_url;
-        bills = that.data.deploy.bills.filter(function(b) {
-          return b.image === image.deploy_id;
-        });
-        if (image.img_name.endsWith("pdf")) {
-          return fs.readdir(`${rel_path}${image.img_name.replace(".pdf", "")}/`, function(err, menu) {
-            if (err) {
-              return cb(err);
+      rel_path = original.s_url;
+      deploy_bills = that.data.deploy.bills.filter(function(b) {
+        return b.image === original.deploy_id;
+      });
+      if (original.img_name.endsWith("pdf")) {
+        return fs.readdir(`${rel_path}${original.img_name.replace(".pdf", "")}/`, function(err, menu) {
+          var ref2;
+          if (err) {
+            LOG.error(err);
+            if ((ref2 = param.socket) != null) {
+              ref2.emit(-1, `${original.img_name}：读取解析文件夹失败`);
             }
-            return async.each(menu, function(f_nm, cb1) {
-              return async.each(bills, function(bill, cb2) {
-                var cut_path, img_path;
-                cut_path = rel_path.replace("image", "bill");
-                // cut_path = "#{cut_path}#{bill.code}/"
-                img_path = `${rel_path}${image.img_name.replace(".pdf", "")}/`;
-                cut_path = `${cut_path}${image.img_name.replace(".pdf", "")}/`;
-                return mkdirp(cut_path, function(err) {
-                  var dbBill;
-                  if (err) {
-                    return cb2(err);
-                  }
-                  cut_stat.total++;
-                  dbBill = {
-                    deploy_id: bill._id.toString(),
-                    type: "bill",
-                    source_img: image._id,
-                    code: bill.code,
-                    img_name: f_nm,
-                    path: cut_path,
-                    isDeploy: 0
-                  };
-                  that.data.bills.push(dbBill);
-                  return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
-                    if (err) {
-                      return cb2(err);
-                    }
-                    if (doc) {
-                      cut_stat.exist++;
-                      dbBill._id = doc._id.toString();
-                      dbBill.inDB = true;
-                      dbBill.state = doc.state;
-                      dbBill.isDeploy = doc.isDeploy;
-                    } else {
-                      dbBill._id = Utils.uuid(24, 16);
-                      dbBill.state = 0;
-                      dbBill.create_at = moment().format("YYYYMMDDHHmmss");
-                    }
-                    if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
-                      return cb2(null);
-                    }
-                    return async.series([
-                      function(cb3) {
-                        if (!bill.filter) {
-                          return cb3(null);
-                        }
-                        return exec(`gm identify ${img_path}${f_nm}`,
-                      function(error,
-                      stdout = "",
-                      stderr = "") {
-                          var height,
-                      info,
-                      width;
-                          if (error) {
-                            return cb3(error);
-                          }
-                          info = stdout.split(" ");
-                          width = +info[2].substring(0,
-                      info[2].indexOf("x"));
-                          height = +info[2].substring(info[2].indexOf("x") + 1,
-                      info[2].indexOf("+"));
-                          if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
-                            return cb3(null);
-                          } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
-                            return cb3(null);
-                          } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
-                            return cb3(null);
-                          } else {
-                            cut_stat.total--;
-                            return cb3("break");
-                          }
-                        });
-                      },
-                      function(cb3) {
-                        var cut_cmd,
-                      e,
-                      options;
-                        options = {
-                          src: `${img_path}${f_nm}`,
-                          dst: `${cut_path}${f_nm}`,
-                          x0: bill.x0,
-                          y0: bill.y0,
-                          x1: bill.x1,
-                          y1: bill.y1
-                        };
-                        cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
-                        try {
-                          cut_cmd = sprintf.sprintf(cut_cmd,
-                      options);
-                        } catch (error1) {
-                          e = error1;
-                          dbBill.state = -1; //切图失败
-                          return cb3(e);
-                        }
-                        return exec(cut_cmd,
-                      function(err,
-                      stdout,
-                      stderr,
-                      spent) {
-                          dbBill.state = 1; //切图完成
-                          if (err && (dbBill.state = -1)) { //切图失败
-                            return cb3(err);
-                          }
-                          stdout = `${stdout}`.trim();
-                          stderr = `${stderr}`.trim();
-                          if (stdout.length > 0) {
-                            LOG.info(stdout);
-                          }
-                          if (stderr.length > 0) {
-                            LOG.info(stderr);
-                          }
-                          LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-                          cut_stat.success++;
-                          return cb3(null);
-                        });
-                      }
-                    ], function(err) {
-                      if (err === "break") {
-                        LOG.trace(`break ${bill.filter} ${img_path}${f_nm}`);
-                        return cb2(null);
-                      }
-                      return cb2(err);
-                    });
-                  });
-                });
-              }, cb1);
-            }, function(err) {
-              image.state = 3; //分块完成
-              if (err && (image.state = -3)) { //分块失败
-                LOG.error(err);
-              }
-              return cb(null);
-            });
-          });
-        } else {
-          return async.each(bills, function(bill, cb1) {
-            var cut_path;
-            cut_path = rel_path.replace("image", "bill");
-            // cut_path = "#{cut_path}#{bill.code}/"
-            return mkdirp(cut_path, function(err) {
-              var dbBill;
-              if (err) {
-                return cb1(err);
-              }
-              cut_stat.total++;
+            return callback(null, param);
+          }
+          original.pages = menu.length;
+          return async.each(menu, function(f_nm, cb) {
+            return async.each(deploy_bills, function(bill, cb1) {
+              var cut_path, dbBill, img_path;
+              cut_path = rel_path.replace("image", "bill");
+              img_path = `${rel_path}${original.img_name.replace(".pdf", "")}/`;
+              cut_path = `${cut_path}${original.img_name.replace(".pdf", "")}/`;
               dbBill = {
                 deploy_id: bill._id.toString(),
                 type: "bill",
-                source_img: image._id,
+                source_img: param.image.filter(function(im) {
+                  return im.img_name === f_nm;
+                })._id,
                 code: bill.code,
-                img_name: image.img_name,
+                img_name: `${bill.code}${f_nm}`,
                 path: cut_path,
-                isDeploy: 0
+                upload_at: original.upload_at
               };
-              that.data.bills.push(dbBill);
+              param.bill.push(dbBill);
               return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
+                var ref3, ref4, ref5, ref6;
                 if (err) {
+                  dbBill.state = -1;
+                  dbBill.record = "系统异常";
+                  if ((ref3 = param.socket) != null) {
+                    ref3.emit(0, `${original.img_name}：${dbBill.code}系统异常`);
+                  }
                   return cb1(err);
                 }
                 if (doc) {
-                  cut_stat.exist++;
                   dbBill._id = doc._id.toString();
-                  dbBill.inDB = true;
                   dbBill.state = doc.state;
                   dbBill.isDeploy = doc.isDeploy;
+                  if ((ref4 = param.socket) != null) {
+                    ref4.emit(0, `${original.img_name}：${dbBill.code}分块在数据库存在记录`);
+                  }
                 } else {
                   dbBill._id = Utils.uuid(24, 16);
+                  dbBill.modify = 0;
                   dbBill.state = 0;
+                  dbBill.isDeploy = 0;
                   dbBill.create_at = moment().format("YYYYMMDDHHmmss");
                 }
-                if (doc && (doc.state === 1 || Math.abs(doc.state) > 1)) {
+                if (dbBill.state === 1) {
+                  if ((ref5 = param.socket) != null) {
+                    ref5.emit(0, `${original.img_name}：${dbBill.code}分块状态为-正常`);
+                  }
                   return cb1(null);
                 }
-                return async.series([
-                  function(cb2) {
-                    if (!bill.filter) {
-                      return cb2(null);
-                    }
-                    return exec(`gm identify ${rel_path}${image.img_name}`,
-                  function(error,
-                  stdout = "",
-                  stderr = "") {
-                      var height,
-                  info,
-                  width;
-                      if (error) {
-                        return cb2(error);
-                      }
-                      info = stdout.split(" ");
-                      width = +info[2].substring(0,
-                  info[2].indexOf("x"));
-                      height = +info[2].substring(info[2].indexOf("x") + 1,
-                  info[2].indexOf("+"));
-                      if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
-                        return cb2(null);
-                      } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
-                        return cb2(null);
-                      } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
-                        return cb2(null);
-                      } else {
-                        cut_stat.total--;
-                        return cb2("break");
-                      }
-                    });
-                  },
-                  function(cb2) {
-                    var cut_cmd,
-                  e,
-                  options;
-                    options = {
-                      src: `${rel_path}${image.img_name}`,
-                      dst: `${cut_path}${image.img_name}`,
-                      x0: bill.x0,
-                      y0: bill.y0,
-                      x1: bill.x1,
-                      y1: bill.y1
-                    };
-                    cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
-                    try {
-                      cut_cmd = sprintf.sprintf(cut_cmd,
-                  options);
-                    } catch (error1) {
-                      e = error1;
-                      dbBill.state = -1; //切图失败
-                      return cb2(e);
-                    }
-                    return exec(cut_cmd,
-                  function(err,
-                  stdout,
-                  stderr,
-                  spent) {
-                      dbBill.state = 1; //切图完成
-                      if (err && (dbBill.state = -1)) { //切图失败
-                        return cb2(err);
-                      }
-                      stdout = `${stdout}`.trim();
-                      stderr = `${stderr}`.trim();
-                      if (stdout.length > 0) {
-                        LOG.info(stdout);
-                      }
-                      if (stderr.length > 0) {
-                        LOG.info(stderr);
-                      }
-                      LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-                      cut_stat.success++;
-                      return cb2(null);
-                    });
+                dbBill.modify === void 0 && (dbBill.modify = 1);
+                if (dbBill.state === -1) {
+                  if ((ref6 = param.socket) != null) {
+                    ref6.emit(0, `${original.img_name}：${dbBill.code}分块状态为-异常，将重新加载`);
                   }
-                ], function(err) {
-                  if (err === "break") {
-                    LOG.trace(`break ${bill.filter} ${rel_path}${image.img_name}`);
-                    return cb1(null);
+                }
+                return mkdirp(cut_path, function(err) {
+                  var ref7;
+                  if (err) {
+                    dbBill.state = -1;
+                    dbBill.record = `创建分块切图目录失败：${cut_path}`;
+                    if ((ref7 = param.socket) != null) {
+                      ref7.emit(0, `${original.img_name}：创建${dbBill.code}分块切图目录失败`);
+                    }
+                    return cb1(err);
                   }
-                  return cb1(err);
+                  return async.series([
+                    function(cb2) {
+                      if (!bill.filter) {
+                        return cb2(null);
+                      }
+                      return exec(`gm identify ${img_path}${f_nm}`,
+                    function(error,
+                    stdout = "",
+                    stderr = "") {
+                        var height,
+                    info,
+                    ref8,
+                    width;
+                        if (error) {
+                          dbBill.state = -1;
+                          dbBill.record = `获取原图信息出错：gm identify ${img_path}${f_nm}`;
+                          if ((ref8 = param.socket) != null) {
+                            ref8.emit(-1,
+                    `${original.img_name}：${dbBill.code}获取原图信息出错`);
+                          }
+                          return cb2(error);
+                        }
+                        info = stdout.split(" ");
+                        width = +info[2].substring(0,
+                    info[2].indexOf("x"));
+                        height = +info[2].substring(info[2].indexOf("x") + 1,
+                    info[2].indexOf("+"));
+                        if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
+                          return cb2(null);
+                        } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
+                          return cb2(null);
+                        } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
+                          return cb2(null);
+                        } else {
+                          return cb2("break");
+                        }
+                      });
+                    },
+                    function(cb2) {
+                      var cut_cmd,
+                    e,
+                    options,
+                    ref8,
+                    ref9;
+                      options = {
+                        src: `${img_path}${f_nm}`,
+                        dst: `${cut_path}${bill.code}${f_nm}`,
+                        x0: bill.x0,
+                        y0: bill.y0,
+                        x1: bill.x1,
+                        y1: bill.y1
+                      };
+                      cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
+                      try {
+                        cut_cmd = sprintf.sprintf(cut_cmd,
+                    options);
+                      } catch (error1) {
+                        e = error1;
+                        dbBill.state = -1;
+                        dbBill.record = `获取切图命令有误：${cut_cmd}`;
+                        if ((ref8 = param.socket) != null) {
+                          ref8.emit(-1,
+                    `${original.img_name}：${dbBill.code}切图失败`);
+                        }
+                        return cb2(e);
+                      }
+                      if ((ref9 = param.socket) != null) {
+                        ref9.emit(0,
+                    `${original.img_name}：开始切图-${dbBill.code}`);
+                      }
+                      return exec(cut_cmd,
+                    function(err,
+                    stdout,
+                    stderr,
+                    spent) {
+                        var ref10,
+                    ref11,
+                    ref12;
+                        if (err) {
+                          dbBill.state = -1;
+                          dbBill.record = `切图命令执行有误：${cut_cmd}`;
+                          if ((ref10 = param.socket) != null) {
+                            ref10.emit(-1,
+                    `${original.img_name}：${dbBill.code}切图失败`);
+                          }
+                          return cb2(err);
+                        }
+                        stdout = `${stdout}`.trim();
+                        stderr = `${stderr}`.trim();
+                        if (stdout.length > 0) {
+                          LOG.info(stdout);
+                        }
+                        if (stderr.length > 0) {
+                          LOG.info(stderr);
+                        }
+                        dbBill.state = 1; //切图完成
+                        if ((ref11 = param.socket) != null) {
+                          ref11.emit(0,
+                    `${original.img_name}：切图完成-${dbBill.code}`);
+                        }
+                        if ((ref12 = param.socket) != null) {
+                          ref12.emit(0,
+                    `${original.img_name}：${dbBill.code}-${options.src} => ${options.dst} ${spent}ms`);
+                        }
+                        LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
+                        return cb2(null);
+                      });
+                    }
+                  ], function(err) {
+                    if (err === "break") {
+                      LOG.trace(`break ${bill.filter} ${img_path}${f_nm}`);
+                      return cb1(null);
+                    }
+                    return cb1(err);
+                  });
                 });
               });
-            });
+            }, cb);
           }, function(err) {
-            image.state = 3; //分块完成
-            if (err && (image.state = -3)) { //分块失败
-              LOG.error(err);
+            if (err) {
+              LOG.info(err);
             }
-            return cb(null);
+            return callback(null, param);
           });
-        }
-      }, function(err) {
-        if (err) {
-          LOG.error(JSON.stringify(err));
-        }
-        cut_stat.failure = cut_stat.total - cut_stat.success - cut_stat.exist;
-        LOG.info(JSON.stringify(cut_stat));
-        return callback.apply(this, arguments);
-      });
+        });
+      } else {
+        return async.each(deploy_bills, function(bill, cb1) {
+          var cut_path, dbBill;
+          cut_path = rel_path.replace("image", "bill");
+          dbBill = {
+            deploy_id: bill._id.toString(),
+            type: "bill",
+            source_img: param.image[0]._id,
+            code: bill.code,
+            img_name: bill.code + original.img_name,
+            path: cut_path,
+            upload_at: original.upload_at
+          };
+          param.bill.push(dbBill);
+          return mkdirp(cut_path, function(err) {
+            var ref2;
+            if (err) {
+              dbBill.state = -1;
+              dbBill.record = `创建分块切图目录失败：${cut_path}`;
+              if ((ref2 = param.socket) != null) {
+                ref2.emit(0, `${original.img_name}：创建${dbBill.code}分块切图目录失败`);
+              }
+              return cb1(err);
+            }
+            return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
+              var ref3, ref4, ref5, ref6;
+              if (err) {
+                dbBill.state = -1;
+                dbBill.record = "系统异常";
+                if ((ref3 = param.socket) != null) {
+                  ref3.emit(0, `${original.img_name}：${dbBill.code}：系统异常`);
+                }
+                return cb1(err);
+              }
+              if (doc) {
+                dbBill._id = doc._id.toString();
+                dbBill.state = doc.state;
+                dbBill.isDeploy = doc.isDeploy;
+                if ((ref4 = param.socket) != null) {
+                  ref4.emit(0, `${original.img_name}：${dbBill.code}分块在数据库存在记录`);
+                }
+              } else {
+                dbBill._id = Utils.uuid(24, 16);
+                dbBill.modify = 0;
+                dbBill.state = 0;
+                dbBill.isDeploy = 0;
+                dbBill.create_at = moment().format("YYYYMMDDHHmmss");
+              }
+              if (dbBill.state === 1) {
+                if ((ref5 = param.socket) != null) {
+                  ref5.emit(0, `${original.img_name}：${dbBill.code}分块状态为-正常`);
+                }
+                return cb1(null);
+              }
+              dbBill.modify === void 0 && (dbBill.modify = 1);
+              if (dbBill.state === -1) {
+                if ((ref6 = param.socket) != null) {
+                  ref6.emit(0, `${original.img_name}：${dbBill.code}分块状态为-异常，将重新加载`);
+                }
+              }
+              return async.series([
+                function(cb2) {
+                  if (!bill.filter) {
+                    return cb2(null);
+                  }
+                  return exec(`gm identify ${rel_path}${original.img_name}`,
+                function(error,
+                stdout = "",
+                stderr = "") {
+                    var height,
+                info,
+                ref7,
+                width;
+                    if (error) {
+                      dbBill.state = -1;
+                      dbBill.record = `获取原图信息出错：gm identify ${img_path}${f_nm}`;
+                      if ((ref7 = param.socket) != null) {
+                        ref7.emit(-1,
+                `${original.img_name}：${dbBill.code}获取原图信息出错`);
+                      }
+                      return cb2(error);
+                    }
+                    info = stdout.split(" ");
+                    width = +info[2].substring(0,
+                info[2].indexOf("x"));
+                    height = +info[2].substring(info[2].indexOf("x") + 1,
+                info[2].indexOf("+"));
+                    if (width > height && (bill.filter === "width>height" || bill.filter === "height<width")) {
+                      return cb2(null);
+                    } else if (width < height && (bill.filter === "width<height" || bill.filter === "height>width")) {
+                      return cb2(null);
+                    } else if (width === height && (bill.filter === "width==height" || bill.filter === "height==width")) {
+                      return cb2(null);
+                    } else {
+                      return cb2("break");
+                    }
+                  });
+                },
+                function(cb2) {
+                  var cut_cmd,
+                e,
+                options,
+                ref7,
+                ref8;
+                  options = {
+                    src: `${rel_path}${original.img_name}`,
+                    dst: `${cut_path}${bill.code}${original.img_name}`,
+                    x0: bill.x0,
+                    y0: bill.y0,
+                    x1: bill.x1,
+                    y1: bill.y1
+                  };
+                  cut_cmd = "gmic -v - %(src)s -crop[-1] %(x0)s,%(y0)s,%(x1)s,%(y1)s -o[-1] %(dst)s";
+                  try {
+                    cut_cmd = sprintf.sprintf(cut_cmd,
+                options);
+                  } catch (error1) {
+                    e = error1;
+                    dbBill.state = -1;
+                    dbBill.record = `获取切图命令有误：${cut_cmd}`;
+                    if ((ref7 = param.socket) != null) {
+                      ref7.emit(-1,
+                `${original.img_name}：${dbBill.code}获取切图命令有误`);
+                    }
+                    return cb2(e);
+                  }
+                  if ((ref8 = param.socket) != null) {
+                    ref8.emit(0,
+                `${original.img_name}：开始切图-${dbBill.code}`);
+                  }
+                  return exec(cut_cmd,
+                function(err,
+                stdout,
+                stderr,
+                spent) {
+                    var ref10,
+                ref11,
+                ref9;
+                    if (err) {
+                      dbBill.state = -1;
+                      dbBill.record = `切图命令执行有误：${cut_cmd}`;
+                      if ((ref9 = param.socket) != null) {
+                        ref9.emit(-1,
+                `${original.img_name}：${dbBill.code}切图失败`);
+                      }
+                      return cb2(err);
+                    }
+                    stdout = `${stdout}`.trim();
+                    stderr = `${stderr}`.trim();
+                    if (stdout.length > 0) {
+                      LOG.info(stdout);
+                    }
+                    if (stderr.length > 0) {
+                      LOG.info(stderr);
+                    }
+                    dbBill.state = 1; //切图完成
+                    if ((ref10 = param.socket) != null) {
+                      ref10.emit(0,
+                `${original.img_name}：开始完成-${dbBill.code}`);
+                    }
+                    if ((ref11 = param.socket) != null) {
+                      ref11.emit(0,
+                `${original.img_name}：${dbBill.code}-${options.src} => ${options.dst} ${spent}ms`);
+                    }
+                    LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
+                    return cb2(null);
+                  });
+                }
+              ], function(err) {
+                if (err === "break") {
+                  LOG.trace(`break ${bill.filter} ${rel_path}${original.img_name}`);
+                  return cb1(null);
+                }
+                return cb1(err);
+              });
+            });
+          });
+        }, function(err) {
+          if (err) {
+            LOG.info(err);
+          }
+          return callback(null, param);
+        });
+      }
     }
 
   };

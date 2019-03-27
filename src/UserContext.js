@@ -29,12 +29,30 @@
             callback(null, "error");
           }
           if (password === doc.password) {
-            return callback(null, "success");
+            return callback(null, "success", doc);
           } else {
             return callback(null, "failed");
           }
         }
       });
+    }
+
+    getUsers(param, callback) {
+      var dao;
+      dao = new MongoDao(__b_config.dbInfo, {
+        sys_user: ["users"]
+      });
+      if (!param) {
+        return callback(null);
+      }
+      param.filter || (param.filter = {});
+      if (param.count) {
+        return dao.sys_user.users.count(param.filter, callback);
+      } else if (param.skip) {
+        return dao.sys_user.users.selectBySortOrSkipOrLimit(param.filter, param.sort, +param.skip, +param.limit, callback);
+      } else {
+        return callback(null);
+      }
     }
 
   };

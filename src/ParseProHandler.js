@@ -7,9 +7,12 @@
   LOG = LoggerUtil.getLogger("ParseProHandler");
 
   ParseProHandler = class ParseProHandler extends Handler {
-    handle(callback) {
-      LOG.info("保单解析");
-      return callback();
+    handle(param, callback) {
+      if (!param || !param.data) {
+        LOG.warn(`${argv.project}：没有需要解析文件名的内容`);
+        return callback("没有需要解析文件名的内容");
+      }
+      return callback(null, param);
     }
 
   };

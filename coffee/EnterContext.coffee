@@ -24,11 +24,13 @@ class EnterContext extends Context
     dao = new MongoDao __b_config.dbInfo, {epcos: param.col}
     dao.epcos[param.col].delete param.filter, callback
   getEnterEntity: (param, callback)->
-    return callback "invalid param" unless param.data and param.data.project and param.data.stage
+    return callback "invalid param" unless param.data and param.data.project and param.data.task and param.data.stage
     dao = new MongoDao __b_config.dbInfo, {epcos: "resultData"}
-    entitys = global.enter.entitys[param.data.project][param.data.stage];
+    entitys = global.enter.entitys[param.data.project][param.data.task][param.data.stage];
     param.data._id = {$nin: (entitys.entering.map (d)-> d._id).concat entitys.data.map (d)-> d._id}
-    dao.epcos.resultData.selectBySortOrLimit param.data, {priority: -1}, param.limit, (err, docs)->
+    param.filter = param.data
+    param.sort = {priority: -1}
+    @getResultData param, (err, docs)->
       docs and docs.length < param.limit and (entitys.isEmpty = true)
       err or (entitys.data = entitys.data.concat docs)
       callback err
@@ -75,11 +77,20 @@ class EnterContext extends Context
           filter = {image: {$in: docs.map (im)-> im._id.toString()}}
           dao.epcos.deploy.selectList filter, (err, docs2)->
             return cb err if err
-            return cb err, image if !docs2 or !docs2.length
+            return cb err, docs if !docs2 or !docs2.length
             cb err, docs.concat docs2
       (deploys, cb)->
-        filter = {stage: "over",deploy_id: {$in: deploys.map (d)-> d._id.toString()}}
-        dao.epcos.resultData.selectBySortOrSkipOrLimit filter, {create_at: 1}, +param.skip, +param.limit, cb
+        filter = {stage: param.filter.stage, deploy_id: {$in: deploys.map (d)-> d._id.toString()}}
+        if param.isCount
+          dao.epcos.resultData.count filter, cb
+        else if param.isPage
+          dao.epcos.resultData.selectBySortOrSkipOrLimit filter, {create_at: 1}, +param.skip, +param.limit, cb
+        else if param.isSortAndLimit
+          dao.epcos.resultData.selectBySortOrLimit filter, param.sort, param.limit, cb
+        else if param.limit
+          dao.epcos.resultData.selectBySortOrLimit filter, param.sort, param.limit, cb
+        else
+          dao.epcos.resultData.selectBySortOrLimit filter, {create_at: 1}, -1, cb
     ], callback
       
 module.exports = EnterContext

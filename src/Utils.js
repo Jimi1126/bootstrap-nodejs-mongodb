@@ -29,6 +29,19 @@
         }
       });
       return fs.rmdir(path, callback);
+    } else {
+      return callback("unexist");
+    }
+  };
+
+  Utils.cropFile = function(source, target, callback) {
+    if (fs.existsSync(source)) {
+      return fs.readFile(source, function(err, data) {
+        if (err) {
+          return callback(err);
+        }
+        return fs.writeFile(target, data, callback);
+      });
     }
   };
 
@@ -51,7 +64,42 @@
         }
       }
     }
-    return uuid.join('');
+    return uuid.join('').toLowerCase();
+  };
+
+  Utils.getLength = function(str) {
+    str = str || "";
+    str = typeof str === "string" ? str : str + "";
+    return str.replace(/[\u0391-\uFFE5]/g, "aa").length; //先把中文替换成两个字节的英文，在计算长度
+  };
+
+  Utils.replaceAll = function(target, sce, val) {
+    var i, j, len1, t;
+    if (typeof target === "string") {
+      target = target.replace(new RegExp(sce, "g"), val);
+    }
+    if (Array.isArray(target)) {
+      for (i = j = 0, len1 = target.length; j < len1; i = ++j) {
+        t = target[i];
+        if (target[i] === sce) {
+          target[i] = val;
+        }
+      }
+    }
+    return target;
+  };
+
+  Utils.clone = function(obj) {
+    var e;
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (error) {
+      e = error;
+      if (typeof LOG !== "undefined" && LOG !== null) {
+        LOG.error(e.stack);
+      }
+      return obj;
+    }
   };
 
   module.exports = Utils;

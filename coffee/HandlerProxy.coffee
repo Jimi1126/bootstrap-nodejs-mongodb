@@ -30,8 +30,14 @@ class HandlerProxy extends Proxy
             LOG.info "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
             that.io and that.io.socket.emit 1, "#{that.target.constructor.name}.#{f.name}操作结束  --#{endTime - startTime}ms"
           params.push cb
-        f.apply that.target, params
+        try
+          f.apply that.target, params
+        catch e
+          LOG.error e.stack
       else
-        f.apply that.target, arguments
+        try
+          f.apply that.target, arguments
+        catch e
+          LOG.error e.stack
 
 module.exports = HandlerProxy

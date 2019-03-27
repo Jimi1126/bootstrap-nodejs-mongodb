@@ -65,13 +65,13 @@
 
     getEnterEntity(param, callback) {
       var dao, entitys;
-      if (!(param.data && param.data.project && param.data.stage)) {
+      if (!(param.data && param.data.project && param.data.task && param.data.stage)) {
         return callback("invalid param");
       }
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: "resultData"
       });
-      entitys = global.enter.entitys[param.data.project][param.data.stage];
+      entitys = global.enter.entitys[param.data.project][param.data.task][param.data.stage];
       param.data._id = {
         $nin: (entitys.entering.map(function(d) {
           return d._id;
@@ -79,9 +79,11 @@
           return d._id;
         }))
       };
-      return dao.epcos.resultData.selectBySortOrLimit(param.data, {
+      param.filter = param.data;
+      param.sort = {
         priority: -1
-      }, param.limit, function(err, docs) {
+      };
+      return this.getResultData(param, function(err, docs) {
         docs && docs.length < param.limit && (entitys.isEmpty = true);
         err || (entitys.data = entitys.data.concat(docs));
         return callback(err);
@@ -186,7 +188,7 @@
               }
               if (!docs2 || !docs2.length) {
                 return cb(err,
-        image);
+        docs);
               }
               return cb(err,
         docs.concat(docs2));
@@ -197,20 +199,42 @@
         cb) {
           var filter;
           filter = {
-            stage: "over",
+            stage: param.filter.stage,
             deploy_id: {
               $in: deploys.map(function(d) {
                 return d._id.toString();
               })
             }
           };
-          return dao.epcos.resultData.selectBySortOrSkipOrLimit(filter,
+          if (param.isCount) {
+            return dao.epcos.resultData.count(filter,
+        cb);
+          } else if (param.isPage) {
+            return dao.epcos.resultData.selectBySortOrSkipOrLimit(filter,
         {
-            create_at: 1
-          },
+              create_at: 1
+            },
         +param.skip,
         +param.limit,
         cb);
+          } else if (param.isSortAndLimit) {
+            return dao.epcos.resultData.selectBySortOrLimit(filter,
+        param.sort,
+        param.limit,
+        cb);
+          } else if (param.limit) {
+            return dao.epcos.resultData.selectBySortOrLimit(filter,
+        param.sort,
+        param.limit,
+        cb);
+          } else {
+            return dao.epcos.resultData.selectBySortOrLimit(filter,
+        {
+              create_at: 1
+            },
+        -1,
+        cb);
+          }
         }
       ], callback);
     }

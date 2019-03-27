@@ -66,6 +66,190 @@ function closeWindow() {
 // socket.on("closeWindow", closeWindow);
 // });
 
+$.old = {}
+$.old.get = $.get;
+$.old.post = $.post;
+$.get = function () {
+	var params, callback;
+	[...params] = arguments
+	if (params.length == 0) return;
+	callback = params.pop();
+	if (typeof callback == "function") {
+		params.push(function() {
+			if (arguments[0] == "notlogin") {
+				$('.ic-LoadUI').remove();
+				return Util.overTimeWin();
+			}
+			if (arguments[0] == "notauth") {
+				$('.ic-LoadUI').remove();
+				new ModalWindow({
+					title: "提示",
+					body: `<div>没有操作权限</div>`,
+					width: 400,
+					height: 30,
+					buttons:[
+						{
+							"name": "确定",
+							"class": "btn-primary",
+							event: function() {
+								this.hide();
+							}
+						}
+					]
+				}).show();
+				return;
+			}
+			if (arguments[0] && arguments[0].errno) {
+				$('.ic-LoadUI').remove();
+				new DetailDialog({
+					body: `<div>系统错误</div>`,
+					width: 400,
+					height: 30,
+					hideDetail: true
+				}).show().appendDetail(JSON.stringify(arguments[0]), -1);
+				return;
+			}
+			if (arguments[0] == "notauth") {
+				$('.ic-LoadUI').remove();
+				new ModalWindow({
+					title: "提示",
+					body: `<div>没有操作权限</div>`,
+					width: 400,
+					height: 30,
+					buttons:[
+						{
+							"name": "确定",
+							"class": "btn-primary",
+							event: function() {
+								this.hide();
+							}
+						}
+					]
+				}).show();
+				return;
+			}
+			if (arguments[1] != "success") {
+				$('.ic-LoadUI').remove();
+				return new Dialog().show("系统繁忙");
+			}
+			callback.apply(this, arguments);
+		});
+	} else {
+		params.push(callback);
+	}
+	$.old.get.apply(this, params);
+}
+$.post = function () {
+	var params, callback;
+	[...params] = arguments
+	if (params.length == 0) return;
+	callback = params.pop();
+	if (typeof callback == "function") {
+		params.push(function() {
+			$('.ic-LoadUI').remove();
+			if (arguments[0] == "notlogin") {
+				return Util.overTimeWin();
+			}
+			if (arguments[0] && arguments[0].errno) {
+				$('.ic-LoadUI').remove();
+				new DetailDialog({
+					body: `<div>系统错误</div>`,
+					width: 400,
+					height: 30,
+					hideDetail: true
+				}).show().appendDetail(JSON.stringify(arguments[0]), -1);
+				return;
+			}
+			if (arguments[1] != "success") {
+				$('.ic-LoadUI').remove();
+				return new Dialog().show("系统繁忙");
+			}
+			callback.apply(this, arguments);
+		});
+	} else {
+		params.push(callback);
+	}
+	$.old.post.apply(this, params);
+}
+
+$.syncGet = function() {
+	if (arguments.length < 1) return;
+	var resultData = null;
+	$.ajax({
+		url : arguments[0],
+		data:arguments[1],
+		cache : false, 
+		async : false, 
+		type : "get", 
+		dataType : 'json', 
+		success : function (result) {
+			if (result == "notlogin") {
+				return Util.overTimeWin();
+			}
+			if (result && result.errno) {
+				$('.ic-LoadUI').remove();
+				new DetailDialog({
+					body: `<div>系统错误</div>`,
+					width: 400,
+					height: 30,
+					hideDetail: true
+				}).show().appendDetail(JSON.stringify(result), -1);
+				return;
+			}
+			resultData = result;
+		},
+		error: function() {
+			$('.ic-LoadUI').remove();
+			new DetailDialog({
+				body: `<div>${arguments[1]}</div>`,
+				width: 400,
+				height: 30,
+				hideDetail: true
+			}).show().appendDetail(arguments[2], -1);
+		}
+	});
+	return resultData;
+}
+
+$.syncPost = function() {
+	if (arguments.length < 2) return;
+	var resultData = null;
+	$.ajax({
+		url : arguments[0],
+		data:arguments[1],
+		cache : false, 
+		async : false, 
+		type : "POST", 
+		dataType : 'json', 
+		success : function (result) {
+			if (result == "notlogin") {
+				return Util.overTimeWin();
+			}
+			if (result && result.errno) {
+				$('.ic-LoadUI').remove();
+				new DetailDialog({
+					body: `<div>系统错误</div>`,
+					width: 400,
+					height: 30,
+					hideDetail: true
+				}).show().appendDetail(JSON.stringify(result), -1);
+				return;
+			}
+			resultData = result;
+		},
+		error: function() {
+			$('.ic-LoadUI').remove();
+			new DetailDialog({
+				body: `<div>${arguments[1]}</div>`,
+				width: 400,
+				height: 30,
+				hideDetail: true
+			}).show().appendDetail(arguments[2], -1);
+		}
+	});
+	return resultData;
+}
+
 $.namespace = function () {
 	var a = arguments, o = null, i, j, d;
 	for (i = 0; i < a.length; i = i + 1) {
@@ -157,6 +341,24 @@ Util.getBitDate = function(bit) {
 	}
 	return res;
 }
+Util.parseDate = function(dateStr) {
+	if (!dateStr) {
+		return "";
+	}
+	return dateStr.substr(0, 4) + "-" + dateStr.substr(4, 2) + "-" + dateStr.substr(6, 2) +
+		" " + dateStr.substr(8, 2) + ":" + dateStr.substr(10, 2) + ":" + dateStr.substr(12, 2);
+}
+Util.LPAD = function(target, bit, flag) {
+	target = target ? target + "" : "";
+	var result = target;
+	if (!bit || (flag + "").length == 0) {
+		return result;
+	}
+	while(result.length < bit) {
+		result = flag + result;
+	}
+	return result;
+}
 
 Util.isChange = function (bef, cur) {
 	if (Array.isArray(bef)) {
@@ -177,6 +379,28 @@ Util.isChange = function (bef, cur) {
 		return bef !== cur;
 	}
 }
+
+Util.getLength = function(str) {
+	str = str || "";
+	str = typeof str === "string" ? str : str + "";
+	return str.replace(/[\u0391-\uFFE5]/g, "aa").length; //先把中文替换成两个字节的英文，在计算长度
+};
+
+Util.replaceAll = function(target, sce, val) {
+	var i, j, len1, t;
+	if (typeof target === "string") {
+		target.replace(new RegExp(sce, "g"), val);
+	}
+	if (Array.isArray(target)) {
+		for (i = j = 0, len1 = target.length; j < len1; i = ++j) {
+			t = target[i];
+			if (target[i] === sce) {
+				target[i] = val;
+			}
+		}
+	}
+	return target;
+};
 
 Util.showOverTimeWin = false;
 Util.overTimeWin = function() {
@@ -224,6 +448,26 @@ Util.overTimeWin = function() {
 		});
 	Util.overTimeModalWindow.show();
 	$(".modal-footer").append($(`<span id="tip" style="color:red;float: left;"></span>`));
+}
+
+/**
+ * 保存CSV文件
+ * @params csv csv文件内容
+ * @params saveName 保存的文件名
+ */
+Util.saveCSV = function(csv, saveName) {
+ var blob = new Blob(['\ufeff' + csv], {type: 'text/csv,charset=UTF-8'});
+ Util.openDownloadDialog(blob, saveName);
+}
+
+Util.openDownloadDialog = function(url, saveName) {
+  if (typeof url === 'object' && url instanceof Blob) {
+    url = URL.createObjectURL(url); // 创建blob地址
+  }
+  const aLink = document.createElement('a');
+  aLink.href = url;
+  aLink.download = saveName;
+  aLink.click();
 }
 
 function LoadUI(target) {
@@ -331,7 +575,7 @@ DetailDialog.prototype = {
 		detailBtn = $('<div class="detail-btn" title="详情"><span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span></div>');
 		that.$modal.find(".modal-footer:first").append(detailBtn);
 		that.detail = {}
-		that.detail.$detailArea = $('<textarea disabled></textarea>');
+		that.detail.$detailArea = $('<div disabled style="max-height: 200px;overflow: auto;text-align:left;"></div>');
 		that.$modal.find(".detial").append(that.detail.$detailArea);
 		that.detail.area_line = 1;
 		that.detail.auth_scroll = true;
@@ -398,13 +642,16 @@ DetailDialog.prototype = {
 			keyboard: that.options.keyboard != undefined ? that.options.keyboard : false
 		}
 		that.$modal.modal(showOptions);
+		return this;
 	},
 	hide: function () {
 		this.$modal && this.$modal.modal("hide");
 	},
-	appendDetail: function(content) {
+	appendDetail: function(content, co) {
 		var that = this;
-		that.detail && that.detail.$detailArea.text(`${that.detail.$detailArea.text()}${that.detail.area_line++}行：${content}\n`);
+		var color = co ? (co == -1 ? "#a94442" : (co == 0 ? "#3c763d" : "#337ab7")) : "#3c763d";
+		var $text = `<div style="color:${color}">${that.detail.area_line++}行：${content}\n<div>`
+		that.detail && that.detail.$detailArea.append($text);
 		that.detail.isAppendEvent = true;
 		that.detail.auth_scroll && (that.detail.$detailArea[0].scrollTop = that.detail.$detailArea[0].scrollHeight);
 	},
@@ -718,7 +965,7 @@ $.fn.dropMenu = function (options) {
 }
 
 $.fn.icTable = function (options) {
-	var html, header, body;
+	var html, $html, header, body, $empty;
 	var that = this;
 	this.css({
 		'overflow-y': 'auto',
@@ -730,7 +977,27 @@ $.fn.icTable = function (options) {
 	header = $(html);
 	html = '<table class="table table-body"><thead><tr></tr></thead><tbody></tbody></table>';
 	body = $(html);
+	html = '<div style="color: #ccc;width: 100%;text-align: center;">&lt;暂无内容&gt;</div>';
+	$empty = $(html);
+	!options.height && this.height() > 40 && $empty.css({
+		"height": this.height() - 40,
+		"line-height": this.height() - 40 + "px"
+	});
+	function multEvent() {
+		var flag = this.checked;
+		body.find('tbody>tr>td>input[dataField="mult"]').each(function() {
+			this.checked = flag;
+		});
+	}
+	body.find("tbody").append($empty);
 	if (options.title) {
+		if (options.mult) {
+			var $th = $('<th style="min-width: 40px;width: 40px;vertical-align: middle;"></th>');
+			var $check = $('<input type="checkbox" dataField="mult">');
+			$check.bind("click", multEvent);
+			$th.append($check);
+			header.find('thead>tr').append($th);
+		}
 		if (options.rowNum == undefined || options.rowNum) {
 			html = '<th style="min-width: 40px;width: 50px;"><input value="序号" readOnly></th>';
 			header.find('thead>tr').append(html);
@@ -754,6 +1021,10 @@ $.fn.icTable = function (options) {
 		});
 		options.width && $tableDiv.css("width", options.width);
 		options.height && $tableDiv.css("height", options.height - 36);
+		options.height && $empty.css({
+			"height": (options.height + "").endsWith("px") ? +options.height.replace("px", "") - 80 : +options.height - 80,
+			"line-height": (options.height + "").endsWith("px") ? +options.height.replace("px", "") - 80 + "px" : +options.height - 80 + "px"
+		});
 		$tableDiv.append(header);
 		$tableDiv.append(body);
 		$page = $(`<div style="height:34px;float:right;margin-right:0px;"></div>`);
@@ -907,7 +1178,8 @@ $.fn.icTable = function (options) {
 			$paging.find("li[page_n]:first").click();
 		}
 		this.pager.setTotal = function(t) {
-			if (+t) {
+			that.value([]);
+			if (+t || t == 0) {
 				$total.find("span").text(t);
 				that.pager.initPaging();
 			}
@@ -928,6 +1200,12 @@ $.fn.icTable = function (options) {
 		this.append($tableDiv);
 		this.append($page);
 	} else {
+		options.width && this.css("width", options.width);
+		options.height && this.css("height", options.height);
+		options.height && $empty.css({
+			"height": (options.height + "").endsWith("px") ? +options.height.replace("px", "") - 40 : +options.height - 40,
+			"line-height": (options.height + "").endsWith("px") ? +options.height.replace("px", "") - 40 + "px" : +options.height - 40 + "px"
+		});
 		this.append(header);
 		this.append(body);
 	}
@@ -956,7 +1234,12 @@ $.fn.icTable = function (options) {
 	}
 	this.insert = function(data) {
 		var $tr, value, $td;
+		$empty && $empty.remove();
 		$tr = $('<tr></tr>');
+		if (options.mult) {
+			html = '<td style="min-width: 40px;width: 40px;vertical-align: middle;"><input type="checkbox" dataField="mult"></td>';
+			$tr.append(html);
+		}
 		if (options.rowNum == undefined || options.rowNum) {
 			var lastRowNum = body.find("tbody input[value]:last");
 			var i = lastRowNum.length == 0 ? 0 : +lastRowNum.val();
@@ -1017,6 +1300,7 @@ $.fn.icTable = function (options) {
 			return _datas;
 		} else {
 			body.find('tbody').html("");
+			Util.isEmpty(_datas) && body.find('tbody').append($empty);
 			_datas && _datas.forEach && _datas.forEach(function (data, i) {
 				that.insert(data);
 			});
@@ -1054,12 +1338,63 @@ $.fn.icTable = function (options) {
 			$tr.length > 0 && $tr.click() && $tr[0].scrollIntoView();
 		}
 	}
+	this.multSelect = function (indexs) {
+		if (arguments.length == 0) {
+			if (body.find('tr>td>input[datafield="mult"]').length == 0) {
+				return [that.select()];
+			}
+			var data = [];
+			var $check = null;
+			body.find('tr').each(function () {
+				$check = $(this).find('input[datafield="mult"]');
+				if (!$check || $check.length == 0) return;
+				var multRow = {};
+				if ($check[0].checked) {
+					$(this).find("input[datafield]:gt(0)").each(function() {
+						multRow[$(this).attr("datafield")] = $(this).val();
+					});
+					data.push(multRow);
+				}
+			});
+			return data;
+		} else if (!Util.isEmpty(indexs)) {
+			if (body.find('tr>td>input[datafield="mult"]').length == 0) {
+				return;
+			}
+			indexs.forEach && indexs.forEach(function(ind) {
+				body.find('tr>td>input[datafield="mult"]:eq(' + ind + ')').click();
+			});
+		}
+	}
 	this.asyncData = function(_datas) {
 		if(!!_datas) {
 			$.each(options.dataFields, function (j, key) {
 				body.find("[dataField=" + (key.code || key) + "]").each(function(i, td) {
 					$(this).val(_datas[i][(key.code || key)]);
 				});
+			});
+		}
+	}
+	this.setWidth = function(wi) {
+		if (!!wi) {
+			if (options.pagination) {
+				$tableDiv.width(wi);
+			} else {
+				this.width(wi);
+			}
+		}
+		this.refresh();
+	}
+	this.setHeight = function(hi) {
+		if (!!hi) {
+			if (options.pagination) {
+				$tableDiv.height(hi);
+			} else {
+				this.height(hi);
+			}
+			$empty.css({
+				"height": (hi + "").endsWith("px") ? +hi.replace("px", "") - 80 : +hi - 80,
+				"line-height": (hi + "").endsWith("px") ? +hi.replace("px", "") - 80 + "px" : +hi - 80 + "px"
 			});
 		}
 	}
@@ -1074,7 +1409,11 @@ $.fn.icTable = function (options) {
 		body.css("margin-top", header.height());
 		var iterator = null;
 		var width = 0;
-		if (options.rowNum == undefined || options.rowNum) {
+		if (options.mult && (options.rowNum == undefined || options.rowNum)) {
+			iterator = header.find('th:gt(1)');
+		} else if (!options.mult && (options.rowNum == undefined || options.rowNum)) {
+			iterator = header.find('th:gt(0)');
+		} else if (options.mult && options.rowNum != undefined && !options.rowNum) {
 			iterator = header.find('th:gt(0)');
 		} else {
 			iterator = header.find('th');
@@ -1187,3 +1526,7 @@ var NavBar = function(options) {
 	return that;
 }
 $.fn.navBar = NavBar;
+
+window.epcos = {}
+
+epcos.userInfo = $.syncGet("/user/userInfo");

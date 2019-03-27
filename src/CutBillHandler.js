@@ -12,29 +12,38 @@
   LOG = LoggerUtil.getLogger("CutBillHandler");
 
   CutBillHandler = class CutBillHandler extends Handler {
-    handle(callback) {
-      var cut_stat, dao, exec, that;
+    handle(param, callback) {
+      var dao, exec, original, ref, ref1, ref2, that;
       that = this;
-      if (!this.data.bills) {
-        LOG.warn(`${argv.project}：没有需要切割的分快`);
-        return callback(null);
+      if (!param || !param.data) {
+        LOG.warn(`${argv.project}：没有原图`);
+        return callback("没有原图");
       }
-      this.data.fields = [];
+      param.field = [];
+      original = param.data;
+      if (!param.bill) {
+        LOG.warn(`${argv.project}：没有分块`);
+        if ((ref = param.socket) != null) {
+          ref.emit(-1, `${original.img_name}：没有分块需要切割`);
+        }
+        return callback(null, param);
+      }
+      if (original.state !== 1) {
+        LOG.warn(`${original.img_name}：字段-原件异常`);
+        if ((ref1 = param.socket) != null) {
+          ref1.emit(-1, `${original.img_name}：字段-原件异常`);
+        }
+        return callback(null, param);
+      }
+      if ((ref2 = param.socket) != null) {
+        ref2.emit(0, `${original.img_name}：开始切字段`);
+      }
       exec = new ExecHandler().queue_exec(3);
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: ["entity"]
       });
-      cut_stat = {
-        total: 0,
-        success: 0,
-        failure: 0,
-        exist: 0
-      };
-      return async.each(this.data.bills, function(bill, cb) {
+      return async.each(param.bills, function(bill, cb) {
         var bill_path, fields;
-        if (bill.state !== 1 && bill.state !== -2) {
-          return cb(null);
-        }
         bill_path = bill.path;
         fields = that.data.deploy.fields.filter(function(f) {
           return f.bill === bill.deploy_id;
@@ -42,45 +51,65 @@
         return async.each(fields, function(field, cb1) {
           var dbField, field_path;
           field_path = bill_path.replace("bill", "field");
-          // field_path = "#{field_path}/#{field.code}/"
           dbField = {
             deploy_id: field._id.toString(),
             type: "field",
             source_img: bill.source_img,
             source_bill: bill._id,
             code: field.code,
-            img_name: bill.img_name,
-            path: field_path,
-            isDeploy: 0
+            img_name: field.code + bill.img_name,
+            path: field_path
           };
-          that.data.fields.push(dbField);
+          param.field.push(dbField);
           return dao.epcos.entity.selectOne(dbField, function(err, doc) {
+            var ref3, ref4, ref5, ref6;
             if (err) {
+              dbField.state = -1;
+              dbField.record = "系统异常";
+              if ((ref3 = param.socket) != null) {
+                ref3.emit(-1, `${original.img_name}-${bill.code}-${dbField.code}：系统异常`);
+              }
               return cb1(err);
             }
             if (doc) {
-              cut_stat.exist++;
               dbField._id = doc._id.toString();
-              dbField.inDB = true;
+              dbField.modify = 0;
               dbField.state = doc.state;
               dbField.isDeploy = doc.isDeploy;
+              if ((ref4 = param.socket) != null) {
+                ref4.emit(0, `${original.img_name}-${bill.code}-${dbField.code}：字段在数据库存在记录`);
+              }
             } else {
               dbField._id = Utils.uuid(24, 16);
               dbField.state = 0; //待切图
+              dbField.isDeploy = 0;
               dbField.create_at = moment().format("YYYYMMDDHHmmss");
             }
-            if (doc && doc.state === 1) {
-              return cb2(null);
+            if (dbField.state === 1) {
+              if ((ref5 = param.socket) != null) {
+                ref5.emit(0, `${original.img_name}-${bill.code}-${dbField.code}：字段状态为-正常`);
+              }
+              return cb1(null);
+            }
+            dbField.modify === void 0 && (dbField.modify = 1);
+            if (dbField.state === -1) {
+              if ((ref6 = param.socket) != null) {
+                ref6.emit(0, `${original.img_name}-${bill.code}-${dbField.code}:字段状态为-异常，将重新加载`);
+              }
             }
             return mkdirp(field_path, function(err) {
-              var cut_cmd, e, options;
-              if (err && (dbField.state = -1)) { //切字段失败
+              var cut_cmd, e, options, ref7, ref8;
+              if (err) {
+                dbField.state = -1;
+                dbField.record = `创建分块切图目录失败：${cut_path}`;
+                if ((ref7 = param.socket) != null) {
+                  ref7.emit(-1, `${original.img_name}-${bill.code}：创建${dbField.code}分块切图目录失败`);
+                }
                 return cb1(err);
               }
-              cut_stat.total++;
               options = {
                 src: `${bill_path}${bill.img_name}`,
-                dst: `${field_path}${bill.img_name}`,
+                dst: `${field_path}${field.code + bill.img_name}`,
                 x0: field.x0,
                 y0: field.y0,
                 x1: field.x1,
@@ -91,12 +120,21 @@
                 cut_cmd = sprintf.sprintf(cut_cmd, options);
               } catch (error) {
                 e = error;
-                dbField.state = -1; //切字段失败
-                cb1(e);
+                dbField.state = -1;
+                dbField.record = `获取切图命令有误：${cut_cmd}`;
+                if ((ref8 = param.socket) != null) {
+                  ref8.emit(-1, `${original.img_name}-${bill.code}-${dbField.code}：切图失败`);
+                }
+                return cb1(e);
               }
               return exec(cut_cmd, function(err, stdout, stderr, spent) {
-                dbField.state = 1; //切字段完成
-                if (err && (dbField.state = -1)) { //切字段失败
+                var ref10, ref11, ref9;
+                if (err) {
+                  dbField.state = -1;
+                  dbField.record = `切图命令执行有误：${cut_cmd}`;
+                  if ((ref9 = param.socket) != null) {
+                    ref9.emit(-1, `${original.img_name}-${bill.code}-${dbField.code}：切图失败`);
+                  }
                   return cb1(err);
                 }
                 stdout = `${stdout}`.trim();
@@ -108,25 +146,29 @@
                   LOG.info(stderr);
                 }
                 LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
-                cut_stat.success++;
+                dbField.state = 1; //切图完成
+                if ((ref10 = param.socket) != null) {
+                  ref10.emit(0, `${original.img_name}-${bill.code}-${dbField.code}：切图完成`);
+                }
+                if ((ref11 = param.socket) != null) {
+                  ref11.emit(0, `${original.img_name}-${bill.code}-${dbField.code}：${options.src} => ${options.dst} ${spent}ms`);
+                }
+                LOG.info(`${options.src} => ${options.dst} ${spent}ms`);
                 return cb1(null);
               });
             });
           });
         }, function(err) {
-          bill.state = 2; //字段切图完成
-          if (err && (bill.state = -2)) { //字段切图失败
-            LOG.error(err);
+          if (err) {
+            LOG.info(err);
           }
           return cb(null);
         });
       }, function(err) {
         if (err) {
-          LOG.error(JSON.stringify(err));
+          LOG.info(err);
         }
-        cut_stat.failure = cut_stat.total - cut_stat.success - cut_stat.exist;
-        LOG.info(JSON.stringify(cut_stat));
-        return callback.apply(this, arguments);
+        return callback(null, param);
       });
     }
 

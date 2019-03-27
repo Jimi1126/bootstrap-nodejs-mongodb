@@ -11,9 +11,10 @@
   SocketIORouter = class SocketIORouter {
     router(socket) {
       socket.use(function(packet, next) {
+        var ref, ref1, str;
+        str = (socket != null ? (ref = socket.request) != null ? (ref1 = ref.headers) != null ? ref1.cookie : void 0 : void 0 : void 0) || "";
         return next();
       });
-      // str = socket.request.headers.cookie || ""
       // index = str.indexOf("login=s%3A")
       // return socket.emit "unlogin" if index is -1
       // sessionid = str.substring index + 10, index + 42
@@ -56,9 +57,9 @@
         confMap = {};
         for (i = 0, len = configs.length; i < len; i++) {
           conf = configs[i];
-          confMap[conf.file_id] || (confMap[conf.file_id] = []);
-          confMap[conf.file_id].push({
-            field_id: conf.field_id,
+          confMap[conf.deploy_id] || (confMap[conf.deploy_id] = []);
+          confMap[conf.deploy_id].push({
+            field_id: conf.deploy_id,
             field_name: conf.field_name,
             src_type: conf.src_type,
             value: {},
@@ -71,7 +72,7 @@
             col: "resultData",
             filter: {
               deploy_id: k,
-              stage: "ocr"
+              stage: "op1"
             }
           }, function(err, docs) {
             if (err) {
@@ -84,7 +85,7 @@
                 col: "resultData",
                 filter: {
                   deploy_id: k,
-                  stage: "ocr"
+                  stage: "op1"
                 },
                 setter: {
                   enter: v
@@ -126,7 +127,7 @@
                       enter: v,
                       stage: "ocr",
                       priority: "1",
-                      create_at: moment().format("YYYYMMDDHHmmss")
+                      create_at: entity.create_at
                     });
                   }
                   return context.save({
@@ -149,61 +150,6 @@
           });
         }, function(err) {});
       });
-      // 释放录入实体
-      socket.on("letEnterEntity", function(data, callback) {
-        var entitys, freeObj;
-        if (!data || !data.project || !data.stage || !global.enter) {
-          return typeof callback === "function" ? callback("failed") : void 0;
-        }
-        entitys = global.enter.entitys[data.project][data.stage];
-        freeObj = (entitys.entering.splice(entitys.entering.findIndex(function(en) {
-          return en && en._id.toString() === data._id;
-        }), 1))[0];
-        freeObj && entitys.data.unshift(freeObj);
-        return typeof callback === "function" ? callback("success") : void 0;
-      });
-      // 提交录入
-      socket.on("submitEnter", function(data, callback) {
-        var context, e, en, entitys, i, len, rankArr, ref;
-        if (!data || !data.project || !data.stage) {
-          return typeof callback === "function" ? callback("failed") : void 0;
-        }
-        rankArr = ["ocr", "op1", "op2", "op3", "op4", "over"];
-        try {
-          entitys = global.enter.entitys[data.project][data.stage];
-          entitys.entering.splice(entitys.entering.findIndex(function(en) {
-            return en._id.toString() === data._id;
-          }), 1);
-          if (data.stage === "op2") {
-            ref = data.enter;
-            for (i = 0, len = ref.length; i < len; i++) {
-              en = ref[i];
-              if (en.value["op1"] !== en.value["op2"]) {
-                data.stage = "no";
-              }
-            }
-            data.stage === "op2" && (data.stage = "over");
-            data.stage === "no" && (data.stage = "op3");
-          } else {
-            data.stage = rankArr[(rankArr.findIndex(function(r) {
-              return r === data.stage;
-            })) + 1];
-          }
-          entitys = global.enter.entitys[data.project][data.stage];
-          entitys && (entitys.isEmpty = false);
-          context = new EnterContext();
-          return context.update({
-            col: "resultData",
-            filter: {
-              _id: data._id
-            },
-            setter: data
-          }, callback);
-        } catch (error) {
-          e = error;
-          return callback(e);
-        }
-      });
       // 下载与解析
       // socket.removeAllListeners "startDownAndParse"
       socket.on("startDownAndParse", function(image) {
@@ -212,19 +158,37 @@
         context = new DownloadContext();
         d_socket = {
           emit: function(flag, logInfo) {
-            return that.emit("downAndParseProgress", flag, logInfo);
+            return setTimeout(function() {
+              return that.emit("downAndParseProgress", flag, logInfo);
+            }, 0);
           },
           on: function() {
             return that.on.apply(that, arguments);
           }
         };
-        return context.execute(image, d_socket, function(err) {
+        return context.execute(image, d_socket, function(err, pages) {
+          var setter;
           if (err) {
             LOG.error(err);
-            that.emit("downAndParseProgress", "error", err);
+            that.emit("downAndParseProgress", -1, err);
+          } else {
+            context = new EnterContext();
+            setter = {
+              $set: {
+                pages: pages,
+                state: "待分配",
+                scan_at: moment().format("YYYYMMDDHHmmss")
+              }
+            };
+            context.update({
+              col: "task",
+              filter: {
+                _id: image.task
+              },
+              setter: setter
+            }, function() {});
           }
-          that.emit("downAndParseProgress", "final");
-          return that.removeAllListeners("startDownAndParse");
+          return that.emit("downAndParseProgress", "final");
         });
       });
       return socket.on("disconnect", function() {});

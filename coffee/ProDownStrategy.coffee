@@ -5,17 +5,17 @@
 Istrategy = require "./Istrategy"
 Handler = require "./Handler"
 class ProDownStrategy extends Istrategy
-  ###
-  # 策略的业务数据
-  # 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
-  # 因此一个操作者将访问上一位操作者处理完的数据
-  # 一般地操作者通过verify方法检查业务数据以决定是否进行本身的操作
-  ###
-  data: {}
-  ## 操作者名称列表，预下载策略会根据这个顺序调用操作者
-  handlerList: []
   constructor: (execOrderList, socket)->
     super()
+    ###
+    # 策略的业务数据
+    # 通过在实例化操作者过程中提供引用，让所在该策略中的操作者都有权访问
+    # 因此一个操作者将访问上一位操作者处理完的数据
+    # 一般地操作者通过verify方法检查业务数据以决定是否进行本身的操作
+    ###
+    @data = {}
+    ## 操作者名称列表，预下载策略会根据这个顺序调用操作者
+    @handlerList = []
     if execOrderList and execOrderList instanceof Array
       for moduleName, i in execOrderList
         continue unless moduleName or moduleName isnt ""

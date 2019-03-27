@@ -11,7 +11,8 @@ HomePage.prototype = {
 		this.bindEvent();
 	},
 	initPage: function() {
-
+		$("#username").text(epcos.userInfo && epcos.userInfo.nickname);
+		$("#post").text(epcos.userInfo && epcos.userInfo.staffRole);
 	},
 	adjustUI: function() {
 
@@ -33,7 +34,8 @@ HomePage.prototype = {
 				{id:"1",code:"1",name: "统计报表", subMenu: [
 					{id:"1",code:"1",name: "产量统计", winName: "产量统计", type: "newWin", url: "../pages/outputStatis.html"},
 					{id:"1",code:"1",name: "页数统计", winName: "页数统计", type: "newWin", url: "../pages/pageStatis.html"}
-				]}
+				]},
+				{id:"1",code:"1",name: "权限设置", winName: "权限设置", type: "newWin", url: "../pages/authConfig.html"},
 			]
 		});
 		},
@@ -43,12 +45,18 @@ HomePage.prototype = {
 		logoutEvent: function() {
 			var that = this;
 			var modalWindow = new ModalWindow({
-				title: "退出",
+				title: "注销",
 				body: "<div>是否退出当前登陆？</div>",
-				width: 222,
+				width: 300,
 				height: 28,
 				buttons: [{
-					name: "是",
+					name: "取消",
+					class: "btn-default",
+					event: function () {
+						this.hide();
+					}
+				}, {
+					name: "退出",
 					class: "btn-primary",
 					event: function () {
 						that.loadUI.show();
@@ -61,12 +69,6 @@ HomePage.prototype = {
 								that.dialog.show('系统繁忙');
 							}
 						});
-					}
-				}, {
-					name: "否",
-					class: "btn-default",
-					event: function () {
-						this.hide();
 					}
 				}
 			]

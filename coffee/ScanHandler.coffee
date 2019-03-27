@@ -14,7 +14,8 @@ class ScanHandler extends Handler
     async.each that.data.deploy.images, (image, cb)->
       return cb null unless image.d_url
       cmd = image.d_url
-      cmd = "curl #{cmd}" unless cmd.startsWith "curl"
+      if !/^dir/.test(cmd)  and !/^curl/.test(cmd)
+        cmd = "curl #{cmd}"
       cmd_display = cmd?.replace /\s+\-u\s+\S+/g, " -u '***:***'" #不打印密码
       LOG.info "开始扫描 image.d_url: #{cmd_display}"
       start_at = moment()

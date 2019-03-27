@@ -37,14 +37,11 @@
           e = error;
           return LOG.error(e.stack);
         } finally {
-          if (db != null) {
-            if (typeof db.close === "function") {
-              db.close();
-            }
-          }
+
         }
       };
       try {
+        // db?.close?()
         return mongoClient.connect(this.url, this.DB_OPTS, cb);
       } catch (error) {
         e = error;
@@ -189,40 +186,75 @@
     }
 
     selectBySortOrLimit(param, sort, limit, callback) {
-      return this.connect((err, db) => {
+      return this.keepConnect((err, db) => {
         if (err) {
           return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         if (limit === -1) {
-          return db.collection(this.collection).find(param).sort(sort).toArray(callback);
+          return db.collection(this.collection).find(param).sort(sort).toArray(function(err, docs) {
+            if (db != null) {
+              if (typeof db.close === "function") {
+                db.close();
+              }
+            }
+            return callback(err, docs);
+          });
         } else {
-          return db.collection(this.collection).find(param).sort(sort).limit(limit).toArray(callback);
+          return db.collection(this.collection).find(param).sort(sort).limit(limit).toArray(function(err, docs) {
+            if (db != null) {
+              if (typeof db.close === "function") {
+                db.close();
+              }
+            }
+            return callback(err, docs);
+          });
         }
       });
     }
 
     selectBySortOrSkipOrLimit(param, sort, skip, limit, callback) {
-      return this.connect((err, db) => {
+      return this.keepConnect((err, db) => {
         if (err) {
           return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
         if (limit === -1) {
-          return db.collection(this.collection).find(param).skip(skip).sort(sort).toArray(callback);
+          return db.collection(this.collection).find(param).skip(skip).sort(sort).toArray(function(err, docs) {
+            if (db != null) {
+              if (typeof db.close === "function") {
+                db.close();
+              }
+            }
+            return callback(err, docs);
+          });
         } else {
-          return db.collection(this.collection).find(param).skip(skip).limit(limit).sort(sort).toArray(callback);
+          return db.collection(this.collection).find(param).skip(skip).limit(limit).sort(sort).toArray(function(err, docs) {
+            if (db != null) {
+              if (typeof db.close === "function") {
+                db.close();
+              }
+            }
+            return callback(err, docs);
+          });
         }
       });
     }
 
     selectList(param, callback) {
-      return this.connect((err, db) => {
+      return this.keepConnect((err, db) => {
         if (err) {
           return callback(err);
         }
         param._id && typeof param._id === "string" && (param._id = ObjectId(param._id));
-        return db.collection(this.collection).find(param).toArray(callback);
+        return db.collection(this.collection).find(param).toArray(function(err, docs) {
+          if (db != null) {
+            if (typeof db.close === "function") {
+              db.close();
+            }
+          }
+          return callback(err, docs);
+        });
       });
     }
 

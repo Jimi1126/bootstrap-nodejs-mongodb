@@ -4,8 +4,8 @@ LOG = LoggerUtil.getLogger "SocketIORouter"
 class SocketIORouter
 	router: (socket)->
 		socket.use (packet, next)->
+			str = socket?.request?.headers?.cookie || ""
 			next()
-			# str = socket.request.headers.cookie || ""
 			# index = str.indexOf("login=s%3A")
 			# return socket.emit "unlogin" if index is -1
 			# sessionid = str.substring index + 10, index + 42
@@ -41,9 +41,9 @@ class SocketIORouter
 			project = configs[0].project
 			confMap = {}
 			for conf in configs
-				confMap[conf.file_id] || (confMap[conf.file_id] = [])
-				confMap[conf.file_id].push {
-					field_id: conf.field_id
+				confMap[conf.deploy_id] || (confMap[conf.deploy_id] = [])
+				confMap[conf.deploy_id].push {
+					field_id: conf.deploy_id
 					field_name: conf.field_name
 					src_type: conf.src_type
 					value: {}
@@ -51,13 +51,13 @@ class SocketIORouter
 				}
 			context = new EnterContext()
 			async.eachOfSeries confMap, (v, k, cb)->
-				context.select {col: "resultData", filter: {deploy_id: k, stage: "ocr"}}, (err, docs)->
+				context.select {col: "resultData", filter: {deploy_id: k, stage: "op1"}}, (err, docs)->
 					if err
 						that.emit "refreshProgress", true, "#{k}：更新失败\n#{err}"
 						return cb null
 					if docs and docs.length > 0
 						that.emit "refreshProgress", false, "#{k}：存在#{docs.length}个录入配置，正在更新配置"
-						context.update {col: "resultData", filter: {deploy_id: k, stage: "ocr"}, setter: {enter: v}}, (err)->
+						context.update {col: "resultData", filter: {deploy_id: k, stage: "op1"}, setter: {enter: v}}, (err)->
 							if err
 								that.emit "refreshProgress", true, "#{k}：更新失败\n#{err}"
 							else
@@ -83,7 +83,7 @@ class SocketIORouter
 										enter: v
 										stage: "ocr"
 										priority: "1"
-										create_at: moment().format "YYYYMMDDHHmmss"
+										create_at: entity.create_at
 									}
 								context.save {col: "resultData", data: enterEntitys}, (err)->
 									if err
@@ -95,33 +95,6 @@ class SocketIORouter
 								that.emit "refreshProgress", true, "#{k}：未找到该配置录入对象"
 								cb null
 			, (err)->
-		# 释放录入实体
-		socket.on "letEnterEntity", (data, callback)->
-			return callback?"failed" if !data or !data.project or !data.stage or !global.enter
-			entitys = global.enter.entitys[data.project][data.stage]
-			freeObj = (entitys.entering.splice (entitys.entering.findIndex (en)-> en and en._id.toString() is data._id), 1)[0]
-			freeObj && entitys.data.unshift freeObj
-			callback?"success"
-		# 提交录入
-		socket.on "submitEnter", (data, callback)->
-			return callback?"failed" if !data or !data.project or !data.stage
-			rankArr = ["ocr", "op1", "op2", "op3", "op4", "over"]
-			try
-				entitys = global.enter.entitys[data.project][data.stage]
-				entitys.entering.splice (entitys.entering.findIndex (en)-> en._id.toString() is data._id), 1
-				if data.stage is "op2"
-					for en in data.enter
-						data.stage = "no" if en.value["op1"] isnt en.value["op2"]
-					data.stage is "op2" and (data.stage = "over")
-					data.stage is "no" and (data.stage = "op3")
-				else
-					data.stage = rankArr[(rankArr.findIndex (r) -> r is data.stage) + 1]
-				entitys = global.enter.entitys[data.project][data.stage]
-				entitys && (entitys.isEmpty = false)
-				context = new EnterContext()
-				context.update {col: "resultData", filter: {_id: data._id}, setter: data}, callback
-			catch e
-				callback e
 		# 下载与解析
 		# socket.removeAllListeners "startDownAndParse"
 		socket.on "startDownAndParse", (image)->
@@ -129,16 +102,21 @@ class SocketIORouter
 			context = new DownloadContext()
 			d_socket = {
 				emit: (flag, logInfo)->
-					that.emit "downAndParseProgress", flag, logInfo
+					setTimeout ->
+						that.emit "downAndParseProgress", flag, logInfo
+					, 0
 				on: ()->
 					that.on.apply that, arguments
 			}
-			context.execute image, d_socket, (err)->
+			context.execute image, d_socket, (err, pages)->
 				if err
 					LOG.error err
-					that.emit "downAndParseProgress", "error", err
+					that.emit "downAndParseProgress", -1, err
+				else
+					context = new EnterContext()
+					setter = {$set: {pages: pages, state: "待分配", scan_at: moment().format("YYYYMMDDHHmmss")}}
+					context.update {col: "task", filter: {_id: image.task}, setter: setter}, ->
 				that.emit "downAndParseProgress", "final"
-				that.removeAllListeners "startDownAndParse"
 		socket.on "disconnect", ->
 
 module.exports = SocketIORouter

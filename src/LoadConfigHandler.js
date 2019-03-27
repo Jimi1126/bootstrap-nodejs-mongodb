@@ -44,6 +44,7 @@
         };
         if (param.task) {
           filter["task"] = param.task;
+          filter["type"] = "image";
           return dao.epcos.deploy.selectList(filter, function(err, docs) {
             if (err) {
               return callback(err);

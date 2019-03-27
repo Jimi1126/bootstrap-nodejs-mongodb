@@ -22,26 +22,30 @@
       // 下载前动作（有序）
       beforeDownHandle = ["LoadConfigHandler", "ScanHandler", "ParseDirHandler"];
       // 下载动作（有序）
-      downHandle = ["LoadImageHandler", "ConvertHandler", "ParseProHandler", "CutImageHandler", "CutBillHandler", "EnterEntityHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"];
+      downHandle = ["LoadOriginalHandler", "ConvertHandler", "ParseProHandler", "CutImageHandler", "CutBillHandler", "EnterEntityHandler", "OCRHandler", "SavePicInfoHandler", "CleanHandler"];
       // 下载后动作
       // afterDownHandle = ["", "", "", ""]
       start = moment();
-      socket && socket.emit(0, `本次下载开始于：${start.format("YYYY-MM-DD HH:mm:ss")}`);
+      socket && socket.emit(0, `------本次下载开始于：${start.format("YYYY-MM-DD HH:mm:ss")}------`);
       LOG.info(`本次下载开始于：${start.format("YYYY-MM-DD HH:mm:ss")}`);
-      cb = function() {
-        var proxy, strategyContext;
+      cb = function(err) {
+        var proxy, ref, ref1, strategyContext;
+        if (err) {
+          return callback(err);
+        }
         proxy = new StrategyProxy(new DownStrategy(downHandle, socket));
         proxy.io = {
           socket: socket
         };
         strategyContext = new StrategyContext(proxy);
         strategyContext.strategy.target.data = this.data;
-        return strategyContext.execute(function() {
-          var endTime;
+        socket.emit("total", (ref = this.data) != null ? (ref1 = ref.originals) != null ? ref1.length : void 0 : void 0);
+        return strategyContext.execute(this.data.originals, (err) => {
+          var endTime, ref2, ref3;
           endTime = moment();
           LOG.info(`本次下载结束于：${endTime.format("YYYY-MM-DD HH:mm:ss")} --${endTime - start}ms`);
-          socket && socket.emit(1, `本次下载结束于：${endTime.format("YYYY-MM-DD HH:mm:ss")} --${endTime - start}ms`);
-          return callback();
+          socket && socket.emit("final", `----本次下载结束于：${endTime.format("YYYY-MM-DD HH:mm:ss")} --${endTime - start}ms`);
+          return callback(err, (ref2 = this.data) != null ? (ref3 = ref2.originals) != null ? ref3.length : void 0 : void 0);
         });
       };
       proxy = new StrategyProxy(new ProDownStrategy(beforeDownHandle, socket));

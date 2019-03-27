@@ -56,7 +56,7 @@ ProjectConfig.prototype = {
     $('#image_del').bind('click', $.proxy(this.delImageConfEvent, this));
     $('#enter_cof').bind('click', $.proxy(this.enterConfEvent, this));
     $('#down_parse').bind('click', $.proxy(this.downParseEvent, this));
-    window.onresize = this.adjustUI;
+    window.onresize = $.proxy(this.adjustUI, this);
     this.imageTable.onDbClickRow = $.proxy(this.billAndFieldConfEvent, this);
   },
   /**
@@ -69,16 +69,24 @@ ProjectConfig.prototype = {
       $('#image_add').disabled();
       $('#image_mod').disabled();
       $('#image_del').disabled();
+      $('#enter_cof').disabled();
+      $('#down_parse').disabled();
     } else {
       $("#proj_mod").enabled();
       $("#proj_del").enabled();
       $('#image_add').enabled();
+      $('#enter_cof').enabled();
+      $('#down_parse').enabled();
       if (Util.isEmpty(this.images)) {
         $('#image_mod').disabled();
         $('#image_del').disabled();
+        $('#enter_cof').disabled();
+        $('#down_parse').disabled();
       } else {
         $('#image_mod').enabled();
         $('#image_del').enabled();
+        $('#enter_cof').enabled();
+        $('#down_parse').enabled();
       }
     }
   },
@@ -107,10 +115,10 @@ ProjectConfig.prototype = {
     var c_height = window.innerHeight;
     if (c_height > 440) {
       $(".body-div").height(c_height - 208);
-      $("#imageTable").height(c_height - 208 - 160);
+      this.imageTable.setHeight(c_height - 208 - 160);
     } else {
       $(".body-div").height(240);
-      $("#imageTable").height(240 - 160);
+      this.imageTable.setHeight(240 - 160);
     }
   },
   /**
@@ -335,7 +343,10 @@ ProjectConfig.prototype = {
         event: function () {
           var image = this.value();
           if (Util.isEmpty(image.code)) {
-            return that.dialog.show('图片编码为必填项');
+            return that.dialog.show('编码为必填项');
+          }
+          if (Util.isEmpty(image.task)) {
+            return that.dialog.show('请选择业务');
           }
           that.loadUI.show();
           var doSave = function () {
@@ -731,22 +742,28 @@ ProjectConfig.prototype = {
     });
     that.detailWin.show();
     var index = 0;
-    var length = 15;
+    var total = 15;
     var bar = $progress.find(".progress-bar");
     bar.css("width", "0%");
     bar.text("0%");
     var progress = 0;
     socket.emit("startDownAndParse", curImage);
     socket.on("downAndParseProgress", function(isDone, con) {
+      if (isDone == "total") {
+        return total = +con
+      }
       if (isDone == 1) {
         index++;
-        progress = Math.floor(index * 100 / length);
+        progress = Math.floor(index * 100 / total);
         // progress = progress == 100 ? 99 : progress;
+        progress = progress >= 100 ? 99 : progress;
         bar.css("width", progress + "%");
         bar.text(progress + "%");
       }
-      con && that.detailWin.appendDetail(con);
+      con && that.detailWin.appendDetail(con, isDone);
       if (isDone == "final") {
+        bar.css("width", "100%");
+        bar.text("100%");
         socket.removeAllListeners("downAndParseProgress");
         that.detailWin.$modal.find(".btn.btn-primary").unbind("click").bind("click", function() {
           that.detailWin.hide();

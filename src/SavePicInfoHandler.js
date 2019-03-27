@@ -9,29 +9,50 @@
   LOG = LoggerUtil.getLogger("SavePicInfoHandler");
 
   SavePicInfoHandler = class SavePicInfoHandler extends Handler {
-    handle(callback) {
-      var addArr, dao, data, that, updArr;
+    handle(param, callback) {
+      var addArr, dao, data, image, ref, ref1, ref2, that, updArr;
       that = this;
       dao = new MongoDao(__b_config.dbInfo, {
         epcos: ["entity", "resultData"]
       });
+      image = param.data;
+      if ((ref = param.socket) != null) {
+        ref.emit(0, `${image.img_name}：保存数据`);
+      }
       data = [];
-      that.data.images && (data = data.concat(that.data.images));
-      that.data.bills && (data = data.concat(that.data.bills));
-      that.data.fields && (data = data.concat(that.data.fields));
+      param.data && param.data._id && (data = data.concat(param.data));
+      param.image && (data = data.concat(param.image.filter(function(b) {
+        return b._id;
+      })));
+      param.bill && (data = data.concat(param.bill.filter(function(b) {
+        return b._id;
+      })));
+      param.field && (data = data.concat(param.field.filter(function(f) {
+        return f._id;
+      })));
       if (data.length === 0) {
-        return callback(null);
+        return callback(null, param);
       }
       addArr = data.filter(function(d) {
-        return !d.inDB;
-      });
-      updArr = data.filter(function(d) {
-        if (d.inDB) {
-          return delete d.inDB;
+        if (d.modify === 0) {
+          return delete d.modify;
         } else {
           return false;
         }
       });
+      updArr = data.filter(function(d) {
+        if (d.modify === 1) {
+          return delete d.modify;
+        } else {
+          return false;
+        }
+      });
+      if ((ref1 = param.socket) != null) {
+        ref1.emit(0, `${image.img_name}：新增数据，${addArr.length}条`);
+      }
+      if ((ref2 = param.socket) != null) {
+        ref2.emit(0, `${image.img_name}：更新数据，${updArr.length}条`);
+      }
       return async.parallel([
         function(cb) {
           if (addArr.length === 0) {
@@ -57,17 +78,25 @@
         cb);
         },
         function(cb) {
-          if (that.data.enterEntitys.length === 0) {
+          if (!param.enterEntitys || param.enterEntitys.length === 0) {
             return cb(null);
           }
-          return dao.epcos.resultData.insert(that.data.enterEntitys,
+          return dao.epcos.resultData.insert(param.enterEntitys,
         cb);
         }
       ], function(err) {
+        var ref3, ref4;
         if (err) {
           LOG.error(JSON.stringify(err));
+          if ((ref3 = param.socket) != null) {
+            ref3.emit(-1, `${image.img_name}：保存数据失败`);
+          }
+        } else {
+          if ((ref4 = param.socket) != null) {
+            ref4.emit(0, `${image.img_name}：保存数据完成，共${(addArr.concat(updArr).concat(param.enterEntitys).length)}条`);
+          }
         }
-        return callback(null);
+        return callback(null, param);
       });
     }
 

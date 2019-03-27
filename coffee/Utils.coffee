@@ -17,6 +17,13 @@ Utils.rmdir = (path, callback)->
 			else
 				fs.unlinkSync curPath
 		fs.rmdir path, callback
+	else 
+		callback "unexist"
+Utils.cropFile = (source, target, callback)->
+	if fs.existsSync source
+		fs.readFile source, (err, data)->
+			return callback err if err
+			fs.writeFile target, data, callback
 Utils.uuid = (len, radix)->
 	chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
 	uuid = []
@@ -30,6 +37,25 @@ Utils.uuid = (len, radix)->
 			if (!uuid[i])
 				r = 0 | Math.random() * 16;
 				uuid[i] = chars[ if (i == 19) then (r & 0x3) | 0x8 else r]
-	uuid.join('')
+	uuid.join('').toLowerCase()
+
+Utils.getLength = (str)->
+	str = str || ""
+	str = if typeof str is "string" then str else str + ""
+	str.replace(/[\u0391-\uFFE5]/g,"aa").length  #先把中文替换成两个字节的英文，在计算长度
+
+Utils.replaceAll = (target, sce, val)->
+	if typeof target is "string"
+		target = target.replace new RegExp(sce, "g"), val
+	if Array.isArray target
+		for t, i in target
+			target[i] = val if target[i] is sce
+	target
+Utils.clone = (obj)->
+	try
+		JSON.parse JSON.stringify(obj)
+	catch e
+		LOG?.error e.stack
+		obj
 
 module.exports = Utils

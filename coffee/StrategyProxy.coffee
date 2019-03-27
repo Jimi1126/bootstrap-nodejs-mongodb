@@ -17,7 +17,7 @@ class StrategyProxy extends Proxy
         startTime = moment()
         [...params] = arguments
         callback = params.pop()
-        cb = =>
+        cb = ->
           endTime = moment()
           LOG.info "策略#{that.target.constructor.name}.#{f.name}执行结束 --#{endTime - startTime}ms"
           that.io and that.io.socket.emit 1, "策略#{that.target.constructor.name}.#{f.name}执行结束 --#{endTime - startTime}ms"
