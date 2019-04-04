@@ -50,8 +50,9 @@ UpdateImageConf.prototype = {
   loadBill: function () {
     var that = this;
     if (!!that.image) {
-      that.loadUI.show();
       var conf = that.image.img_paths ? that.image.img_paths[that.dropdown.value()] : {}
+      if (!conf) return;
+      that.loadUI.show();
       $.get("/config/getDeploy", { project: that.image.project, image: that.image._id, src_img: conf.img_path, type: "bill" },
         function (data, status, xhr) {
           if (status == 'success') {

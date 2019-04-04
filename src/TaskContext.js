@@ -48,7 +48,7 @@
           e_s_map[val] = e_s_map[val] || [];
           e_s_map[val].push(re.source_img);
         }
-        return that.select({
+        return that.selectList({
           col: "entity",
           filter: {
             _id: {
@@ -86,7 +86,7 @@
               val[i] = o_m_map[vv];
             }
           }
-          return that.select({
+          return that.selectList({
             col: "entity",
             filter: getOriginal_filter
           }, function(err, originals) {

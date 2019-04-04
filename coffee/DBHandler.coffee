@@ -130,5 +130,12 @@ class DBHandler
       return callback err if err
       param._id and typeof param._id is "string" and (param._id = ObjectId(param._id))
       db.collection(@collection).countDocuments param, callback
+  aggregate: ->
+    [...params] = arguments
+    return if !params.length
+    callback = params[params.length - 1]
+    @connect (err, db) =>
+      return callback err if err
+      db.collection(@collection).aggregate.apply db.collection(@collection), params
 
 module.exports = DBHandler

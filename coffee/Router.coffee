@@ -8,6 +8,7 @@ DownloadContext = require "./DownloadContext"
 ConfigContext = require "./ConfigContext"
 EnterContext = require "./EnterContext"
 SysConfigContext = require "./SysConfigContext"
+UserAuthContext = require "./UserAuthContext"
 TaskContext = require "./TaskContext"
 UserContext = require "./UserContext"
 ExecHandler = require "./ExecHandler"
@@ -53,13 +54,21 @@ class Router
 			next()
 		app.use '/pages', express.static(path.join(workspace, 'web/pages'))
 		app.all "*", (req, res, next)->
-			new SysConfigContext().accessControl req.session.user, (err, flags)->
-				flags
-		app.all "*", (req, res, next)->
 			if req.session && req.session.user
 				req.session._garbage = Date()
 				req.session.touch()
-			if req.session.user or req.originalUrl.startsWith("/user/login")
+			if req.originalUrl.startsWith("/user/login") or req.originalUrl.startsWith("/user/logout")
+				next()
+			else if req.session.user
+				return next() if req.session.user.username is "6182"
+				return next() if global.accessControl.every (act)-> req.originalUrl.indexOf(act) is -1
+				authList = req.session.auths || []
+				canPass = false;
+				for auth in authList
+					if auth.flag and req.originalUrl.indexOf(auth.flag) > -1
+						canPass = true
+						break
+				return res.json "notauth" unless canPass
 				next()
 			else
 				res.json "notlogin"
@@ -89,7 +98,12 @@ class Router
 					req.session.touch()
 					global.sessions || (global.sessions = {})
 					global.sessions[req.session.id] || (global.sessions[req.session.id] = req.session)
-				res.json flags
+					new UserAuthContext().getAuth req.session.user, (err, auths)->
+						LOG.error err if err
+						req.session.auths = auths || []
+						res.json flags
+				else
+					res.json flags
 		## 获取session
 		userRouter.get "/userInfo", (req, res)->
 			res.json req.session && req.session.user || {}
@@ -121,7 +135,87 @@ class Router
 			context.insert {col: "sys_config", data: param}, (err)->
 				LOG.error err if err
 				res.json err
+		sysConfigRouter.post "/update", (req, res)->
+			context = new SysConfigContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			_id = param && param._id
+			return res.json {errno: -1, text: "invalid param"} unless _id
+			delete param._id
+			context.update {col: "sys_config", filter: {_id : _id}, setter: {$set: param}}, (err)->
+				LOG.error err if err
+				res.json err
+		sysConfigRouter.post "/delete", (req, res)->
+			context = new SysConfigContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			return res.json {errno: -1, text: "invalid param"} unless param and param._id
+			context.delete {col: "sys_config", filter: param}, (err)->
+				LOG.error err if err
+				res.json err
+		sysConfigRouter.post "/getList", (req, res)->
+			context = new SysConfigContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			param.col = "sys_config"
+			if param && param.page
+				context.selectBySortOrSkipOrLimit param, (err, docs)->
+					LOG.error err if err
+					res.json (docs || [])
+			else
+				context.selectList param, (err, docs)->
+					LOG.error err if err
+					res.json (docs || [])
+		sysConfigRouter.get "/userMenu", (req, res)->
+			authList = req.session.auths || []
+			authList = authList.filter (aut) -> aut.control_type is "1"
+			codeList = {}
+			for auth in authList
+				auth.src_page = auth.src_page || ""
+				for i in [2...(auth.src_page.length + 1)]
+					codeList[auth.src_page.substr(0, i)] = null unless i % 2
+			codeList = Object.keys codeList
+			param = {col: "sys_config", filter: {state: "0", code: {$in : codeList}}}
+			new SysConfigContext().selectList param, (err, docs)->
+				LOG.error err if err
+				res.json (docs || [])
 		app.use "/sysconf", sysConfigRouter
+
+		userAuthRouter = express.Router() # 用户权限路由
+		new UserAuthContext().accessControl (err, auths)->
+			auths = auths || []
+			global.accessControl = auths.map (aut)-> aut.flag
+		userAuthRouter.post "/add", (req, res)->
+			context = new UserAuthContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			param = param.data || param
+			context.insert {col: "user_auth", data: param}, (err)->
+				LOG.error err if err
+				res.json err
+		userAuthRouter.post "/update", (req, res)->
+			context = new UserAuthContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			param = param.data || param
+			context.addOrUpdate {col: "user_auth", data: param}, (err)->
+				LOG.error err if err
+				res.json err
+		userAuthRouter.post "/delete", (req, res)->
+			context = new UserAuthContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			return res.json {errno: -1, text: "invalid param"} unless param and param._id
+			context.delete {col: "user_auth", filter: param}, (err)->
+				LOG.error err if err
+				res.json err
+		userAuthRouter.post "/getList", (req, res)->
+			context = new UserAuthContext()
+			param = if Object.keys(req.query).length is 0 then req.body else req.query
+			param.col = "user_auth"
+			if param && param.page
+				context.selectBySortOrSkipOrLimit param, (err, docs)->
+					LOG.error err if err
+					res.json (docs || [])
+			else
+				context.selectList param, (err, docs)->
+					LOG.error err if err
+					res.json (docs || [])
+		app.use "/auth", userAuthRouter
 
 		configRouter = express.Router() # 配置请求路由
 		## 获取配置信息

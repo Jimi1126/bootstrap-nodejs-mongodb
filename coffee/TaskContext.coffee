@@ -21,7 +21,7 @@ class TaskContext extends BussinessContext
 				val = if fc.value.op4 then fc.value.op4 else fc.value.op2
 				e_s_map[val] = e_s_map[val] || []
 				e_s_map[val].push re.source_img
-			that.select {col: "entity", filter: {_id: {$in: docs.map (re)-> ObjectId(re.source_img)}}}, (err, ims)->
+			that.selectList {col: "entity", filter: {_id: {$in: docs.map (re)-> ObjectId(re.source_img)}}}, (err, ims)->
 				LOG.error err if err
 				return callback err if err
 				return callback null if !ims or ims.length is 0
@@ -33,7 +33,7 @@ class TaskContext extends BussinessContext
 				for key, val of e_s_map
 					for vv,i in val
 						val[i] = o_m_map[vv]
-				that.select {col: "entity", filter: getOriginal_filter}, (err, originals)->
+				that.selectList {col: "entity", filter: getOriginal_filter}, (err, originals)->
 					LOG.error err if err
 					return callback err if err
 					return callback null if !originals or originals.length is 0

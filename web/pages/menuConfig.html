@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="X-UA-Compatible" content="ie=edge">
-	<title>权限设置</title>
+	<title>菜单配置</title>
 	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
 	<link rel='stylesheet' type="text/css" href='../css/bootstrap-datetimepicker.min.css' />
 	<link rel='stylesheet' type="text/css" href='../css/initator.css' />
@@ -19,35 +19,34 @@
 <body>
 	<div class="page-header query-region">
 		<div class="page-title">
-			<h3>权限设置</h3>
+			<h3>菜单配置</h3>
 				</div>
-				<div class="region">
+				<!-- <div class="region">
 					<div class="input-group" style="width: 50%">
-						<span class="input-group-addon">工号：</span>
-						<input query_code="username" type="text" class="form-control">
-						<span class="input-group-addon">权限：</span>
-						<input query_code="nickname" type="text" class="form-control">
+						<span class="input-group-addon">菜单名称：</span>
+						<input query_code="name" type="text" class="form-control">
 						<span class="input-group-addon">状态：</span>
 						<input query_code="state" type="text" class="form-control">
 						<button id="queryBtn" type="button" class="btn btn-default" style="position:absolute;margin-left: 22px">查询</button>
 					</div>
-				</div>
+				</div> -->
 	</div>
 	<div style="margin: 0px 22px 0px 22px">
     <div class="btn-group">
-      <button title="新增用户权限" id="addBtn" type="button" class="btn btn-default">
-        新增用户权限
+      <button title="新增菜单" id="addBtn" type="button" class="btn btn-default">
+        新增菜单
       </button>
-			<button title="保存用户权限" id="saveBtn" type="button" class="btn btn-default">
-				保存用户权限
-			</button>
-			<button title="删除用户权限" id="delBtn" type="button" class="btn btn-default">
-				删除用户权限
-			</button>
-      <button title="权限控制" id="controlBtn" type="button" class="btn btn-default">
-        权限控制
+      <button title="修改菜单" id="modBtn" type="button" class="btn btn-default">
+        修改菜单
       </button>
-    </div>
+      <button title="删除菜单" id="delBtn" type="button" class="btn btn-default">
+        删除菜单
+			</button>
+			<div class="input-group filter_group" style="width: 300px;">
+				<span class="input-group-addon">菜单名称：</span>
+				<input filter_code="name" type="text" class="form-control">
+			</div>
+		</div>
 		<div class="content">
 			<div id="mainTable"></div>
 		</div>
@@ -58,6 +57,6 @@
 <script type="text/javascript" src='../js/bootstrap-datetimepicker.min.js'></script>
 <script type="text/javascript" src='../js/bootstrap-datetimepicker.zh-CN.js'></script>
 <script type="text/javascript" src="../js/initiator.js"></script>
-<script type="text/javascript" src="../js/authConfig.js"></script>
+<script type="text/javascript" src="../js/menuConfig.js"></script>
 
 </html>

@@ -268,6 +268,21 @@
       });
     }
 
+    aggregate() {
+      var callback, params;
+      [...params] = arguments;
+      if (!params.length) {
+        return;
+      }
+      callback = params[params.length - 1];
+      return this.connect((err, db) => {
+        if (err) {
+          return callback(err);
+        }
+        return db.collection(this.collection).aggregate.apply(db.collection(this.collection), params);
+      });
+    }
+
   };
 
   module.exports = DBHandler;
