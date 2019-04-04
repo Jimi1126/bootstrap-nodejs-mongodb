@@ -1,13 +1,13 @@
 # EPCOS
-## [server](#server)
+## [server](#serverDIV)
 ### [系统架构](#frameworkImage)
 ### [数据模型](#systemPDM)
 ### [项目管理](#project_manage)
 #### - [下载与解析](#download_parse)
-## [client](#client)
-### [initiator](#initiator)
+## [client](#clientDIV)
+### [initiator](#initiatorDIV)
 ---
-# <span id="server"><span>server
+# <span id="serverDIV"><span>server
 ## <span id="frameworkImage"><span>系统架构
 ![](./doc/frameworkImage.jpg)
 ### 接口说明
@@ -17,7 +17,7 @@
 - **方法：** 无
 #### Istrategy 策略接口
 	根据不同业务制定不同策略，执行不同逻辑，进行模块化
-- **属性：**无
+- **属性：** 无
 - **方法：**
   - exec 策略执行入口，控制整个策略的启动模式
 #### Proxy 代理接口
@@ -46,8 +46,8 @@
     操作者所拥有的操作能力，子类必须实现该方法，以指定操作者的拥有的操作能力
 #### Dao 数据库操作层接口
 	提供各类型数据库操作对象
-- **属性：**无
-- **方法：**无
+- **属性：** 无
+- **方法：** 无
 ## <span id="systemPDM"><span>数据模型
 ![](./doc/systemPDM.jpg)
 ## <span id="project_manage">项目管理</span>
@@ -60,8 +60,8 @@
 	下载策略也是采用操作链模式，下载策略采用async模块提供的series方法进行流程控制，由中间函数next通知下一位操作者，于是我们只需将操作者的执行方法交给async就行了
 >**注意：**
   下载策略需用到预下载中的业务数据，将下载策略对象的业务数据引用指向预下载策略对象中的业务数据时，操作者所持有的业务数据对象引用也应该重新指向下载策略的业务数据
-# <span id="client"><span>client
-## <span id="initiator"></span>Initoator介绍
+# <span id="clientDIV"><span>client
+## <span id="initiatorDIV"></span>Initoator介绍
 为快速进行前端开发，减少代码冗余，提高安全性等，编写initiator.js提供相关方法，插件，控件。
 ### 1、依赖
 1. jQuery.js
@@ -69,48 +69,60 @@
 ### 2、通用（重写）方法
 一般地所重写目标方法保留原实现，被引用于$.old
 
-1. $.get、$.post 重写jQuery的get与post请求方法
+1. **$.get、$.post** 重写jQuery的get与post请求方法
 
 	加入登陆、权限过滤，错误提示
 
-2. $.namespace 新增命名空间
-3. Util 新增工具类
-	1. uuid（方法）获取uuid
+2. **$.namespace** 新增命名空间
+3. **Util** 新增工具类
+	1. **uuid**（方法）获取uuid
 		+ len 选用获取源位数
 		+ redix uuid位数
-	2. isEmpty（方法）判断为空，支持字符、对象、数组
+	2. **isEmpty**（方法）判断为空，支持字符、对象、数组
 		+ target 判断目标 
-	3. getNowDate（方法）获取当前时间YYYY-MM-DD HH:mm:ss
-	4. getBitDate（方法）获取当前位数时间YYYYMMDDHHmmss
+	3. **getNowDate**（方法）获取当前时间YYYY-MM-DD HH:mm:ss
+	4. **getBitDate**（方法）获取当前位数时间YYYYMMDDHHmmss
 		+ bit 获取位数
-	5. parseDate（方法）格式化位数时间YYYYMMDDHHmmss => YYYY-MM-DD HH:mm:ss
+	5. **parseDate**（方法）格式化位数时间YYYYMMDDHHmmss => YYYY-MM-DD HH:mm:ss
 		+ dateStr 转换时间
-	6. LPAD（方法）左补齐
+	6. **LPAD**（方法）左补齐
 		+ target 补齐目标
 		+ bit 补齐位数
 		+ flag 补齐号
-	7. isChange（方法）比较数组或对象其后是否改变
+	7. **isChange**（方法）比较数组或对象其后是否改变
 		+ bef 之前对象
 		+ cur 当前对象
-	8. showOverTimeWin（属性）是否打开重登陆窗，默认：true
-	9. overTimeWin（方法）打开重登陆窗
-	10. savCSV（方法）保存CSV文件
+	8. **showOverTimeWin**（属性）是否打开重登陆窗，默认：true
+	9. **overTimeWin**（方法）打开重登陆窗
+	10. **savCSV**（方法）保存CSV文件
 		+ csv 内容
 		+ savename 保存文件名称
 ### 3、自定义控件
-1. LoadUI 加载过渡层
-	+ 参数
+1. **LoadUI** 加载过渡层
+	+ **参数**
 		+ target 追加对象，默认顶层window下
-	+ 方法
+	+ **方法**
 		+ show() 显示
 		+ hide() 隐藏
-2. Dialog 提示框
-	+ 参数
+	+ **实例：**
+
+```
+new LoadUI().show();
+```
+ 
+2. **Dialog** 提示框
+	+ **参数**
 		+ target 追加对象，默认当前window下
-	+ 方法
+	+ **方法**
 		+ show(msg) 显示，默认显示6秒
-3. DetailDialog 详情提示框
-	+ 参数
+	+ **实例：**
+
+```
+new Dialog().show('菜单名称为必填');
+```
+
+3. **DetailDialog** 详情提示框
+	+ **参数**
 		+ option
 			+ window 追加对象，默认当前window下
 			+ close 是否显示关闭按钮，默认显示
@@ -122,12 +134,12 @@
 			+ hideDetail 是否隐藏详情内容
 			+ backdrop 是否可以点击背景隐藏，默认不能
 			+ keyboard 是否可以按esc隐藏，默认不能
-	+ 属性
+	+ **属性**
 		+  option 构造参数
 		+  target 追加对象
 		+  $modal 模态窗实体
 		+  detail 详情实体
-	+ 方法
+	+ **方法**
 		+ init() 初始化
 		+ show() 显示
 		+ hide() 隐藏，不移除
@@ -135,7 +147,7 @@
 			+ content 追加内容
 			+ co 内容颜色，默认绿色
 		+ emptyDetail() 清空详情
-	+ 实例：
+	+ **实例：**
 ``` 
 var detailWin = new DetailDialog({ 
   title: "操作进度",
@@ -159,8 +171,8 @@ that.detailWin.show();
 that.detailWin.appendDetail("这是详情", 1);
 ```
 
-4. ModalWindow 模态窗
-	+ 参数
+4. **ModalWindow** 模态窗
+	+ **参数**
 		+ option
 			+ window 追加对象，默认当前window下
 			+ close 是否显示关闭按钮，默认显示
@@ -175,17 +187,17 @@ that.detailWin.appendDetail("这是详情", 1);
 			+ maximize 是否最大化，默认否
 			+ backdrop 是否可以点击背景隐藏，默认能
 			+ keyboard 是否可以按esc隐藏，默认能
-	+ 属性
+	+ **属性**
 		+  showOptions 显示参数
 		+  target 追加对象
 		+  $modal 模态窗实体
 		+  contentWindow 二级窗口实体
-	+ 方法
+	+ **方法**
 		+ maximize() 最大化
 		+ value() 设置或获取窗口内内容，只支持body有效时，且只取包含dataField属性节点
 		+ show() 显示
 		+ hide() 隐藏，不移除
-	+ 实例： 
+	+ **实例： **
 ```
 var modalWindow = new ModalWindow({
   title: "test",
@@ -231,38 +243,38 @@ var modalWindow = new ModalWindow({
 modalWindow.show();
 ```
 ### 4、jQuery插件式控件
-1. $.fn.disabled 禁用控件 默认为控件添加disabled属性
-	+ 参数 无
-	+ 属性 无
-	+ 方法 无
-2. $.fn.enabled 启用控件 默认删除控件disabled属性
-	+ 参数 无
-	+ 属性 无
-	+ 方法 无
-3. $.fn.table_button 表格按钮
-	+ 参数
+1. **$.fn.disabled** 禁用控件 默认为控件添加disabled属性
+	+ **参数** 无
+	+ **属性** 无
+	+ **方法** 无
+2. **$.fn.enabled** 启用控件 默认删除控件disabled属性
+	+ **参数** 无
+	+ **属性** 无
+	+ **方法** 无
+3. **$.fn.table_button** 表格按钮
+	+ **参数**
 		+ options
 			+ code 控件dataField属性
 			+ width 宽
 			+ height 高
-	+ 属性 无
-	+ 方法 
+	+ **属性** 无
+	+ **方法**
 		+ value 设置或取控件值
-4. $.fn.table_dropdown 表格下拉选项
-	+ 参数
+4. **$.fn.table_dropdown** 表格下拉选项
+	+ **参数**
 		+ options
 			+ code 控件dataField属性
 			+ width 宽
 			+ height 高
 			+ editable 是否可编辑
 			+ data 下拉选项
-	+ 属性 无
-	+ 方法 
+	+ **属性** 无
+	+ **方法** 
 		+ initData 初始化数据
 		+ onChange 下拉选项改变事件
 		+ value 设置或取控件值
-5. $.fn.dropMenu 下拉选项
-	+ 参数
+5. **$.fn.dropMenu** 下拉选项
+	+ **参数**
 		+ options
 			+ code 控件dataField属性
 			+ width 宽
@@ -270,13 +282,23 @@ modalWindow.show();
 			+ notHover 是否取消hover
 			+ editable 是否可编辑
 			+ data 下拉选项
-	+ 属性 无
-	+ 方法 
+	+ **属性** 无
+	+ **方法**
 		+ initData 初始化数据
 		+ onChange 下拉选项改变事件
 		+ value 设置或取控件值
-6. $.fn.icTable 自定义表格
-	+ 参数
+	+ **实例：** 
+
+```
+var $menu_type = modalWindow.$modal.find("div[target='menu_type']").dropMenu({
+  code: "menu_type",
+  width: 152,
+  data:[{id: "1", text: "节点"}, {id: "2", text: "页面"}]
+});
+```
+
+6. **$.fn.icTable** 自定义表格
+	+ **参数**
 		+ options
 			+ title 表头集
 			+ width 宽
@@ -286,12 +308,12 @@ modalWindow.show();
 			+ pagination 是否分页
 			+ editable 是否可编辑
 			+ dataFields 表格数据模型
-	+ 属性 
+	+ **属性**
 		+ pager 分页控件对象
 			+ initPaging 初始化分页
 			+ setTotal 设置总页数
 			+ onChangePageNum(total, amount, cur_num) 页码改变事件
-	+ 方法 
+	+ **方法** 
 		+ insert(data) 新增行
 		+ value 设置或取表格值
 		+ remove(index) 删除行
@@ -302,14 +324,37 @@ modalWindow.show();
 		+ setHeight 设置表格高
 		+ refresh 刷新表格布局
 		+ onDbClickRow 鼠标双击行事件
-7. $.fn.navMenu 自定义菜单
-	+ 参数
+	+ **实例：** 
+
+```
+this.confTable = $("#confTable").icTable({
+  rowNum: false,
+  mult: true,
+  pagination: true,
+  editable: true,
+  height: 556,
+  title: ["主键", "所属项目", "所属业务", "配置类型", "状态", "录入字段", "录入名称", "字段所属", "录入文件ID", "录入文件", "录入校验"],
+  dataFields: [{code: "_id", dataType: "text", hidden: true},
+  {code: "project", dataType: "text", hidden: true},
+  {code: "task", dataType: "text", hidden: true},
+  {code: "type", dataType: "text", hidden: true},
+  {code: "state", dataType: "text", hidden: true},
+  "field_id", "field_name",
+  {code: "src_type", dataType: "table_dropdown", data: [{id:"image", text:"图片"}, {id:"bill", text:"分块"}, {id:"field", text:"字段"}]},
+  {code: "deploy_id", dataType: "text", hidden: true},
+  {code: "file", dataType: "table_button", event: $.proxy(that.openFileList, that)},
+  "verify"]
+});
+```
+
+7. **$.fn.navMenu** 自定义菜单
+	+ **参数**
 		+ options
 			+ data 菜单项
-	+ 属性 无
-	+ 方法 
+	+ **属性** 无
+	+ **方法** 
 		+ addMenu 添加菜单
-	+ 实例：
+	+ **实例：**
 
 ```
 $(".content-body:first").navMenu({
@@ -331,15 +376,15 @@ $(".content-body:first").navMenu({
 });
 ```
 
-8. $.fn.navBar 自定义导航栏
-	+ 参数
+8. **$.fn.navBar** 自定义导航栏
+	+ **参数**
 		+ options
 			+ data 导航项
-	+ 属性 无
-	+ 方法 
+	+ **属性** 无
+	+ **方法** 
 		+ select 选中一栏或取选中栏标识符
 		+ onChange 选择栏改变事件
-	+ 实例： 
+	+ **实例：**
 
 ```
 this.navBar = $("#barDiv").navBar({
