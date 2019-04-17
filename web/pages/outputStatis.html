@@ -24,21 +24,17 @@
 				<div class="region">
 					<div class="input-group" style="width: 50%">
 						<span class="input-group-addon">项目：</span>
-						<div class="dropdown"></div>
-						<span class="input-group-addon">区域：</span>
-						<input query_code="region" type="text" class="form-control">
-						<span class="input-group-addon">部门：</span>
-						<input query_code="dept" type="text" class="form-control">
+						<div id="projDrop" class="dropdown"></div>
+						<span class="input-group-addon">业务：</span>
+						<div id="taskDrop" class="dropdown"></div>
+						<span class="input-group-addon">录入人：</span>
+						<input query_code="usercode" type="text" class="form-control">
 						<button id="queryBtn" type="button" class="btn btn-default" style="position:absolute;margin-left: 22px">查询</button>
 					</div>
-					<div class="input-group" style="width: 50%">
+					<!-- <div class="input-group" style="width: 50%">
 						<span class="input-group-addon">文件名：</span>
 						<input query_code="file_name" type="text" class="form-control">
-						<span class="input-group-addon">开始日期：</span>
-						<input query_code="start_time" type="text" class="date form_datetime" style="position: relative;top:-12px;" data-date-format="yyyy-mm-dd">
-						<span class="input-group-addon">结果日期：</span>
-						<input query_code="end_time" type="text" class="date form_datetime" style="position: relative;top:-12px;" data-date-format="yyyy-mm-dd">
-					</div>
+					</div> -->
 				</div>
 	</div>
 	<div style="margin: 0px 22px 0px 22px">
@@ -49,8 +45,8 @@
 </body>
 <script type="text/javascript" src="../js/jquery.min.js"></script>
 <script type="text/javascript" src='../js/bootstrap.min.js'></script>
-<script type="text/javascript" src='../js/bootstrap-datetimepicker.min.js'></script>
-<script type="text/javascript" src='../js/bootstrap-datetimepicker.zh-CN.js'></script>
+<!-- <script type="text/javascript" src='../js/bootstrap-datetimepicker.min.js'></script>
+<script type="text/javascript" src='../js/bootstrap-datetimepicker.zh-CN.js'></script> -->
 <script type="text/javascript" src="../js/initiator.js"></script>
 <script type="text/javascript" src="../js/outputStatis.js"></script>
 

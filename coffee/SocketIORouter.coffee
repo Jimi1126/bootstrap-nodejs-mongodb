@@ -96,7 +96,6 @@ class SocketIORouter
 								cb null
 			, (err)->
 		# 下载与解析
-		# socket.removeAllListeners "startDownAndParse"
 		socket.on "startDownAndParse", (image)->
 			that = @
 			context = new DownloadContext()
@@ -108,6 +107,9 @@ class SocketIORouter
 				on: ()->
 					that.on.apply that, arguments
 			}
+			start = moment()
+			d_socket.emit 0, "------本次下载开始于：#{start.format("YYYY-MM-DD HH:mm:ss")}------"
+			LOG.info "本次下载开始于：#{start.format("YYYY-MM-DD HH:mm:ss")}"
 			context.execute image, d_socket, (err, pages)->
 				if err
 					LOG.error err
@@ -116,7 +118,12 @@ class SocketIORouter
 					context = new EnterContext()
 					setter = {$set: {pages: pages, state: "待分配", scan_at: moment().format("YYYYMMDDHHmmss")}}
 					context.update {col: "task", filter: {_id: image.task}, setter: setter}, ->
-				that.emit "downAndParseProgress", "final"
+				endTime = moment()
+				LOG.info "本次下载结束于：#{endTime.format("YYYY-MM-DD HH:mm:ss")} --#{endTime - start}ms"
+				d_socket.emit 0, "----本次下载结束于：#{endTime.format("YYYY-MM-DD HH:mm:ss")} --#{endTime - start}ms"
+				setTimeout ->
+					that.emit "downAndParseProgress", "final"
+				, 0
 		socket.on "disconnect", ->
 
 module.exports = SocketIORouter

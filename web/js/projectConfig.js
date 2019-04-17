@@ -100,7 +100,7 @@ ProjectConfig.prototype = {
       if (status == "success") {
         var menu = [];
         that.projects.forEach(function (proj) {
-          menu.push({ id: proj._id, text: proj.projName });
+          menu.push({ id: proj._id, text: proj.name });
         });
         that.dropdown.initData(menu);
         callback && callback.call(that);
@@ -128,12 +128,12 @@ ProjectConfig.prototype = {
     var that = this;
     that.curProj = project;
     if (!!project) {
-      $("input[dataField='projName']").val(project.projName);
-      $("input[dataField='projCode']").val(project.projCode);
+      $("input[dataField='name']").val(project.name);
+      $("input[dataField='code']").val(project.code);
       that.loadProjDeploy();
     } else {
-      $("input[dataField='projName']").val("");
-      $("input[dataField='projCode']").val("");
+      $("input[dataField='name']").val("");
+      $("input[dataField='code']").val("");
       that.imageTable.value([]);
     }
   },
@@ -163,7 +163,7 @@ ProjectConfig.prototype = {
     var modalWindow = new ModalWindow({
       title: "新增项目配置",
       url: "addProjConf.html",
-      data: {projCode: "PR" + Util.getBitDate()},
+      data: {code: "PR" + Util.getBitDate()},
       width: 600,
       height: 50,
       backdrop: "static",
@@ -173,10 +173,10 @@ ProjectConfig.prototype = {
         class: "btn-primary",
         event: function () {
           var project = this.value();
-          if (Util.isEmpty(project.projName)) {
+          if (Util.isEmpty(project.name)) {
             return that.dialog.show('项目名称为必填项');
           }
-          if (Util.isEmpty(project.projCode)) {
+          if (Util.isEmpty(project.code)) {
             return that.dialog.show('项目编码为必填项');
           }
           that.loadUI.show();
@@ -225,15 +225,15 @@ ProjectConfig.prototype = {
         event: function () {
           that.loadUI.show();
           var project = this.value();
-          if (Util.isEmpty(project.projName)) {
+          if (Util.isEmpty(project.name)) {
             return that.dialog.show('项目名称为必填项');
           }
-          if (Util.isEmpty(project.projCode)) {
+          if (Util.isEmpty(project.code)) {
             return that.dialog.show('项目编码为必填项');
           }
           var doUpdate = function () {
-            that.curProj.projName = project.projName;
-            that.curProj.projCode = project.projCode;
+            that.curProj.name = project.name;
+            that.curProj.code = project.code;
             $.post("/config/updateDeploy", that.curProj, function (data, status, xhr) {
               if (status == 'success') {
                 that.dialog.show('修改成功');
@@ -243,10 +243,10 @@ ProjectConfig.prototype = {
               that.loadUI.hide();
             });
           }
-          if (that.curProj.projCode != project.projCode) {
+          if (that.curProj.code != project.code) {
             var param = {
-              from: "web\\images\\template\\" + that.curProj.projCode,
-              to: "web\\images\\template\\" + project.projCode
+              from: "web\\images\\template\\" + that.curProj.code,
+              to: "web\\images\\template\\" + project.code
             }
             $.get("/config/moddir", param, function (data, status, xhr) {
               if (status == 'success') {
@@ -302,7 +302,7 @@ ProjectConfig.prototype = {
             });
           }
           var param = {
-            path: "web\\images\\template\\" + that.curProj.projCode
+            path: "web\\images\\template\\" + that.curProj.code
           };
           $.post("/config/delFile", param, function (data, status, xhr) {
             if (status == "success") {
@@ -329,7 +329,7 @@ ProjectConfig.prototype = {
   addImageConfEvent: function () {
     var that = this;
     var modalWindow = new ModalWindow({
-      title: "新增图片配置",
+      title: "新增原件配置",
       url: "addImageConf.html",
       width: 850,
       height: 210,
@@ -357,7 +357,7 @@ ProjectConfig.prototype = {
             $.post("/config/saveDeploy", image, function (data, status, xhr) {
               if (status == 'success') {
                 if (data == "exist") {
-                  that.dialog.show('图片编码已存在');
+                  that.dialog.show('原件编码已存在');
                 } else {
                   that.dialog.show('新增成功');
                   that.images.push(image);
@@ -377,7 +377,7 @@ ProjectConfig.prototype = {
             if(!im.img_path) return;
             var file = that1.contentWindow.$("form>input")[i].files;
             var form = new FormData();
-            form.append("dir", that.curProj.projCode + "/" + image.code);
+            form.append("dir", that.curProj.code + "/" + image.code);
             var filename = image.code + "_" + i + file[0].name.substring(file[0].name.indexOf("."));
             form.append("filename", filename);
             form.append("file", file[0]);
@@ -426,9 +426,9 @@ ProjectConfig.prototype = {
     var image = that.imageTable.select();
     var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
     modImage.img_paths = modImage.img_paths || [];
-    modImage.projName = that.curProj.projName;
+    modImage.name = that.curProj.name;
     var modalWindow = new ModalWindow({
-      title: "修改图片配置",
+      title: "修改原件配置",
       url: "addImageConf.html",
       width: 850,
       height: 210,
@@ -477,7 +477,7 @@ ProjectConfig.prototype = {
               total++;
               var file = that1.contentWindow.$("form>input")[i].files;
               var form = new FormData();
-              form.append("dir", that.curProj.projCode + "/" + image.code);
+              form.append("dir", that.curProj.code + "/" + image.code);
               var filename = image.code + "_" + i + file[0].name.substring(file[0].name.indexOf("."));
               form.append("filename", filename);
               form.append("file", file[0]);
@@ -571,9 +571,9 @@ ProjectConfig.prototype = {
     var that = this;
     var image = that.imageTable.select();
     var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
-    modImage.projName = that.curProj.projName;
+    modImage.name = that.curProj.name;
     var modalWindow = new ModalWindow({
-      title: "修改图片配置",
+      title: "图片配置",
       url: "updateImageConf.html",
       width: 850,
       height: 450,
@@ -661,7 +661,7 @@ ProjectConfig.prototype = {
     var image = that.imageTable.select();
     if (Object.keys(image).length == 0) return;
     var modImage = that.images.filter(function (im) { return im.code == image.code })[0];
-    modImage.projName = that.curProj.projName;
+    modImage.name = that.curProj.name;
     var modalWindow = new ModalWindow({
       title: "录入配置",
       url: "enterConf.html",
@@ -692,7 +692,7 @@ ProjectConfig.prototype = {
     var curImage = that.images.filter(function (im) { return im.code == image.code })[0];
     var modalWindow = new ModalWindow({
       title: "下载与解析",
-      body: `<div>将进行[${image.task_name}]业务所需的图像下载与解析，系统暂未提供二次切图，
+      body: `<div>将进行【${image.task_name}】业务所需的图像下载与解析，系统暂未提供二次切图，
       请确保所选业务所需的录入分块、字段均已配置，点击确认以继续。</div>`,
       close: true,
       width: 500,

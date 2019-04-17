@@ -5,8 +5,10 @@ Handler = require "./Handler"
 ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "CleanHandler"
 class CleanHandler extends Handler
-  handle: (param, callback)->
-    LOG.info "清理"
-    callback?()
-      
+	handle: ()->
+		[...params] = arguments
+		callback = params.pop()
+		LOG.info "清理"
+		callback? null
+
 module.exports = CleanHandler

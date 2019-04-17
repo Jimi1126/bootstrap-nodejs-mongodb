@@ -53,22 +53,23 @@
           original.pages = menu.length;
           return async.each(menu, function(f_nm, cb) {
             return async.each(deploy_bills, function(bill, cb1) {
-              var cut_path, dbBill, img_path;
+              var cur_image, cut_path, dbBill, img_path;
               cut_path = rel_path.replace("image", "bill");
               img_path = `${rel_path}${original.img_name.replace(".pdf", "")}/`;
               cut_path = `${cut_path}${original.img_name.replace(".pdf", "")}/`;
+              cur_image = param.image.filter(function(im) {
+                return im.img_name === f_nm;
+              })[0];
+              cur_image = cur_image || {};
               dbBill = {
                 deploy_id: bill._id.toString(),
                 type: "bill",
-                source_img: param.image.filter(function(im) {
-                  return im.img_name === f_nm;
-                })._id,
+                source_img: cur_image._id,
                 code: bill.code,
                 img_name: `${bill.code}${f_nm}`,
                 path: cut_path,
                 upload_at: original.upload_at
               };
-              param.bill.push(dbBill);
               return dao.epcos.entity.selectOne(dbBill, function(err, doc) {
                 var ref3, ref4, ref5, ref6;
                 if (err) {
@@ -228,6 +229,7 @@
                       LOG.trace(`break ${bill.filter} ${img_path}${f_nm}`);
                       return cb1(null);
                     }
+                    param.bill.push(dbBill);
                     return cb1(err);
                   });
                 });
@@ -253,7 +255,6 @@
             path: cut_path,
             upload_at: original.upload_at
           };
-          param.bill.push(dbBill);
           return mkdirp(cut_path, function(err) {
             var ref2;
             if (err) {
@@ -413,6 +414,7 @@
                   LOG.trace(`break ${bill.filter} ${rel_path}${original.img_name}`);
                   return cb1(null);
                 }
+                param.bill.push(dbBill);
                 return cb1(err);
               });
             });

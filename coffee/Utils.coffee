@@ -57,5 +57,13 @@ Utils.clone = (obj)->
 	catch e
 		LOG?.error e.stack
 		obj
+Utils.uniq = (arr)->
+	newArr = []
+	if Array.isArray arr
+		for item in arr
+			newArr.push item if newArr.indexOf(item) is -1
+	else
+		return arr
+	return newArr
 
 module.exports = Utils

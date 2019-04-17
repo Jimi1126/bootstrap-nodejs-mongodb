@@ -13,12 +13,68 @@ HomePage.prototype = {
 	initPage: function () {
 		$("#username").text(epcos.userInfo && epcos.userInfo.nickname);
 		$("#post").text(epcos.userInfo && epcos.userInfo.staffRole);
+		this.initCanvs();
 	},
 	adjustUI: function () {
 
 	},
 	bindEvent: function () {
 		$("#logout").bind("click", $.proxy(this.logoutEvent, this));
+	},
+	initCanvs: function () {
+		if (!window.echarts) {
+			return;
+		}
+		var $canvs1 = echarts.init($("#canvs1")[0]);
+		var $canvs2 = echarts.init($("#canvs2")[0]);
+		var $canvs3 = echarts.init($("#canvs3")[0]);
+		var $canvs4 = echarts.init($("#canvs4")[0]);
+		var data = [];
+		for (var i = 0; i < 20; i++) {
+			data.push({
+				"date": "日期" + i,
+				"usercode": "886" + i,
+				"username": "张三" + i,
+				"char_total": (Math.random() * 100000 + "").substr(0, Math.ceil(Math.random() * 10)),
+				"char_valid": (Math.random() * 100000 + "").substr(0, Math.ceil(Math.random() * 10)),
+				"valid_precision": (Math.random() * 100 + "").substr(0, 4) + "%",
+				"time": "41",
+				"bill_num": (Math.random() * 100000 + "").substr(0, Math.ceil(Math.random() * 10)),
+				"bill_precision": (Math.random() * 100 + "").substr(0, 4) + "%",
+				"char_precision": (Math.random() * 100 + "").substr(0, 4) + "%",
+				"enter_char": (Math.random() * 100000 + "").substr(0, Math.ceil(Math.random() * 10)),
+				"enter_char_prop": (Math.random() * 100 + "").substr(0, 4) + "%",
+				"char_ocr": (Math.random() * 100000 + "").substr(0, Math.ceil(Math.random() * 10)),
+				"char_ocr_prop": (Math.random() * 100 + "").substr(0, 4) + "%"
+			});
+		}
+		var option = {
+			title: {
+				text: '字符总量'
+			},
+			xAxis: {
+				type: 'category',
+				data: data.map(function (dat) { return dat.username })
+			},
+			yAxis: {
+				type: 'value'
+			},
+			series: [{
+				data: data.map(function (dat) { return dat.char_total }),
+				type: 'bar'
+			}]
+		};
+		
+		$canvs1.setOption(option, true);
+		option.title.text = "有效字符总量";
+		option.series[0].data = data.map(function (dat) { return dat.char_valid });
+		$canvs2.setOption(option, true);
+		option.title.text = "分块数量";
+		option.series[0].data = data.map(function (dat) { return dat.bill_num });
+		$canvs3.setOption(option, true);
+		option.title.text = "录入？数量";
+		option.series[0].data = data.map(function (dat) { return dat.enter_char });
+		$canvs4.setOption(option, true);
 	},
 	loadMenu: function () {
 		var that = this;

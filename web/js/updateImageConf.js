@@ -172,6 +172,7 @@ UpdateImageConf.prototype = {
             data: bill
           };
           $.post("/config/crop", param, function (data, status, xhr) {
+            that.loadUI.hide();
             if (status == 'success' && data == "success") {
               bill.img_path = param.cut_path + "\\" + bill.code + ".jpg";
               bill.filter = conf.filter;
@@ -194,14 +195,11 @@ UpdateImageConf.prototype = {
                     modalWindow.hide();
                   }
                 }
-                that.loadUI.hide();
               });
             } else if (data == "exist") {
               that.dialog.show('分块编码已存在');
-              that.loadUI.hide();
             } else {
               that.dialog.show('新增失败');
-              that.loadUI.hide();
             }
           });
         }

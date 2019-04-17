@@ -10,13 +10,20 @@
 
   OCRHandler = class OCRHandler extends Handler {
     handle(param, callback) {
-      var image, outputStatis, ref, ref1, that;
+      var image, ref, ref1, ref2, stage_handler, statis, that;
       that = this;
       if (!param || !param.data) {
         LOG.warn("没有OCR的实体");
         return callback("没有OCR的实体");
       }
       image = param.data;
+      if (!that.data.outputStatis) {
+        that.data.outputStatis = {
+          task: that.data.deploy.task._id.toString(),
+          project: that.data.deploy.project._id.toString(),
+          statis: {}
+        };
+      }
       if (!param.enterEntitys) {
         LOG.warn("没有OCR的实体");
         if ((ref = param.socket) != null) {
@@ -24,70 +31,64 @@
         }
         return callback(null, param);
       }
-      if ((ref1 = param.socket) != null) {
-        ref1.emit(0, `${image.img_name}：开始进行OCR`);
+      if (that.data.deploy.task.flowList[0] !== "ocr") {
+        LOG.warn(`${image.img_name}：不需要OCR`);
+        if ((ref1 = param.socket) != null) {
+          ref1.emit(0, `${image.img_name}：不需要OCR`);
+        }
+        return callback(null, param);
       }
-      outputStatis = [];
-      return async.eachLimit(this.data.enterEntitys, 50, function(enterEntity, cb) {
+      if ((ref2 = param.socket) != null) {
+        ref2.emit(0, `${image.img_name}：开始进行OCR`);
+      }
+      statis = that.data.outputStatis.statis;
+      statis["ocr"] || (statis["ocr"] = {});
+      stage_handler = statis["ocr"]["ocr"] || (statis["ocr"]["ocr"] = {
+        chatLength: 0,
+        symbol: 0,
+        count: 0
+      });
+      return async.each(param.enterEntitys, function(enterEntity, cb) {
         var file_path;
         file_path = enterEntity.path + enterEntity.img_name;
         return fs.readFile(file_path, function(err) {
-          var en, i, len, ref2, ref3, ref4, res, statis;
+          var en, i, len, ref3, ref4, ref5, res;
           if (err) {
             enterEntity.stage = "error";
             enterEntity.remark = err;
-            if ((ref2 = param.socket) != null) {
-              ref2.emit(-1, `${image.img_name}：OCR失败`);
+            if ((ref3 = param.socket) != null) {
+              ref3.emit(-1, `${image.img_name}：OCR失败`);
             }
             return cb(null);
           }
-          if ((ref3 = param.socket) != null) {
-            ref3.emit(-1, `${image.img_name}：OCR完成`);
+          if ((ref4 = param.socket) != null) {
+            ref4.emit(0, `${image.img_name}：OCR完成`);
           }
           res = {
             "fc001": "123",
             "fc002": "123",
             "fc003": "123"
           };
-          enterEntity.stage = "op2";
-          statis = {
-            project: enterEntity.project,
-            deploy_id: enterEntity.deploy_id,
-            usercode: "ocr",
-            chatLength: 0,
-            symbol: 0
-          };
-          ref4 = enterEntity.enter;
-          for (i = 0, len = ref4.length; i < len; i++) {
-            en = ref4[i];
+          enterEntity.stage = that.data.deploy.task.flowList[1];
+          ref5 = enterEntity.enter;
+          for (i = 0, len = ref5.length; i < len; i++) {
+            en = ref5[i];
             delete en.src_type;
             if (res[en.field_id]) {
-              en.handler["op1"] = "ocr";
-              en.value["op1"] = res[en.field_id];
-              statis.chatLength += Utils.getLength(res[en.field_id]);
-              statis.symbol += Utils.replaceAll(res[en.field_id], "？", "").length === 0 ? 1 : 0;
+              en.handler["ocr"] = "ocr";
+              en.value["ocr"] = res[en.field_id];
+              stage_handler.chatLength += Utils.getLength(res[en.field_id]);
+              stage_handler.symbol += Utils.replaceAll(res[en.field_id], "？", "").length === 0 ? 1 : 0;
+              stage_handler.count++;
             }
           }
-          outputStatis.push(statis);
           return cb(null);
         });
       }, function(err) {
-        var dao;
         if (err) {
           LOG.error(err);
         }
-        dao = new MongoDao(__b_config.dbInfo, {
-          epcos: ["outputData"]
-        });
-        if (!outputStatis.length) {
-          return callback(null, param);
-        }
-        return dao.epcos.outputData.insert(outputStatis, function(error) {
-          if (error) {
-            LOG.error(error);
-          }
-          return callback(null, param);
-        });
+        return callback(null, param);
       });
     }
 

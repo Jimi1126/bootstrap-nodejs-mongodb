@@ -9,6 +9,7 @@ global.mkdirp = require "mkdirp"
 global.LoggerUtil = LoggerUtil = require './LoggerUtil'
 global.Utils = require "./Utils"
 global.MongoDao = require "./MongoDao"
+global.LockHandler = require "./LockHandler"
 global.__b_config = require "../config/base-config.json"
 global.workspace = __dirname.replace("\src", "")
 
@@ -16,6 +17,7 @@ express = require "express"
 global.app = app = express()
 httpServer = require("http").Server(app)
 global.socketIO = require("socket.io")(httpServer)
+global.locker = new LockHandler()
 
 Router = require "./Router"
 SocketIORouter = require "./SocketIORouter"

@@ -12,6 +12,17 @@
    * 业务上下文接口
    */
   BussinessContext = class BussinessContext extends Context {
+    selectOne(param, callback) {
+      var dao;
+      if (!(param && param.col && param.filter)) {
+        return callback("invalid param");
+      }
+      dao = new MongoDao(__b_config.dbInfo, {
+        epcos: param.col
+      });
+      return dao.epcos[param.col].selectOne(param.filter, callback);
+    }
+
     selectList(param, callback) {
       var dao;
       if (!(param && param.col && param.filter)) {

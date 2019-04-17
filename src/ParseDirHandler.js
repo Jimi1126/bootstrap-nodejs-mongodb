@@ -7,8 +7,13 @@
   LOG = LoggerUtil.getLogger("ParseDirHandler");
 
   ParseDirHandler = class ParseDirHandler extends Handler {
-    handle(callback) {
-      var i, image, len, lines, ref, reg;
+    handle() {
+      var callback, i, image, len, lines, params, ref, reg;
+      [...params] = arguments;
+      callback = params.pop();
+      if (params.length > 0) {
+        return callback(params[0]);
+      }
       if (!this.data.deploy.images) {
         LOG.warn(`${argv.project}：没有进行图片配置`);
         return callback(null);

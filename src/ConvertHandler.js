@@ -103,7 +103,7 @@
               return callback(err);
             }
             page = +stdout.substring(stdout.lastIndexOf("Page") + 4);
-            for (index = j = 1, ref7 = page; (1 <= ref7 ? j < ref7 : j > ref7); index = 1 <= ref7 ? ++j : --j) {
+            for (index = j = 1, ref7 = page + 1; (1 <= ref7 ? j < ref7 : j > ref7); index = 1 <= ref7 ? ++j : --j) {
               newImage = Utils.clone(dbImage);
               newImage._id = Utils.uuid(24, 16);
               newImage.img_name = `${name}_${index}.jpg`;

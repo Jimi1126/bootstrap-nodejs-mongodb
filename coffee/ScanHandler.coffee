@@ -2,14 +2,17 @@ Handler = require "./Handler"
 ExecHandler = require "./ExecHandler"
 LOG = LoggerUtil.getLogger "ScanHandler"
 class ScanHandler extends Handler
-  handle: (callback)->
+  handle: ()->
+    [...params] = arguments
+    callback = params.pop()
+    return callback params[0] if params.length > 0
     that = @
     unless that.data.deploy.project
       LOG.warn "项目未配置 [#{argv.project}]"
-      return callback null
+      return callback? null
     unless that.data.deploy.images
       LOG.warn "项目未进行图片配置 [#{argv.project}]"
-      return callback null
+      return callback? null
     exec = new ExecHandler().queue_exec()
     async.each that.data.deploy.images, (image, cb)->
       return cb null unless image.d_url

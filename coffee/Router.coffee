@@ -9,6 +9,7 @@ ConfigContext = require "./ConfigContext"
 EnterContext = require "./EnterContext"
 SysConfigContext = require "./SysConfigContext"
 UserAuthContext = require "./UserAuthContext"
+OutputStatisContext = require "./OutputStatisContext"
 TaskContext = require "./TaskContext"
 UserContext = require "./UserContext"
 ExecHandler = require "./ExecHandler"
@@ -134,6 +135,7 @@ class Router
 			param = if Object.keys(req.query).length is 0 then req.body else req.query
 			context.insert {col: "sys_config", data: param}, (err)->
 				LOG.error err if err
+				initAccessControl() unless err
 				res.json err
 		sysConfigRouter.post "/update", (req, res)->
 			context = new SysConfigContext()
@@ -143,6 +145,7 @@ class Router
 			delete param._id
 			context.update {col: "sys_config", filter: {_id : _id}, setter: {$set: param}}, (err)->
 				LOG.error err if err
+				initAccessControl() unless err
 				res.json err
 		sysConfigRouter.post "/delete", (req, res)->
 			context = new SysConfigContext()
@@ -150,6 +153,7 @@ class Router
 			return res.json {errno: -1, text: "invalid param"} unless param and param._id
 			context.delete {col: "sys_config", filter: param}, (err)->
 				LOG.error err if err
+				initAccessControl() unless err
 				res.json err
 		sysConfigRouter.post "/getList", (req, res)->
 			context = new SysConfigContext()
@@ -179,9 +183,11 @@ class Router
 		app.use "/sysconf", sysConfigRouter
 
 		userAuthRouter = express.Router() # 用户权限路由
-		new UserAuthContext().accessControl (err, auths)->
-			auths = auths || []
-			global.accessControl = auths.map (aut)-> aut.flag
+		initAccessControl = ->
+			new UserAuthContext().accessControl (err, auths)->
+				auths = auths || []
+				global.accessControl = auths.map (aut)-> aut.flag
+		initAccessControl()
 		userAuthRouter.post "/add", (req, res)->
 			context = new UserAuthContext()
 			param = if Object.keys(req.query).length is 0 then req.body else req.query
@@ -235,7 +241,7 @@ class Router
 			type = data.type;
 			verify = {db: "epcos", col: "deploy"}
 			if type is "proj"
-				verify.filter = {$or: [{projName: data.projName}, {projCode: data.projCode}]}
+				verify.filter = {$or: [{name: data.name}, {code: data.code}]}
 			else 
 				filter = {type: type}
 				if type is "image"
@@ -433,37 +439,15 @@ class Router
 		# 获取录入实体
 		configRouter.post "/getEnterEntity", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			return res.json null if !data or !data.project or !data.stage or !data.task
 			context = new EnterContext()
-			global.enter || (global.enter = {})
-			global.enter.entitys || (global.enter.entitys = {})
-			global.enter.entitys.MIN_CACHE || (global.enter.entitys.MIN_CACHE = 15)
-			global.enter.entitys.MAX_CACHE || (global.enter.entitys.MAX_CACHE = 80)
-			global.enter.entitys[data.project] || (global.enter.entitys[data.project] = {})
-			entity_task = global.enter.entitys[data.project][data.task] || (global.enter.entitys[data.project][data.task] = {})
-			entitys = global.enter.entitys[data.project][data.task][data.stage] || (global.enter.entitys[data.project][data.task][data.stage] = {
-				isEmpty: false,
-				data:[],
-				entering: []
-			})
-			if data.stage == "op4" and entity_task["op1"]?.isEmpty and entity_task["op2"]?.isEmpty and entity_task["op3"]?.isEmpty and entity_task["op4"]?.isEmpty
-				context.update {col: "task", filter: {_id: data.task}, setter: {$set: {state: "已导出"}}}, (err)->
+			context.getEnterTask data, (err, task)->
+				if err
 					LOG.error err
-			if entitys.isEmpty
-				entity = entitys.data.shift() || null
-				entity && entitys.entering.push entity
-				return res.json entity
-			if entitys.data.length > 0
-				entity = entitys.data.shift()
-				entitys.entering.push entity
-				res.json entity
-			if entitys.data.length < global.enter.entitys.MIN_CACHE
-				num = global.enter.entitys.MAX_CACHE - entitys.data.length
-				context.getEnterEntity {data: data, limit: num}, (err)->
+					return res.json null
+				context.getEnterEntity {data, task}, (err, entity)->
 					LOG.error err if err
-					if num is global.enter.entitys.MAX_CACHE
-						entity = entitys.data.shift() || null
-						entity && entitys.entering.push entity
-						res.json entity
+					res.json entity
 		# 释放录入实体
 		configRouter.post "/letEnterEntity", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
@@ -477,63 +461,31 @@ class Router
 		configRouter.post "/submitEnter", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
 			data = data?.data
-			return res.json "failed" if !data or !data.project or !data.stage
-			rankArr = ["ocr", "op1", "op2", "op3", "op4", "over"]
-			try
+			return res.json "failed" if !data or !data.project or !data.stage or !data.task
+			context = new EnterContext()
+			context.getEnterTask data, (err, task)->
+				if err
+					LOG.error err
+					return res.json null
+				user = req.session.user
+				context.submitEnter {data, task, user}, (err)->
+					if err
+						LOG.error err
+						return res.json "failed"
+					res.json "success"
+		# 删除录入实体
+		configRouter.post "/delEnterEntity", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			data = data?.data
+			return res.json "failed" if !data or !data.project or !data.stage or !global.enter
+			context = new EnterContext()
+			context.delete {col: "resultData", filter: {_id: data._id}}, (err)->
+				if err
+					LOG.error err
+					return res.json "failed"
 				entitys = global.enter.entitys[data.project][data.task][data.stage]
 				entitys.entering.splice (entitys.entering.findIndex (en)-> en._id.toString() is data._id), 1
-
-				chatLength = 0
-				symbol = 0
-				for en in data.enter
-					chatLength += Utils.getLength en.value[data.stage]
-					symbol += if Utils.replaceAll(en.value[data.stage], /\?|？/, "").length is 0 then 1 else 0
-				statis = {
-					project: data.project
-					task: data.task
-					stage: data.stage
-					usercode: req.session.user.username
-				}
-				dao = new MongoDao __b_config.dbInfo, {epcos: ["outputData"]}
-				dao.epcos.outputData.selectOne statis, (err, doc)->
-					return LOG.error err if err
-					statis.chatLength = 0
-					statis.symbol = 0
-					statis.count = 0
-					statis = doc if doc
-					statis.chatLength += chatLength
-					statis.symbol += symbol
-					statis.count++
-					
-					doc && dao.epcos.outputData.update {_id: statis._id}, statis, ->
-					!doc && dao.epcos.outputData.insert statis, ->
-				if data.stage is "op2"
-					for en in data.enter
-						data.stage = "no" if !en.value["op1"] or !en.value["op2"] or (en.value["op1"] isnt en.value["op2"])
-					data.stage is "op2" and (data.stage = "over")
-					data.stage is "no" and (data.stage = "op3")
-				else
-					data.stage = rankArr[(rankArr.findIndex (r) -> r is data.stage) + 1]
-				entitys = global.enter.entitys[data.project][data.task][data.stage]
-				entitys && (entitys.isEmpty = false)
-				context = new EnterContext()
-				setter = {
-					$set: {
-						stage: data.stage
-						enter: data.enter
-					}
-				}
-				context.update {col: "resultData", filter: {_id: data._id}, setter: setter}, (err)->
-					res.json err
-			catch e
-				res.json  e
-		# 保存录入实体
-		configRouter.post "/saveEnterEntity", (req, res)->
-			data = if Object.keys(req.query).length is 0 then req.body else req.query
-			context = new EnterContext()
-			context.saveEnterEntity data, (err)->
-				LOG.error err if err
-				res.json entity
+				res.json "success"
 		app.use "/config", configRouter
 
 		## 新建任务
@@ -543,14 +495,14 @@ class Router
 			mkdirp data.path_name, (err)->
 				LOG.error err if err
 				return res.json err if err
-				context = new EnterContext()
-				context.save {col: "task", data: data}, (err)->
+				context = new TaskContext()
+				context.insert {col: "task", data: data}, (err)->
 					LOG.error err if err
 					res.json err
 		taskRouter.post "/getTasks", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
-			context = new EnterContext()
-			context.select {col: "task", filter: data}, (err, docs)->
+			context = new TaskContext()
+			context.selectList {col: "task", filter: data}, (err, docs)->
 				LOG.error err if err
 				res.json docs
 		## 获取结果数据
@@ -565,7 +517,7 @@ class Router
 		taskRouter.post "/allotImage", (req, res)->
 			data = if Object.keys(req.query).length is 0 then req.body else req.query
 			return res.json {errno: -1, text: "invalid param"} unless data?.data
-			context = new EnterContext()
+			context = new TaskContext()
 			param = {
 				col: "task"
 				filter: {_id: {$in: data.data.map (task)-> ObjectId(task._id)}}
@@ -581,7 +533,21 @@ class Router
 			return res.json "error" if !data.filter
 			context.mergeImage data, (err)->
 				return res.json err if err
-				res.json "success"
+				context.update {col: "task", filter: {_id: data.filter.task}, setter: {$set: {state: "已合并"}}}, (err)->
+					return res.json err if err
+					res.json "success"
 		app.use "/task", taskRouter
+
+		outputRouter = express.Router()
+		## 分页查询产量
+		outputRouter.post "/getOutPutPageData", (req, res)->
+			data = if Object.keys(req.query).length is 0 then req.body else req.query
+			context = new OutputStatisContext()
+			context.getOutPutPageData data, (err, docs)->
+				if err
+					LOG.error err
+					return res.json err
+				res.json docs
+		app.use "/output", outputRouter
 
 module.exports = Router

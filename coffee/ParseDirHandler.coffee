@@ -1,7 +1,10 @@
 Handler = require "./Handler"
 LOG = LoggerUtil.getLogger "ParseDirHandler"
 class ParseDirHandler extends Handler
-  handle: (callback)->
+  handle: ()->
+    [...params] = arguments
+    callback = params.pop()
+    return callback params[0] if params.length > 0
     unless @data.deploy.images
       LOG.warn "#{argv.project}：没有进行图片配置"
       return callback null

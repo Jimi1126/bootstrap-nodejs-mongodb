@@ -117,7 +117,7 @@ EnterDetail.prototype = {
       if (status == "success") {
         var menu = [];
         that.projects.forEach(function (proj) {
-          menu.push({ id: proj._id, text: proj.projName });
+          menu.push({ id: proj._id, text: proj.name });
         });
         that.projectList.initData(menu);
         menu[0] && that.projectList.value(menu[0].id);
@@ -175,10 +175,9 @@ EnterDetail.prototype = {
       var displayList = [];
       data.forEach(function(res, i) {
         var fc001 = res.enter.filter(function(e) {return e.field_id == "fc001"})[0];
-        var fc002 = res.enter.filter(function(e) {return e.field_id == "fc002"})[0];
+        // var fc002 = res.enter.filter(function(e) {return e.field_id == "fc002"})[0];
         var fc003 = res.enter.filter(function(e) {return e.field_id == "fc003"})[0];
-        var moNo = fc001 ? (fc001.value.op4 ? fc001.value.op4 : fc001.value.op2) : "";
-        var prodNO = fc002 ? (fc002.value.op4 ? fc002.value.op4 : fc002.value.op2) : "";
+        var prodNO = fc001 ? (fc001.value.op4 ? fc001.value.op4 : fc001.value.op2) : "";
         var matNO = fc003 ? (fc003.value.op4 ? fc003.value.op4 : fc003.value.op2) : "";
         displayList.push({
           fileID: `FK${Util.getBitDate(8)}-${Util.LPAD(i + 1, 6, "0")}`,

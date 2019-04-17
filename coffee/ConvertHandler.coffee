@@ -62,7 +62,7 @@ class ConvertHandler extends Handler
 						param.socket?.emit -1, "#{original.img_name}：解析失败"
 						return callback err
 					page = +stdout.substring(stdout.lastIndexOf("Page") + 4)
-					for index in [1...page]
+					for index in [1...(page + 1)]
 						newImage = Utils.clone dbImage
 						newImage._id = Utils.uuid 24, 16
 						newImage.img_name = "#{name}_#{index}.jpg"

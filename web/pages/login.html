@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,42 +8,43 @@
 	<title>登陆</title>
 	<link rel='stylesheet' type="text/css" href='../css/bootstrap.min.css' />
 </head>
-<body style="text-align: center;">
+
+<body style="text-align: center;background-image: url('../images/timg_4.jpg');background-size: 100%;">
 	<form action="" method="POST">
 		<div class="container-fluid">
 			<div id='mainDiv' class="jumbotron" style="width: 500px;">
 				<div style="text-align: center;">
 					<h3>珠海汇流智能扫描终端处理平台&nbsp;<small>V1.0</small></h3>
 				</div>
-			<div>
-				<div class="input-group" style="padding: 12px">
-					<span class="input-group-addon">账号</span>
-					<input type="text" id="usercode" class="form-control">
+				<div>
+					<div class="input-group" style="padding: 12px">
+						<span class="input-group-addon">账号</span>
+						<input type="text" id="usercode" class="form-control">
+					</div>
+					<div class="input-group" style="padding: 12px">
+						<span class="input-group-addon">密码</span>
+						<input type="password" id="password" class="form-control">
+					</div>
+					<div class="input-group" style="width: 100%">
+						<span id="tip" style="color:red;"></span>
+					</div>
+					<div style="text-align: center;">
+						<button id="submit" type="button" class="btn btn-primary" style="width: 50%">登录</button>
+					</div>
 				</div>
-				<div class="input-group" style="padding: 12px">
-					<span class="input-group-addon">密码</span>
-					<input type="password" id="password" class="form-control">
-				</div>
-				<div class="input-group" style="width: 100%">
-					<span id="tip" style="color:red;"></span>
-				</div>
-				<div style="text-align: center;">
-					<button id="submit" type="button" class="btn btn-primary" style="width: 50%" >登录</button>
-				</div>
-			</div>
-			<div align="center" style="font-size: 8px; margin-top: 36px;">
-				<span class="black">
-					<span style="font-family:Arial, Helvetica, sans-serif">©</span>
+				<div align="center" style="font-size: 8px; margin-top: 36px;">
+					<span class="black">
+						<span style="font-family:Arial, Helvetica, sans-serif">©</span>
 						珠海汇流信息技术有限公司 2009-2019 版权所有
-				</span>
-			</div>
+					</span>
+				</div>
 			</div>
 		</div>
 	</form>
 </body>
 <script type="text/javascript" src="../js/jquery.min.js"></script>
 <script type="text/javascript">
-	window.onload = function(){
+	window.onload = function () {
 		adjustUI();
 		bindEvent();
 	}
@@ -57,12 +59,13 @@
 		var margin_l = 0
 		var margin_t = 0
 		if (c_width > width) {
-			margin_l = (c_width - width)/2
+			margin_l = (c_width - width) / 2
 		}
 		if (c_height > height) {
-			margin_t = (c_height - height)/2
+			margin_t = (c_height - height) / 2
 		}
-		var style= "margin-left: " + margin_l + "px; margin-top: " + margin_t + "px;" + "width: 500px;";
+		var style = "margin-left: " + margin_l + "px; margin-top: " + margin_t + "px;" + "width: 500px;";
+		style += "background:none;border:1px #cdcdcd solid;color: #cdcdcd";
 		document.getElementById("mainDiv").style = style;
 	}
 	/**
@@ -104,4 +107,5 @@
 		});
 	}
 </script>
+
 </html>

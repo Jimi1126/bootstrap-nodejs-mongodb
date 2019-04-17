@@ -151,9 +151,8 @@
         }, function(err) {});
       });
       // 下载与解析
-      // socket.removeAllListeners "startDownAndParse"
       socket.on("startDownAndParse", function(image) {
-        var context, d_socket, that;
+        var context, d_socket, start, that;
         that = this;
         context = new DownloadContext();
         d_socket = {
@@ -166,8 +165,11 @@
             return that.on.apply(that, arguments);
           }
         };
+        start = moment();
+        d_socket.emit(0, `------本次下载开始于：${start.format("YYYY-MM-DD HH:mm:ss")}------`);
+        LOG.info(`本次下载开始于：${start.format("YYYY-MM-DD HH:mm:ss")}`);
         return context.execute(image, d_socket, function(err, pages) {
-          var setter;
+          var endTime, setter;
           if (err) {
             LOG.error(err);
             that.emit("downAndParseProgress", -1, err);
@@ -188,7 +190,12 @@
               setter: setter
             }, function() {});
           }
-          return that.emit("downAndParseProgress", "final");
+          endTime = moment();
+          LOG.info(`本次下载结束于：${endTime.format("YYYY-MM-DD HH:mm:ss")} --${endTime - start}ms`);
+          d_socket.emit(0, `----本次下载结束于：${endTime.format("YYYY-MM-DD HH:mm:ss")} --${endTime - start}ms`);
+          return setTimeout(function() {
+            return that.emit("downAndParseProgress", "final");
+          }, 0);
         });
       });
       return socket.on("disconnect", function() {});

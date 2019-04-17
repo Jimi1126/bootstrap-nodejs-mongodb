@@ -340,22 +340,22 @@ AuthConfig.prototype = {
 		});
 	},
 	/**
-	 * 设置用户权限.
+	 * 权限控制.
 	 */
 	controlBtnEvent: function () {
 		var that = this, modalWindow, authTable;
 		var cur_data = that.mainTable.select();
 		modalWindow = new ModalWindow({
-			title: "选择权限",
+			title: "权限控制",
 			body: `<div>
 						<div class="btn-group">
-						<button title="新增用户权限" id="addContrBtn" type="button" class="btn btn-default">
+						<button title="新增控制" id="addContrBtn" type="button" class="btn btn-default">
 							新增
 						</button>
-						<button title="保存用户权限" id="modContrBtn" type="button" class="btn btn-default">
+						<button title="修改控制" id="modContrBtn" type="button" class="btn btn-default">
 							修改
 						</button>
-						<button title="删除用户权限" id="delContrBtn" type="button" class="btn btn-default">
+						<button title="删除控制" id="delContrBtn" type="button" class="btn btn-default">
 							删除
 						</button>
 						<div class="input-group filter_group" style="margin-bottom: 8px;">

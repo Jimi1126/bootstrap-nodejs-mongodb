@@ -9,16 +9,21 @@
   LOG = LoggerUtil.getLogger("ScanHandler");
 
   ScanHandler = class ScanHandler extends Handler {
-    handle(callback) {
-      var exec, that;
+    handle() {
+      var callback, exec, params, that;
+      [...params] = arguments;
+      callback = params.pop();
+      if (params.length > 0) {
+        return callback(params[0]);
+      }
       that = this;
       if (!that.data.deploy.project) {
         LOG.warn(`项目未配置 [${argv.project}]`);
-        return callback(null);
+        return typeof callback === "function" ? callback(null) : void 0;
       }
       if (!that.data.deploy.images) {
         LOG.warn(`项目未进行图片配置 [${argv.project}]`);
-        return callback(null);
+        return typeof callback === "function" ? callback(null) : void 0;
       }
       exec = new ExecHandler().queue_exec();
       return async.each(that.data.deploy.images, function(image, cb) {

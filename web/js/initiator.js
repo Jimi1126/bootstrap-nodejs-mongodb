@@ -83,7 +83,7 @@ $.get = function () {
 				}).show();
 				return;
 			}
-			if (arguments[0] && arguments[0].errno) {
+			if (arguments[0] && (arguments[0].errno || arguments[0].name == "MongoError")) {
 				$('.ic-LoadUI').remove();
 				new DetailDialog({
 					body: `<div>系统错误</div>`,
@@ -91,25 +91,6 @@ $.get = function () {
 					height: 30,
 					hideDetail: true
 				}).show().appendDetail(JSON.stringify(arguments[0]), -1);
-				return;
-			}
-			if (arguments[0] == "notauth") {
-				$('.ic-LoadUI').remove();
-				new ModalWindow({
-					title: "提示",
-					body: `<div>没有操作权限</div>`,
-					width: 400,
-					height: 30,
-					buttons: [
-						{
-							"name": "确定",
-							"class": "btn-primary",
-							event: function () {
-								this.hide();
-							}
-						}
-					]
-				}).show();
 				return;
 			}
 			if (arguments[1] != "success") {
@@ -153,7 +134,7 @@ $.post = function () {
 				}).show();
 				return;
 			}
-			if (arguments[0] && arguments[0].errno) {
+			if (arguments[0] && (arguments[0].errno || arguments[0].name == "MongoError")) {
 				$('.ic-LoadUI').remove();
 				new DetailDialog({
 					body: `<div>系统错误</div>`,
@@ -208,7 +189,7 @@ $.syncGet = function () {
 				}).show();
 				return;
 			}
-			if (result && result.errno) {
+			if (result && (result.errno || result.name == "MongoError")) {
 				$('.ic-LoadUI').remove();
 				new DetailDialog({
 					body: `<div>系统错误</div>`,
@@ -247,7 +228,7 @@ $.syncPost = function () {
 			if (result == "notlogin") {
 				return Util.overTimeWin();
 			}
-			if (result && result.errno) {
+			if (result && (result.errno || result.name == "MongoError")) {
 				$('.ic-LoadUI').remove();
 				new DetailDialog({
 					body: `<div>系统错误</div>`,
@@ -458,6 +439,12 @@ Util.overTimeWin = function () {
 		width: 400,
 		height: 125,
 		buttons: [{
+			name: "取消",
+			class: "btn-default",
+			event: function () {
+				window.location.reload(true);
+			}
+		}, {
 			name: "确定",
 			class: "btn-primary",
 			event: function () {
@@ -479,12 +466,6 @@ Util.overTimeWin = function () {
 						}
 					}
 				});
-			}
-		}, {
-			name: "取消",
-			class: "btn-default",
-			event: function () {
-				window.location.reload(true);
 			}
 		}]
 	});
@@ -745,7 +726,7 @@ function ModalWindow(options) {
 	that.$modal.find(".modal-header").append($html);
 	if (options.buttons) {
 		options.buttons.forEach(function (button) {
-			html = '<button type="button" class="btn ' + button['class'] + '">' + button.name + '</button>';
+			html = `<button type="button" ${button.focus || ""} class="btn ${button['class'] || "btn-default"}">${button.name}</button>`;
 			$html = $(html);
 			button.title && $html.attr("title", button.title);
 			$html.bind("click", $.proxy(button.event, that));
@@ -788,6 +769,7 @@ function ModalWindow(options) {
 		$html = options.body instanceof jQuery ? options.body : $(options.body || "");
 		options.height && $html.height(options.height);
 		that.$modal.find(".modal-body").append($html);
+		if (options.data) that.value(options.data);
 	}
 }
 
@@ -981,6 +963,7 @@ $.fn.dropMenu = function (options) {
 	options.code && $v_input.attr("datafield", options.code);
 	options.width && $menu.width(options.width);
 	options.height && $menu.height(options.height);
+	this._data = options.data;
 	options.data && initData(options.data);
 	$backdrop = $('<div class="modal-backdrop"></div>');
 	$backdrop.css("opacity", 0);
@@ -1559,6 +1542,20 @@ var NavBar = function (options) {
 			return this.find(".active").attr("code");
 		} else {
 			this.find(".nav-tag[code='" + code + "']").click();
+		}
+	}
+	that.hide = function (code) {
+		if (arguments.length == 0) {
+			return;
+		} else {
+			this.find(".nav-tag[code='" + code + "']").hide();
+		}
+	}
+	that.show = function (code) {
+		if (arguments.length == 0) {
+			return;
+		} else {
+			this.find(".nav-tag[code='" + code + "']").show();
 		}
 	}
 	return that;

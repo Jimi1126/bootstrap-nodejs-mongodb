@@ -34,16 +34,17 @@ class CutImageHandler extends Handler
 						cut_path = rel_path.replace "image", "bill"
 						img_path = "#{rel_path}#{original.img_name.replace(".pdf", "")}/"
 						cut_path = "#{cut_path}#{original.img_name.replace(".pdf", "")}/"
+						cur_image = param.image.filter((im)-> im.img_name is f_nm)[0]
+						cur_image = cur_image || {}
 						dbBill = {
 							deploy_id: bill._id.toString()
 							type: "bill"
-							source_img: param.image.filter((im)-> im.img_name is f_nm)._id
+							source_img: cur_image._id
 							code: bill.code
 							img_name: "#{bill.code}#{f_nm}"
 							path: cut_path
 							upload_at: original.upload_at
 						}
-						param.bill.push dbBill
 						dao.epcos.entity.selectOne dbBill, (err, doc)->
 							if err
 								dbBill.state = -1
@@ -129,6 +130,7 @@ class CutImageHandler extends Handler
 									if err is "break"
 										LOG.trace "break #{bill.filter} #{img_path}#{f_nm}"
 										return cb1 null
+									param.bill.push dbBill
 									cb1 err
 					, cb
 				, (err)->
@@ -146,7 +148,6 @@ class CutImageHandler extends Handler
 					path: cut_path
 					upload_at: original.upload_at
 				}
-				param.bill.push dbBill
 				mkdirp cut_path, (err)->
 					if err
 						dbBill.state = -1
@@ -232,6 +233,7 @@ class CutImageHandler extends Handler
 							if err is "break"
 								LOG.trace "break #{bill.filter} #{rel_path}#{original.img_name}"
 								return cb1 null
+							param.bill.push dbBill
 							cb1 err
 			, (err)->
 				LOG.info err if err

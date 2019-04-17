@@ -5,6 +5,10 @@ ObjectId = require('mongodb').ObjectId
 # 业务上下文接口
 ###
 class BussinessContext extends Context
+  selectOne: (param, callback)->
+    return callback "invalid param" unless param and param.col and param.filter
+    dao = new MongoDao __b_config.dbInfo, {epcos: param.col}
+    dao.epcos[param.col].selectOne param.filter, callback
   selectList: (param, callback)->
     return callback "invalid param" unless param and param.col and param.filter
     dao = new MongoDao __b_config.dbInfo, {epcos: param.col}

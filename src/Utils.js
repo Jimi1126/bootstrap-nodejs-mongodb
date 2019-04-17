@@ -102,6 +102,22 @@
     }
   };
 
+  Utils.uniq = function(arr) {
+    var item, j, len1, newArr;
+    newArr = [];
+    if (Array.isArray(arr)) {
+      for (j = 0, len1 = arr.length; j < len1; j++) {
+        item = arr[j];
+        if (newArr.indexOf(item) === -1) {
+          newArr.push(item);
+        }
+      }
+    } else {
+      return arr;
+    }
+    return newArr;
+  };
+
   module.exports = Utils;
 
 }).call(this);

@@ -83,7 +83,7 @@ PageStatis.prototype = {
       if (status == "success") {
         var menu = [];
         that.projects.forEach(function (proj) {
-          menu.push({ id: proj._id, text: proj.projName });
+          menu.push({ id: proj._id, text: proj.name });
         });
         that.projectList.initData(menu);
         menu[0] && that.projectList.value(menu[0].id);

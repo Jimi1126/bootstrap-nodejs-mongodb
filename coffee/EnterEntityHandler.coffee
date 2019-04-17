@@ -59,8 +59,8 @@ class EnterEntityHandler extends Handler
             path: entity.path
             img_name: entity.img_name
             enter: confs
-            stage: "op1"
-            priority: "1"
+            stage: that.data.deploy.task.flowList[0]
+            priority: that.data.deploy.task.priority
             create_at: entity.create_at
           }
           entity.isDeploy = 1

