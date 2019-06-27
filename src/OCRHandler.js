@@ -65,9 +65,9 @@
             ref4.emit(0, `${image.img_name}：OCR完成`);
           }
           res = {
-            "fc001": "123",
-            "fc002": "123",
-            "fc003": "123"
+            "fc001": "1",
+            "fc002": "2",
+            "fc003": "3"
           };
           enterEntity.stage = that.data.deploy.task.flowList[1];
           ref5 = enterEntity.enter;

@@ -161,7 +161,7 @@ ProjectConfig.prototype = {
   addProjConfEvent: function () {
     var that = this;
     var modalWindow = new ModalWindow({
-      title: "新增项目配置",
+      title: "新增项目",
       url: "addProjConf.html",
       data: {code: "PR" + Util.getBitDate()},
       width: 600,
@@ -212,7 +212,7 @@ ProjectConfig.prototype = {
   modProjConfEvent: function () {
     var that = this;
     var modalWindow = new ModalWindow({
-      title: "修改项目配置",
+      title: "修改项目",
       url: "addProjConf.html",
       width: 600,
       height: 50,

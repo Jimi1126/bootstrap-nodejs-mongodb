@@ -1,0 +1,35 @@
+{
+	"replaceConsole": true,
+	"appenders": {
+		"console": {
+			"type": "console"
+		},
+		"error": {
+			"type": "dateFile",
+			"filename": "./logs/",
+			"pattern": "error-yyyyMMdd.log",
+			"alwaysIncludePattern": true
+		},
+		"default": {
+			"type": "dateFile",
+			"filename": "./logs/",
+			"pattern": "server-yyyyMMdd.log",
+			"alwaysIncludePattern": true
+		},
+		"logFilter": {
+			"type": "logLevelFilter",
+			"appender": "error",
+			"level": "error"
+		}
+	},
+	"categories": {
+		"default": {
+			"appenders": [
+				"console",
+				"default",
+				"logFilter"
+			],
+			"level": "all"
+		}
+	}
+}

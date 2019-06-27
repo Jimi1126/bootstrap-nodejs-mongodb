@@ -1,0 +1,14 @@
+{
+	"serverInfo": {
+		"hostName": "192.168.3.69",
+		"port": "8090"
+	},
+	"dbInfo": {
+		"username": "admin",
+		"password": "admin",
+		"hostName": "127.0.0.1",
+		"port": "27017",
+		"auth": "authSource=admin",
+		"DB_OPTS": {"useNewUrlParser": true}
+	}
+}

@@ -1054,25 +1054,25 @@ $.fn.icTable = function (options) {
 		$paging = $(`<ul class="pagination" style="margin:0px;"></ul>`);
 		$total = $(`<div style="float: left;line-height: 34px;margin-right: 12px;">总数：<span></span></div>`);
 		$previous = $(`<li>
-		<a href="#" aria-label="Previous">
-		<span aria-hidden="true">&laquo;</span>
-		</a>
-		</li>`);
+			<a href="#" aria-label="Previous">
+			<span aria-hidden="true">&laquo;</span>
+			</a>
+			</li>`);
 		$less = $(`<li>
-		<a href="#" aria-label="less">
-		<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
-		</a>
-		</li>`);
+			<a href="#" aria-label="less">
+			<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
+			</a>
+			</li>`);
 		$more = $(`<li>
-		<a href="#" aria-label="more">
-		<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
-		</a>
-		</li>`);
+			<a href="#" aria-label="more">
+			<span class="glyphicon glyphicon-option-horizontal" aria-hidden="true" style="top: 4px"></span>
+			</a>
+			</li>`);
 		$next = $(`<li>
-		<a href="#" aria-label="Next">
-		<span aria-hidden="true">&raquo;</span>
-		</a>
-		</li>`);
+			<a href="#" aria-label="Next">
+			<span aria-hidden="true">&raquo;</span>
+			</a>
+			</li>`);
 		$amount = $(`<div style="float: left;line-height: 34px;margin-right: 12px;">显示数量：<div class="dropup" style="display:inline-block"></div></div>`);
 		$page.append($total);
 		$paging.append($previous);

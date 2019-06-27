@@ -30,7 +30,7 @@
           return callback("failed");
         }
         return new EnterContext().getResultData(param, function(err, docs) {
-          var e_s_map, fc, fc001, fc002, fc003, j, k, len, len1, re, ref, stage, val;
+          var e_s_map, fc, fc001, fc002, fc003, j, k, len, len1, originals, re, ref, stage, val;
           if (err) {
             LOG.error(err);
           }
@@ -67,6 +67,7 @@
             e_s_map[val] = e_s_map[val] || [];
             e_s_map[val].push(re.source_img);
           }
+          originals = [];
           return that.selectList({
             col: "entity",
             filter: {
@@ -95,8 +96,13 @@
             o_m_map = {};
             for (l = 0, len2 = ims.length; l < len2; l++) {
               im = ims[l];
-              o_m_map[im._id.toString()] = im.source_img;
-              getOriginal_filter._id.$in.push(ObjectId(im.source_img));
+              if (im.type === "original") {
+                originals.push(im);
+                o_m_map[im._id.toString()] = im._id.toString();
+              } else {
+                o_m_map[im._id.toString()] = im.source_img;
+                getOriginal_filter._id.$in.push(ObjectId(im.source_img));
+              }
             }
             for (key in e_s_map) {
               val = e_s_map[key];
@@ -108,7 +114,7 @@
             return that.selectList({
               col: "entity",
               filter: getOriginal_filter
-            }, function(err, originals) {
+            }, function(err, ogs) {
               var img_dir, is_pdf, len4, len5, merge_cmd, n, o, o_n_map, orig, pdf_original_path, pdf_result_path, res_path;
               if (err) {
                 LOG.error(err);
@@ -116,6 +122,7 @@
               if (err) {
                 return callback(err);
               }
+              originals = originals.concat(ogs);
               if (!originals || originals.length === 0) {
                 return callback("未能找到原文件");
               }
@@ -205,7 +212,7 @@
       });
       return exec(cmd, function(err, stdout, stderr, spent) {
         if (err) {
-          LOG.error(e.stack);
+          LOG.error(err);
           return callback("ERROR：" + param.file_name);
         }
         return callback(err);

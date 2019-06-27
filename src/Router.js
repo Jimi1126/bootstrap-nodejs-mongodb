@@ -60,13 +60,13 @@
       }));
       // 拦截器
       app.use("/pages", function(req, res, next) {
-        if (!req.session.user && !req.originalUrl.startsWith("/pages/login.html") && !req.originalUrl.startsWith("/pages/overTime.html")) {
-          return res.redirect(302, "/pages/login.html");
-        } else if (req.session.user && req.originalUrl.startsWith("/pages/login.html")) {
+        if (!req.session.user && !req.originalUrl.startsWith("/pages/index.html") && !req.originalUrl.startsWith("/pages/overTime.html")) {
+          return res.redirect(302, "/pages/index.html");
+        } else if (req.session.user && req.originalUrl.startsWith("/pages/index.html")) {
           req.session._garbage = Date();
           req.session.touch();
           return res.redirect(302, "/pages/homePage.html");
-        } else if (req.originalUrl.startsWith("/pages/login.html") || req.originalUrl.startsWith("/pages/overTime.html")) {
+        } else if (req.originalUrl.startsWith("/pages/index.html") || req.originalUrl.startsWith("/pages/overTime.html")) {
           return next();
         } else {
           req.session._garbage = Date();

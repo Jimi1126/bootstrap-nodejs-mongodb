@@ -38,13 +38,13 @@ class Router
 		})
 		# 拦截器
 		app.use "/pages", (req, res, next)->
-			if !req.session.user and !req.originalUrl.startsWith("/pages/login.html") and !req.originalUrl.startsWith("/pages/overTime.html")
-				res.redirect 302, "/pages/login.html"
-			else if req.session.user and req.originalUrl.startsWith("/pages/login.html")
+			if !req.session.user and !req.originalUrl.startsWith("/pages/index.html") and !req.originalUrl.startsWith("/pages/overTime.html")
+				res.redirect 302, "/pages/index.html"
+			else if req.session.user and req.originalUrl.startsWith("/pages/index.html")
 				req.session._garbage = Date()
 				req.session.touch()
 				res.redirect 302, "/pages/homePage.html"
-			else if req.originalUrl.startsWith("/pages/login.html") or req.originalUrl.startsWith("/pages/overTime.html")
+			else if req.originalUrl.startsWith("/pages/index.html") or req.originalUrl.startsWith("/pages/overTime.html")
 				next()
 			else
 				req.session._garbage = Date()

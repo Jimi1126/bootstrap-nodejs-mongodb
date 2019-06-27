@@ -27,6 +27,7 @@ class TaskContext extends BussinessContext
 							break;
 					e_s_map[val] = e_s_map[val] || []
 					e_s_map[val].push re.source_img
+				originals = []
 				that.selectList {col: "entity", filter: {_id: {$in: docs.map (re)-> ObjectId(re.source_img)}}}, (err, ims)->
 					LOG.error err if err
 					return callback err if err
@@ -34,14 +35,19 @@ class TaskContext extends BussinessContext
 					getOriginal_filter = {_id: {$in: []}}
 					o_m_map = {}
 					for im in ims
-						o_m_map[im._id.toString()] = im.source_img
-						getOriginal_filter._id.$in.push ObjectId(im.source_img)
+						if im.type is "original"
+							originals.push im
+							o_m_map[im._id.toString()] = im._id.toString()
+						else
+							o_m_map[im._id.toString()] = im.source_img
+							getOriginal_filter._id.$in.push ObjectId(im.source_img)
 					for key, val of e_s_map
 						for vv,i in val
 							val[i] = o_m_map[vv]
-					that.selectList {col: "entity", filter: getOriginal_filter}, (err, originals)->
+					that.selectList {col: "entity", filter: getOriginal_filter}, (err, ogs)->
 						LOG.error err if err
 						return callback err if err
+						originals = originals.concat ogs
 						return callback "未能找到原文件" if !originals or originals.length is 0
 						is_pdf = /PDF|pdf/.test originals[0].img_name
 						o_n_map = {}
@@ -92,7 +98,7 @@ class TaskContext extends BussinessContext
 		cmd = sprintf.sprintf param.merge_cmd, {imgs: "image/" + param.images.join(" image/"), outFile: "resultData/" + param.file_name + ".PDF"}
 		exec cmd, (err, stdout, stderr, spent)->
 			if err
-				LOG.error e.stack
+				LOG.error err
 				return callback "ERROR：" + param.file_name
 			callback err
 

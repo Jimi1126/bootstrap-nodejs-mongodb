@@ -1,6 +1,6 @@
 $.namespace("homePage");
 
-HomePage = function () { }
+var HomePage = function () { }
 
 HomePage.prototype = {
 	loadUI: new LoadUI(),
@@ -16,7 +16,7 @@ HomePage.prototype = {
 		this.initCanvs();
 	},
 	adjustUI: function () {
-
+		$(".home_pg").attr("src", "../images/index_03.png");
 	},
 	bindEvent: function () {
 		$("#logout").bind("click", $.proxy(this.logoutEvent, this));

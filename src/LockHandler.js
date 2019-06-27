@@ -26,22 +26,42 @@
 
   LockHandler = class LockHandler {
     constructor(param) {
-      var opt1;
+      var opt1, opt2;
       param = param || {};
       opt1 = {
         timeout: param.timeout || MAX_WAITTIME,
         maxPending: param.pending || MAX_PENDING,
         domainReentrant: !!param.reentrant || domainReentrant
       };
-      this.opts = {
+      opt2 = {
         wait: param.timeout || MAX_WAITTIME,
         retryWait: param.retry || RETRY,
         retries: param.retries || RETRIES
       };
-      param.pollPeriod && (this.opts.pollPeriod = param.pollPeriod);
-      param.stale && (this.opts.stale = param.stale);
+      param.pollPeriod && (opt2.pollPeriod = param.pollPeriod);
+      param.stale && (opt2.stale = param.stale);
       this.asyncLock = new AsyncLock(opt1);
       this.lockFile = lockFile;
+      this.lockFile.old_lock = this.lockFile.lock;
+      this.lockFile.old_unlock = this.lockFile.unlock;
+      this.lockFile.lock = (name, opts = opt2, callback) => {
+        var filename;
+        if (!name) {
+          LOG.error("未输入锁键");
+          return callback("未输入锁键");
+        }
+        filename = `${lock_dir}/${name}`;
+        return this.lockFile.old_lock(filename, opts, callback);
+      };
+      this.lockFile.unlock = (name, callback) => {
+        var filename;
+        if (!name) {
+          LOG.error("未输入锁键");
+          return callback("未输入锁键");
+        }
+        filename = `${lock_dir}/${name}`;
+        return this.lockFile.old_unlock(filename, callback);
+      };
     }
 
   };

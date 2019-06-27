@@ -38,7 +38,7 @@
     }
 
     getEnterEntity(param, callback) {
-      var data, do_update, entity, entity_task, entitys, task, that;
+      var data, do_update, entity, entity_task, entitys, lockKey, task, that;
       that = this;
       data = param.data;
       task = param.task;
@@ -109,8 +109,15 @@
         callback(null, entity);
       }
       if (entitys.data.length < global.enter.entitys.MIN_CACHE) {
-        return locker.asyncLock.acquire(`enter-fatch-${data.project}-${data.task}-${data.stage}`, function(unlock) {
+        lockKey = `enter-fatch-${data.project}-${data.task}-${data.stage}`;
+        return locker.lockFile.lock(lockKey, function(err) {
           var num;
+          if (err) {
+            LOG.error(err);
+            return locker.lockFile.unlock(lockKey, function(err) {
+              return callback(err, null);
+            });
+          }
           if (!entitys.isEmpty && entitys.data.length < global.enter.entitys.MIN_CACHE) {
             num = global.enter.entitys.MAX_CACHE - entitys.data.length;
             return that.fatchEnterEntity({
@@ -127,7 +134,11 @@
               }
               if (entitys.isEmpty) {
                 return do_update(function() {
-                  unlock(null);
+                  locker.lockFile.unlock(lockKey, function(err) {
+                    if (err) {
+                      return LOG.error(err);
+                    }
+                  });
                   if (entity_task.done) {
                     return callback(null, "done");
                   } else {
@@ -135,12 +146,20 @@
                   }
                 });
               } else {
-                return unlock(null);
+                return locker.lockFile.unlock(lockKey, function(err) {
+                  if (err) {
+                    return LOG.error(err);
+                  }
+                });
               }
             });
           } else if (entitys.isEmpty && entitys.data.length === 0) {
             return do_update(function() {
-              unlock(null);
+              locker.lockFile.unlock(lockKey, function(err) {
+                if (err) {
+                  return LOG.error(err);
+                }
+              });
               if (entity_task.done) {
                 return callback(null, "done");
               } else {
@@ -148,9 +167,13 @@
               }
             });
           } else {
-            return unlock(null);
+            return locker.lockFile.unlock(lockKey, function(err) {
+              if (err) {
+                return LOG.error(err);
+              }
+            });
           }
-        }, function(err, ret) {});
+        });
       }
     }
 

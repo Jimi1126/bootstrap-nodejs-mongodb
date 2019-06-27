@@ -59,7 +59,12 @@ class EnterContext extends BussinessContext
       entitys.entering.push entity
       callback null, entity
     if entitys.data.length < global.enter.entitys.MIN_CACHE
-      locker.asyncLock.acquire "enter-fatch-#{data.project}-#{data.task}-#{data.stage}", (unlock)->
+      lockKey = "enter-fatch-#{data.project}-#{data.task}-#{data.stage}"
+      locker.lockFile.lock lockKey, (err)->
+        if err
+          LOG.error err
+          return locker.lockFile.unlock lockKey, (err)->
+            callback err, null
         if !entitys.isEmpty and entitys.data.length < global.enter.entitys.MIN_CACHE
           num = global.enter.entitys.MAX_CACHE - entitys.data.length
           that.fatchEnterEntity {data: data, limit: num}, (err)->
@@ -70,23 +75,26 @@ class EnterContext extends BussinessContext
               entity && callback null, entity
             if entitys.isEmpty
               do_update ->
-                unlock null
+                locker.lockFile.unlock lockKey, (err)->
+                  LOG.error err if err
                 if entity_task.done
                   callback null, "done"
                 else 
                   !entity && callback null, entity
             else
-              unlock null
+              locker.lockFile.unlock lockKey, (err)->
+                LOG.error err if err
         else if entitys.isEmpty and entitys.data.length is 0
           do_update ->
-            unlock null
+            locker.lockFile.unlock lockKey, (err)->
+              LOG.error err if err
             if entity_task.done
               callback null, "done"
             else
               !entity && callback null, entity
         else
-          unlock null
-      , (err, ret)->
+          locker.lockFile.unlock lockKey, (err)->
+            LOG.error err if err
   submitEnter: (param, callback)->
     data = param.data
     task = param.task

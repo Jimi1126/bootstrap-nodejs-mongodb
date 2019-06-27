@@ -20,15 +20,29 @@ class LockHandler
       maxPending: param.pending || MAX_PENDING
       domainReentrant: !!param.reentrant || domainReentrant
     }
-    @opts = {
+    opt2 = {
       wait: param.timeout || MAX_WAITTIME
       retryWait: param.retry || RETRY
       retries: param.retries || RETRIES
     }
-    param.pollPeriod && (@opts.pollPeriod = param.pollPeriod)
-    param.stale && (@opts.stale = param.stale)
+    param.pollPeriod && (opt2.pollPeriod = param.pollPeriod)
+    param.stale && (opt2.stale = param.stale)
 
     @asyncLock = new AsyncLock opt1
     @lockFile = lockFile
+    @lockFile.old_lock = @lockFile.lock
+    @lockFile.old_unlock = @lockFile.unlock
+    @lockFile.lock = (name, opts = opt2, callback)=>
+      if !name
+        LOG.error "未输入锁键"
+        return callback "未输入锁键"
+      filename = "#{lock_dir}/#{name}"
+      @lockFile.old_lock filename, opts, callback
+    @lockFile.unlock = (name, callback)=>
+      if !name
+        LOG.error "未输入锁键"
+        return callback "未输入锁键"
+      filename = "#{lock_dir}/#{name}"
+      @lockFile.old_unlock filename, callback
     
 module.exports = LockHandler
